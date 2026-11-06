@@ -3,7 +3,6 @@ package cz.landsman.moneta;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import org.jspecify.annotations.Nullable;
-import tools.jackson.databind.JsonNode;
 
 /**
  * One movement on an account.
@@ -39,29 +38,26 @@ public record Transaction(
         DEBIT
     }
 
-    static Transaction from(JsonNode node) {
-        var indicator = node.path("creditDebitIndicator").asString();
-        var direction = switch (indicator) {
+    static Transaction from(MonetaJson.TransactionJson json, String raw) {
+        var direction = switch (json.creditDebitIndicator()) {
             case "CRDT" -> Direction.CREDIT;
             case "DBIT" -> Direction.DEBIT;
-            default -> throw new IllegalArgumentException("Unknown creditDebitIndicator: " + indicator);
+            default ->
+                throw new IllegalArgumentException("Unknown creditDebitIndicator: " + json.creditDebitIndicator());
         };
-        var reference = node.path("entryDetails").path("transactionDetails").path("remittanceInformation")
-                .path("structured").path("creditorReferenceInformation").path("reference");
         return new Transaction(
-                node.path("entryReference").asString(),
-                node.path("status").asString(),
+                json.entryReference(),
+                json.status(),
                 direction,
-                node.path("amount").path("value").decimalValue(),
-                node.path("amount").path("currency").asString(),
-                date(node.path("bookingDate")),
-                date(node.path("valueDate")),
-                PaymentSymbols.parse(reference.isString() ? reference.stringValue() : null),
-                node.toString());
+                json.amount().value(),
+                json.amount().currency(),
+                date(json.bookingDate()),
+                date(json.valueDate()),
+                PaymentSymbols.parse(json.reference()),
+                raw);
     }
 
-    private static @Nullable LocalDate date(JsonNode node) {
-        var date = node.path("date");
-        return date.isString() ? LocalDate.parse(date.stringValue()) : null;
+    private static @Nullable LocalDate date(MonetaJson.@Nullable DateValue value) {
+        return value == null ? null : value.date();
     }
 }

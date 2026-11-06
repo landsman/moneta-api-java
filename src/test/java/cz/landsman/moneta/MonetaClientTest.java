@@ -10,12 +10,15 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.math.BigDecimal;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +35,7 @@ class MonetaClientTest {
 
     @BeforeEach
     void start() throws IOException {
-        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         server.start();
         var base = URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/");
         client = new MonetaClient(base, new MonetaClient.Partner("12345678", "Example s.r.o.", "Example app"));
@@ -68,8 +71,12 @@ class MonetaClientTest {
         var transactions = client.transactions(TOKEN, "acc-1", FROM, TO);
 
         assertEquals(2, transactions.size());
-        assertEquals("fromDate=2026-08-01&toDate=2026-08-31&size=100&page=0", requests.get(0).getRequestURI().getQuery());
-        assertEquals("fromDate=2026-08-01&toDate=2026-08-31&size=100&page=1", requests.get(1).getRequestURI().getQuery());
+        assertEquals(
+                "fromDate=2026-08-01&toDate=2026-08-31&size=100&page=0",
+                requests.get(0).getRequestURI().getQuery());
+        assertEquals(
+                "fromDate=2026-08-01&toDate=2026-08-31&size=100&page=1",
+                requests.get(1).getRequestURI().getQuery());
 
         var incoming = transactions.get(0);
         assertEquals("trx-1", incoming.entryReference());
@@ -92,7 +99,7 @@ class MonetaClientTest {
         answer("/api/v4/vip/aisp/my/accounts", 401, null);
         var refused = assertThrows(MonetaException.InvalidToken.class, () -> client.accounts(TOKEN));
         assertEquals(401, refused.status());
-        assertFalse(refused.getMessage().contains(TOKEN));
+        assertFalse(Objects.requireNonNull(refused.getMessage()).contains(TOKEN));
 
         server.removeContext("/api/v4/vip/aisp/my/accounts");
         answer("/api/v4/vip/aisp/my/accounts", 429, null);
@@ -106,7 +113,7 @@ class MonetaClientTest {
         assertEquals(503, failed.status());
     }
 
-    private void answer(String path, int status, String fixture) {
+    private void answer(String path, int status, @Nullable String fixture) {
         server.createContext(path, exchange -> {
             requests.add(exchange);
             respond(exchange, status, fixture == null ? "{}" : fixture(fixture));
@@ -114,7 +121,7 @@ class MonetaClientTest {
     }
 
     private static void respond(HttpExchange exchange, int status, String body) throws IOException {
-        var bytes = body.getBytes();
+        var bytes = body.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().add("Content-Type", "application/json");
         exchange.sendResponseHeaders(status, bytes.length);
         try (var out = exchange.getResponseBody()) {
@@ -124,7 +131,7 @@ class MonetaClientTest {
 
     private static String fixture(String name) {
         try (var in = Objects.requireNonNull(MonetaClientTest.class.getResourceAsStream("/moneta/" + name), name)) {
-            return new String(in.readAllBytes());
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

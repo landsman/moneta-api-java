@@ -8,7 +8,10 @@ import org.jspecify.annotations.Nullable;
  * SS:0001"}, separated by spaces or by commas depending on the source. Leading zeros are kept: a symbol is
  * an identifier, not a number.
  */
-public record PaymentSymbols(@Nullable String variable, @Nullable String constant, @Nullable String specific) {
+public record PaymentSymbols(
+        @Nullable String variable,
+        @Nullable String constant,
+        @Nullable String specific) {
 
     private static final Pattern VARIABLE = symbol("VS");
     private static final Pattern CONSTANT = symbol("KS");
