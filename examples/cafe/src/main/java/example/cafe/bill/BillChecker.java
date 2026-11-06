@@ -1,19 +1,23 @@
 package example.cafe.bill;
 
 import cz.landsman.moneta.AccessToken;
+import cz.landsman.moneta.Account;
 import cz.landsman.moneta.MonetaClient;
 import cz.landsman.moneta.MonetaException;
+import example.cafe.CafeProperties;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Looks for the unpaid bills among the incoming payments, every {@code cafe.check-moneta-every}. Reads from the day
- * the oldest unpaid bill was issued, since a payment cannot come before its bill.
+ * Looks for the unpaid bills among the payments into the café's account ({@code cafe.iban}), every {@code
+ * cafe.check-moneta-every}. Reads from the day the oldest unpaid bill was issued, since a payment cannot come
+ * before its bill, and only that account: a payment into another account the token opens pays no bill.
  */
 @Component
 class BillChecker {
@@ -24,12 +28,14 @@ class BillChecker {
     private final MonetaClient moneta;
     private final AccessToken token;
     private final Clock clock;
+    private final CafeProperties cafe;
 
-    BillChecker(BillRepository bills, MonetaClient moneta, AccessToken token, Clock clock) {
+    BillChecker(BillRepository bills, MonetaClient moneta, AccessToken token, Clock clock, CafeProperties cafe) {
         this.bills = bills;
         this.moneta = moneta;
         this.token = token;
         this.clock = clock;
+        this.cafe = cafe;
     }
 
     @Scheduled(fixedDelayString = "${cafe.check-moneta-every:PT30S}")
@@ -55,9 +61,14 @@ class BillChecker {
                 .orElseThrow();
         var from = LocalDate.ofInstant(oldest, clock.getZone());
         var today = LocalDate.now(clock);
-        var payments = moneta.accounts(token).stream()
-                .flatMap(account -> moneta.transactions(token, account.id(), from, today).stream())
-                .toList();
+        var account = cafeAccount();
+        if (account.isEmpty()) {
+            log.error(
+                    "The token does not open the café's account {} (cafe.iban), so no bill can be found paid",
+                    cafe.iban());
+            return 0;
+        }
+        var payments = moneta.transactions(token, account.get().id(), from, today);
         var matches = PaymentMatching.match(unpaid, payments);
         log.info(
                 "Checked {} unpaid bills against {} movements since {}: {} paid",
@@ -74,5 +85,12 @@ class BillChecker {
                     match.payment().entryReference());
         }
         return matches.size();
+    }
+
+    /** The account the bills are paid into: the one with cafe.iban, among those the token opens. */
+    private Optional<Account> cafeAccount() {
+        return moneta.accounts(token).stream()
+                .filter(account -> cafe.iban().equals(account.iban()))
+                .findFirst();
     }
 }
