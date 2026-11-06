@@ -16,13 +16,23 @@ permissions:
 
 jobs:
   build:
+    name: JDK ${{ matrix.jdk }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # Every JDK the jar promises to run on. It is compiled once per job on 25, for release 21; only the tests
+      # move. 17 is not here: release 21 classes do not load on it.
+      matrix:
+        jdk: [21, 25]
     steps:
       - uses: actions/checkout@v7
-      # The oldest JDK the library supports, so a newer one's API cannot slip in; mise.toml builds on 25 locally.
+      # The last one listed becomes JAVA_HOME, which Gradle runs on; the matrix JDK is found as a toolchain.
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: |
+            ${{ matrix.jdk }}
+            25
       - uses: gradle/actions/setup-gradle@v6
-      - run: make build
+      - run: ./gradlew -q javaToolchains
+      - run: make build TESTS_JDK=${{ matrix.jdk }}
