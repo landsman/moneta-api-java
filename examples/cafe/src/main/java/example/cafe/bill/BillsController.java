@@ -70,8 +70,8 @@ class BillsController {
 
     @GetMapping("/bills")
     @Operation(
-            summary = "List every bill, newest first",
-            description = "Paid or not, by which payment, first seen when.")
+            summary = "List every bill",
+            description = "Newest first; paid or not, by which payment, first seen when.")
     List<BillView> list() {
         return bills.findAllByOrderByIdDesc().stream().map(BillView::of).toList();
     }
