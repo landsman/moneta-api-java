@@ -16,6 +16,8 @@ for (var account : moneta.accounts(token)) {
 - **One client for many merchants.** The token goes with each call as an `AccessToken` and is never stored,
   logged or put in an exception message. Its own type keeps it from being swapped with the account id, and it
   refuses a value with a space or a control character, without repeating it.
+- **`incoming(…)`** is `transactions(…)` with only the money that came in, the call a shop checking payments
+  makes. Debits are dropped by the client; MONETA has no such filter that is known.
 - **Amounts are `Money`**, a `BigDecimal` with a `Currency`, parsed without a detour through `double`. MONETA
   sends them positive beside a direction; `amount()` is signed, negative for money out, so amounts add up as
   they are. `1500` and `1500.00` CZK are equal.

@@ -3,6 +3,7 @@ package cz.landsman.moneta;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.lang.System.Logger.Level;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -30,6 +31,9 @@ public final class MonetaClient implements AutoCloseable {
 
     /** MONETA's production host. */
     public static final URI PRODUCTION = URI.create("https://api.moneta.cz/");
+
+    /** The JDK's own logging API, so the library adds no dependency; Spring Boot routes it into its log. */
+    private static final System.Logger LOG = System.getLogger(MonetaClient.class.getName());
 
     private static final int PAGE_SIZE = 100;
     // ponytail: a backstop against a server that never sends an empty page; a million movements is far past it.
@@ -88,6 +92,22 @@ public final class MonetaClient implements AutoCloseable {
                 Query.NONE,
                 MonetaJson.AccountsPage.class,
                 node -> Account.from(bind(node, MonetaJson.AccountJson.class)));
+    }
+
+    /**
+     * The money that came in: {@link #transactions} with only {@link Transaction.Direction#CREDIT}, pending ones
+     * included. MONETA has no such filter of its own that is known, so all movements are read and the debits
+     * dropped here.
+     *
+     * @throws IllegalArgumentException when {@code to} is before {@code from}, or the account id is blank or a
+     *     dot segment
+     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
+     */
+    public List<Transaction> incoming(AccessToken token, String accountId, LocalDate from, LocalDate to) {
+        return transactions(token, accountId, from, to).stream()
+                .filter(t -> t.direction() == Transaction.Direction.CREDIT)
+                .toList();
     }
 
     /**
@@ -174,9 +194,11 @@ public final class MonetaClient implements AutoCloseable {
                     .header("application_name", partner.applicationName());
         }
         HttpResponse<String> response;
+        long started = System.nanoTime();
         try {
             response = http.send(request.build(), HttpResponse.BodyHandlers.ofString());
         } catch (IOException e) {
+            log(new Call(what, null, millisSince(started), null, e.toString()));
             throw new MonetaException.NoAnswer(what + " did not get an answer", e);
         } catch (InterruptedException e) {
             // Whoever owns the thread asked it to stop; that is not MONETA failing, so it is not a MonetaException
@@ -188,6 +210,13 @@ public final class MonetaClient implements AutoCloseable {
         }
         int status = response.statusCode();
         var message = what + " answered " + status;
+        // X-Request-Id is what MONETA's support asks for about one call. Never the token, never the body.
+        log(new Call(
+                what,
+                status,
+                millisSince(started),
+                response.headers().firstValue("X-Request-Id").orElse(null),
+                null));
         return switch (status / 100) {
             case 2 -> parse(what, () -> JSON.readValue(response.body(), type));
             default ->
@@ -197,6 +226,27 @@ public final class MonetaClient implements AutoCloseable {
                     default -> new MonetaException.HttpError(message, status, excerpt(response), retryAfter(response));
                 };
         };
+    }
+
+    /**
+     * One call to MONETA as it is logged, as JSON. Never the token, never the body.
+     *
+     * @param requestId MONETA's {@code X-Request-Id}, what its support asks for about one call
+     */
+    record Call(
+            String request,
+            @Nullable Integer status,
+            long millis,
+            @Nullable String requestId,
+            @Nullable String error) {}
+
+    /** Serialised only when debug is on. */
+    private static void log(Call call) {
+        LOG.log(Level.DEBUG, () -> JSON.writeValueAsString(call));
+    }
+
+    private static long millisSince(long nanos) {
+        return (System.nanoTime() - nanos) / 1_000_000;
     }
 
     private static @Nullable String excerpt(HttpResponse<String> response) {

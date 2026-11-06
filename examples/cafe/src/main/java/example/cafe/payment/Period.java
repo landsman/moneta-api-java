@@ -1,4 +1,4 @@
-package example.cafe;
+package example.cafe.payment;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;

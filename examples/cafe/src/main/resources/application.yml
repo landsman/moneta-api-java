@@ -1,6 +1,12 @@
 spring:
   application:
     name: cafe
+  # The bills, in a file under build/: they survive a restart, and `./gradlew clean` starts the café afresh.
+  datasource:
+    url: jdbc:h2:file:./build/cafe
+  sql:
+    init:
+      mode: always
 
 moneta:
   # From the environment only: MONETA_TOKEN=op://<vault>/<item>/<field> op run -- make dev
@@ -8,3 +14,17 @@ moneta:
 
 cafe:
   time-zone: Europe/Prague
+  # The café's own account at MONETA, which the bills' QR payments pay into. Public on purpose: a business prints
+  # it on every QR code and invoice.
+  iban: CZ5806000000000285985332
+  # How often unpaid bills are looked for among the incoming payments.
+  check-moneta-every: PT30S
+
+logging:
+  level:
+    # Every call to MONETA with its status, time and X-Request-Id; never the token.
+    cz.landsman.moneta: debug
+
+scalar:
+  # By summary, alphabetically: the summaries are worded so that it reads in the order a café works.
+  operation-sorter: alpha

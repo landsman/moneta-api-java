@@ -7,4 +7,6 @@ What ships is in [modules/](../modules): the client, `moneta-api`, and its
 [Spring Boot starter](../modules/moneta-api-spring-boot-starter/README.md), each with its own tests. Projects
 that use them the way a caller's build would, on several Spring Boot versions and from Kotlin, are in
 [testing/](../testing/README.md).
-`make dev` runs [an example café app](../examples/cafe/README.md) against a real account.
+`make dev` runs [an example café app](../examples/cafe/README.md) against a real account: it issues bills as QR
+payments and finds them paid. Try it by hand at http://localhost:8080/scalar, an API reference to call each
+endpoint from the browser.

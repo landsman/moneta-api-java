@@ -18,6 +18,7 @@ Partly verified against the live API, not on Maven Central yet: see [what is kno
 | [Kotlin and Spring Boot](.docs/compatibility.md) | what a Kotlin caller gets, and the one fix Spring Boot 3 before 3.5.13 needs |
 | [What is known about MONETA API](.docs/moneta-api.md) | what the live API showed, what is still open, what is not covered |
 | [Development](.docs/development.md) | build, tests, `make dev` against a real account |
+| [Example café](examples/cafe/README.md) | bills as QR payments, found paid; try it at http://localhost:8080/scalar after `make dev` |
 
 ## What it covers
 
