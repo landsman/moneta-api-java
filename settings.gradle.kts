@@ -5,5 +5,6 @@ include(
     ":testing:spring-boot:3.5.12",
     ":testing:spring-boot:3.5.16",
     ":testing:spring-boot:4.0.0",
+    ":testing:spring-boot:4.1.2",
     ":testing:kotlin",
 )
