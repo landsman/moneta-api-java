@@ -74,7 +74,11 @@ public final class MonetaClient implements AutoCloseable {
         }
     }
 
-    /** The accounts the token can see, all pages read. */
+    /**
+     * The accounts the token can see, all pages read.
+     *
+     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     */
     public List<Account> accounts(AccessToken token) {
         return readAll(
                 token,
@@ -85,8 +89,14 @@ public final class MonetaClient implements AutoCloseable {
     }
 
     /**
-     * Every transaction on the account between two dates, inclusive, all pages read. Pending ones are
-     * included; {@link Transaction#booked()} tells them apart.
+     * Every transaction on the account between two dates, all pages read. Both dates are assumed inclusive and
+     * pending movements assumed included ({@link Transaction#booked()} tells them apart); see the README for
+     * what the specification has yet to confirm. All or nothing: a failure on a later page discards the earlier
+     * ones, so read a long range month by month.
+     *
+     * @throws IllegalArgumentException when {@code to} is before {@code from}, or the account id is blank or a
+     *     dot segment
+     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
      */
     public List<Transaction> transactions(AccessToken token, String accountId, LocalDate from, LocalDate to) {
         if (to.isBefore(from)) {

@@ -33,6 +33,12 @@ dependencies {
 
 java {
     withSourcesJar()
+    withJavadocJar()
+}
+
+tasks.jar {
+    // Pinned, so a JPMS caller's `requires` does not change with the jar's file name.
+    manifest { attributes("Automatic-Module-Name" to "cz.landsman.moneta") }
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -91,4 +97,23 @@ tasks.check {
 // the scan, where a finding could not be acted on anyway.
 configurations.named("runtimeClasspath") {
     resolutionStrategy.activateDependencyLocking()
+}
+
+// Nothing else in the build resolves runtimeClasspath, so a stale lockfile would pass and Trivy would scan
+// versions that do not ship. Resolving it here fails the build on any drift; `make lock` rewrites the file.
+val verifyLocks =
+    tasks.register("verifyLocks") {
+        description = "Fails when gradle.lockfile no longer matches the runtime classpath."
+        group = "verification"
+        inputs.files(configurations.runtimeClasspath)
+        doLast {}
+    }
+
+tasks.check {
+    dependsOn(verifyLocks)
+}
+
+tasks.javadoc {
+    // A record's components are named well enough; an @param for each would only repeat the name.
+    (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:all,-missing", "-quiet")
 }
