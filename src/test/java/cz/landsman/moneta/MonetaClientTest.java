@@ -26,11 +26,13 @@ import java.util.Currency;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -44,6 +46,19 @@ class MonetaClientTest {
     private static final LocalDate TO = LocalDate.of(2026, 8, 31);
     private static final Currency CZK = Currency.getInstance("CZK");
     private static final JsonMapper JSON = JsonMapper.builder().build();
+
+    // language=JSON
+    private static final String ONE_ACCOUNT = """
+            {"accounts": [{"id": "a", "currency": "CZK"}]}""";
+    // language=JSON
+    private static final String NO_ACCOUNTS = """
+            {"accounts": []}""";
+    // language=JSON
+    private static final String NO_TRANSACTIONS = """
+            {"transactions": []}""";
+    // language=JSON
+    private static final String MAINTENANCE = """
+            {"status": "maintenance"}""";
 
     private final List<HttpExchange> requests = new ArrayList<>();
     private HttpServer server;
@@ -88,7 +103,7 @@ class MonetaClientTest {
 
         @Test
         void aRangeOfOneDayIsAllowed() {
-            answer(TRANSACTIONS, 200, json("{'transactions':[]}"));
+            answer(TRANSACTIONS, 200, NO_TRANSACTIONS);
             assertEquals(List.of(), client.transactions(TOKEN, "acc-1", FROM, FROM));
         }
 
@@ -131,10 +146,7 @@ class MonetaClientTest {
             server.createContext(ACCOUNTS, exchange -> {
                 requests.add(exchange);
                 var first = exchange.getRequestURI().getQuery().endsWith("page=0");
-                respond(
-                        exchange,
-                        200,
-                        first ? json("{'accounts':[{'id':'a','currency':'CZK'}]}") : json("{'accounts':[]}"));
+                respond(exchange, 200, first ? ONE_ACCOUNT : NO_ACCOUNTS);
             });
 
             assertEquals(1, client.accounts(TOKEN).size());
@@ -143,15 +155,15 @@ class MonetaClientTest {
 
         @Test
         void aNullPageCountReadsUntilAnEmptyPage() {
+            // language=JSON
+            var first = """
+                    {"accounts": [{"id": "a", "currency": "CZK"}], "pageCount": null}""";
+            // language=JSON
+            var empty = """
+                    {"accounts": [], "pageCount": null}""";
             server.createContext(ACCOUNTS, exchange -> {
                 requests.add(exchange);
-                var first = exchange.getRequestURI().getQuery().endsWith("page=0");
-                respond(
-                        exchange,
-                        200,
-                        first
-                                ? json("{'accounts':[{'id':'a','currency':'CZK'}],'pageCount':null}")
-                                : json("{'accounts':[],'pageCount':null}"));
+                respond(exchange, 200, exchange.getRequestURI().getQuery().endsWith("page=0") ? first : empty);
             });
 
             assertEquals(1, client.accounts(TOKEN).size());
@@ -159,19 +171,25 @@ class MonetaClientTest {
 
         @Test
         void aServerThatIgnoresThePageIsRefusedRatherThanReadThreeTimes() {
-            answer(ACCOUNTS, 200, json("{'accounts':[{'id':'a','currency':'CZK'}],'pageNumber':0,'pageCount':3}"));
+            // language=JSON
+            var alwaysPageZero = """
+                    {"accounts": [{"id": "a", "currency": "CZK"}], "pageNumber": 0, "pageCount": 3}""";
+            answer(ACCOUNTS, 200, alwaysPageZero);
             assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
         }
 
         @Test
         void aServerThatCountsPagesFromOneIsRefused() {
-            answer(ACCOUNTS, 200, json("{'accounts':[{'id':'a','currency':'CZK'}],'pageNumber':1,'pageCount':2}"));
+            // language=JSON
+            var firstPageIsOne = """
+                    {"accounts": [{"id": "a", "currency": "CZK"}], "pageNumber": 1, "pageCount": 2}""";
+            answer(ACCOUNTS, 200, firstPageIsOne);
             assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
         }
 
         @Test
         void theSamePageOverAndOverWithoutPageNumbersIsRefused() {
-            answer(ACCOUNTS, 200, json("{'accounts':[{'id':'a','currency':'CZK'}]}"));
+            answer(ACCOUNTS, 200, ONE_ACCOUNT);
             assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
             assertEquals(2, requests.size());
         }
@@ -269,32 +287,43 @@ class MonetaClientTest {
             assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
 
             server.removeContext(ACCOUNTS);
-            answer(ACCOUNTS, 200, json("{'accounts':[{'currency':'CZK'}]}"));
+            // language=JSON
+            var noId = """
+                    {"accounts": [{"currency": "CZK"}]}""";
+            answer(ACCOUNTS, 200, noId);
             assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
         }
 
-        @ParameterizedTest
-        @ValueSource(
-                strings = {
-                    "{'accounts':[{'id':'a','currency':'czk'}]}",
-                    "{'accounts':[{'id':'a','currency':'XYZ'}]}",
-                    "{'accounts':[null]}",
+        static Stream<String> wrongAccountsBodies() {
+            return Stream.of(
+                    // language=JSON
+                    """
+                    {"accounts": [{"id": "a", "currency": "czk"}]}""",
+                    // language=JSON
+                    """
+                    {"accounts": [{"id": "a", "currency": "XYZ"}]}""",
+                    // language=JSON
+                    """
+                    {"accounts": [null]}""",
                     "null",
-                    "{'status':'maintenance'}"
-                })
-        void anyAccountsBodyOfTheWrongShapeIsAnInvalidResponse(String body) {
-            answer(ACCOUNTS, 200, json(body));
-            assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+                    MAINTENANCE);
         }
 
         @ParameterizedTest
-        @ValueSource(
-                strings = {
-                    "{'transactions':[{'entryReference':'t','status':'BOOK','creditDebitIndicator':'CRDT','amount':{'value':1,'currency':''}}]}",
-                    "{'status':'maintenance'}"
-                })
+        @MethodSource("wrongAccountsBodies")
+        void anyAccountsBodyOfTheWrongShapeIsAnInvalidResponse(String body) {
+            answer(ACCOUNTS, 200, body);
+            assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+        }
+
+        static Stream<String> wrongTransactionsBodies() {
+            return Stream.of(movement("BOOK", "CRDT", "1", ""), MAINTENANCE);
+        }
+
+        @ParameterizedTest
+        @MethodSource("wrongTransactionsBodies")
         void anyTransactionsBodyOfTheWrongShapeIsAnInvalidResponse(String body) {
-            answer(TRANSACTIONS, 200, json(body));
+            answer(TRANSACTIONS, 200, body);
             assertThrows(MonetaException.InvalidResponse.class, () -> client.transactions(TOKEN, "acc-1", FROM, TO));
         }
 
@@ -310,7 +339,10 @@ class MonetaClientTest {
 
         @Test
         void anAccountWithoutACurrencyIsAnInvalidResponse() {
-            answer(ACCOUNTS, 200, json("{'accounts':[{'id':'a'}],'pageCount':1}"));
+            // language=JSON
+            var noCurrency = """
+                    {"accounts": [{"id": "a"}], "pageCount": 1}""";
+            answer(ACCOUNTS, 200, noCurrency);
             assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
         }
 
@@ -373,9 +405,12 @@ class MonetaClientTest {
 
         @Test
         void anErrorKeepsTheStartOfItsBodyOutOfTheMessage() {
-            answer(ACCOUNTS, 400, json("{'error':'unknown parameter size'}"));
+            // language=JSON
+            var error = """
+                    {"error": "unknown parameter size"}""";
+            answer(ACCOUNTS, 400, error);
             var failed = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
-            assertEquals(json("{'error':'unknown parameter size'}"), failed.body());
+            assertEquals(error, failed.body());
             assertFalse(Objects.requireNonNull(failed.getMessage()).contains("unknown parameter"));
 
             server.removeContext(ACCOUNTS);
@@ -496,22 +531,19 @@ class MonetaClientTest {
         }
     }
 
-    /** JSON written with single quotes, so a one-line body in a test needs no escaping. */
-    private static String json(String singleQuoted) {
-        return singleQuoted.replace('\'', '"');
-    }
-
-    /** A page holding one movement of 1 CZK with the given status and direction. */
+    /** {@code moneta/movement.json}, one movement of 1 CZK, with the given status and direction. */
     private static String movement(String status, String direction) {
         return movement(status, direction, "1", "CZK");
     }
 
     private static String movement(String status, String direction, String amount, String currency) {
-        return """
-                {"transactions": [{
-                  "entryReference": "t", "status": "%s", "creditDebitIndicator": "%s",
-                  "amount": {"value": %s, "currency": "%s"}
-                }], "pageCount": 1}""".formatted(status, direction, amount, currency);
+        var page = (ObjectNode) JSON.readTree(fixture("movement.json"));
+        var movement = (ObjectNode) page.get("transactions").get(0);
+        movement.put("status", status).put("creditDebitIndicator", direction);
+        ((ObjectNode) movement.get("amount"))
+                .put("value", new BigDecimal(amount))
+                .put("currency", currency);
+        return page.toString();
     }
 
     private void answerBothPages() {

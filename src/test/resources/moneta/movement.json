@@ -1,0 +1,11 @@
+{
+  "transactions": [
+    {
+      "entryReference": "t",
+      "status": "BOOK",
+      "creditDebitIndicator": "CRDT",
+      "amount": { "value": 1, "currency": "CZK" }
+    }
+  ],
+  "pageCount": 1
+}
