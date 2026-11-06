@@ -2,6 +2,8 @@ plugins {
     `java-library`
 }
 
+description = "Spring Boot auto-configuration for the MONETA API client"
+
 // Compiled against the oldest Spring Boot it supports; the application's own Spring Boot is what runs it, and
 // testing/spring-boot checks it on each version. Dependabot leaves this BOM alone (.github/dependabot.yml).
 val springBoot = dependencies.platform("org.springframework.boot:spring-boot-dependencies:3.5.16")
@@ -25,4 +27,5 @@ dependencies {
 
 java {
     withSourcesJar()
+    withJavadocJar()
 }

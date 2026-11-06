@@ -2,6 +2,8 @@ plugins {
     `java-library`
 }
 
+description = "A client for MONETA API, MONETA Money Bank's API for business accounts"
+
 dependencies {
     // Nullability annotations are part of the API, so Kotlin callers see String and String? correctly.
     api("org.jspecify:jspecify:1.0.1")
