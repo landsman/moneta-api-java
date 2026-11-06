@@ -19,4 +19,22 @@ Partly verified against the live API, not on Maven Central yet: see [what is kno
 | [What is known about MONETA API](.docs/moneta-api.md) | what the live API showed, what is still open, what is not covered |
 | [Development](.docs/development.md) | build, tests, `make dev` against a real account |
 
+## What it covers
+
+What MONETA API offers, per [its portal](https://apiportal.moneta.cz/pages/moneta/home.html), against what this
+client implements:
+
+| | MONETA API | This client |
+|---|:---:|:---:|
+| Accounts the token sees | ✅ | ✅ |
+| Transactions, pending and booked | ✅ | ✅ |
+| Card transactions | ✅ | ⬜ not checked |
+| Balances | ✅ | ⬜ |
+| Pending card transactions | ✅ | ⬜ |
+| Electronic statements | ✅ | ⬜ |
+| Overview of payment orders | ✅ | ⬜ |
+| Overview of standing orders | ✅ | ⬜ |
+| CZK payment orders, bulk included | ✅ | ⬜ |
+| Spring Boot auto-configuration | — | ✅ |
+
 Licence: [Apache 2.0](LICENSE)

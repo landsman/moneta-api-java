@@ -10,6 +10,10 @@ open with "Máte podnikatelský účet?", and the integrations it lists are book
 companies (POHODA, iÚčto with daňová evidence). Not personal accounts. Read 2026-11-06; not yet tried on a sole
 trader's account.
 
+No account yet: MONETA opens a business account, *Konto PRO podnikání*, [fully online](https://www.moneta.cz/ucty-a-karty/konto-pro-podnikani/online-sjednani)
+([the account](https://www.moneta.cz/ucty-a-karty/konto-pro-podnikani)); the API service is then activated in its
+Internet Banka as below.
+
 The service is free ("Služba Moneta API je zcela zdarma", [FAQ](https://www.moneta.cz/caste-dotazy/odpoved/jake-jsou-naklady-na-pouzivani-api)).
 
 ## The merchant: a token
