@@ -17,6 +17,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
+import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -422,6 +423,50 @@ class MonetaClientTest {
                 .build();
 
         assertEquals(1, following.accounts(TOKEN).size());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", " ", ".", ".."})
+    void refusesAnAccountIdThatIsNotOneSegment(String accountId) {
+        assertThrows(IllegalArgumentException.class, () -> client.transactions(TOKEN, accountId, FROM, TO));
+        assertTrue(requests.isEmpty());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"api.moneta.cz", "ftp://h/", "https://h/s?x=1", "https://h/s#f"})
+    void refusesABaseUriItCouldNotCall(String uri) {
+        var builder = MonetaClient.builder();
+        assertThrows(IllegalArgumentException.class, () -> builder.baseUri(URI.create(uri)));
+    }
+
+    @Test
+    void givesUpAfterTheRequestTimeout() {
+        server.createContext(ACCOUNTS, exchange -> {
+            sleep(Duration.ofSeconds(1));
+            respond(exchange, 200, fixture("accounts.json"));
+        });
+        var impatient = MonetaClient.builder()
+                .baseUri(base)
+                .requestTimeout(Duration.ofMillis(200))
+                .build();
+
+        long start = System.nanoTime();
+        var failed = assertThrows(MonetaException.NoAnswer.class, () -> impatient.accounts(TOKEN));
+        assertInstanceOf(HttpTimeoutException.class, failed.getCause());
+        assertTrue(Duration.ofNanos(System.nanoTime() - start).compareTo(Duration.ofMillis(900)) < 0);
+    }
+
+    @Test
+    void closesOnlyTheHttpClientItMade() {
+        answer(ACCOUNTS, 200, fixture("accounts.json"));
+        var own = MonetaClient.builder().baseUri(base).build();
+        own.close();
+        assertThrows(MonetaException.NoAnswer.class, () -> own.accounts(TOKEN));
+
+        var http = HttpClient.newHttpClient();
+        MonetaClient.builder().baseUri(base).httpClient(http).build().close();
+        var reused = MonetaClient.builder().baseUri(base).httpClient(http).build();
+        assertEquals(1, reused.accounts(TOKEN).size());
     }
 
     @Test

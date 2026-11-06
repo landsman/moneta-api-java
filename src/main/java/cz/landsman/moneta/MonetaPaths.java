@@ -8,6 +8,10 @@ final class MonetaPaths {
     static final String ACCOUNTS = AISP + "accounts";
 
     static String transactions(String accountId) {
+        // URI.resolve drops dot segments, so ".." would call a different endpoint.
+        if (accountId.isBlank() || accountId.equals(".") || accountId.equals("..")) {
+            throw new IllegalArgumentException("accountId is blank or a dot segment");
+        }
         return ACCOUNTS + "/" + Query.encode(accountId) + "/transactions";
     }
 

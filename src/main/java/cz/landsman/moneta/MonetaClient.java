@@ -22,9 +22,10 @@ import tools.jackson.databind.json.JsonMapper;
  * Reads accounts and their transactions. One instance serves any number of merchants: the token is passed
  * with each call and never kept, so it cannot end up in a {@code toString()} or a heap dump of the client.
  *
- * <p>Thread-safe.
+ * <p>Thread-safe; one per application is enough. {@link #close()} releases the HTTP client it made itself, not
+ * one passed to {@link Builder#httpClient}.
  */
-public final class MonetaClient {
+public final class MonetaClient implements AutoCloseable {
 
     /** MONETA's production host. */
     public static final URI PRODUCTION = URI.create("https://api.moneta.cz/");
@@ -41,7 +42,9 @@ public final class MonetaClient {
             .build();
 
     private final HttpClient http;
+    private final boolean ownsHttp;
     private final URI baseUri;
+    private final Duration requestTimeout;
     private final @Nullable Partner partner;
 
     /** A client for production, sending no partner headers. */
@@ -50,15 +53,25 @@ public final class MonetaClient {
     }
 
     private MonetaClient(Builder builder) {
+        this.ownsHttp = builder.http == null;
         this.http = builder.http != null
                 ? builder.http
                 : HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
         this.baseUri = builder.baseUri;
+        this.requestTimeout = builder.requestTimeout;
         this.partner = builder.partner;
     }
 
+    /** Starts a client for production; set only what differs. */
     public static Builder builder() {
         return new Builder();
+    }
+
+    @Override
+    public void close() {
+        if (ownsHttp) {
+            http.close();
+        }
     }
 
     /** The accounts the token can see, all pages read. */
@@ -139,7 +152,7 @@ public final class MonetaClient {
     /** {@code what} names the request in messages: the query carries only dates and paging, the token is not in it. */
     private <T> T get(AccessToken token, String what, String pathAndQuery, Class<T> type) {
         var request = HttpRequest.newBuilder(baseUri.resolve(pathAndQuery))
-                .timeout(Duration.ofSeconds(30))
+                .timeout(requestTimeout)
                 .header("Authorization", "Bearer " + token.value())
                 .header("Accept", "application/json");
         if (partner != null) {
@@ -233,13 +246,29 @@ public final class MonetaClient {
     public static final class Builder {
 
         private URI baseUri = PRODUCTION;
+        private Duration requestTimeout = Duration.ofSeconds(30);
         private @Nullable Partner partner;
         private @Nullable HttpClient http;
 
         private Builder() {}
 
-        /** MONETA's host, {@link #PRODUCTION} or the sandbox's. A path in it is kept. */
+        /**
+         * MONETA's host, {@link #PRODUCTION} or the sandbox's. A path in it is kept.
+         *
+         * @throws IllegalArgumentException unless it is an absolute http(s) URI with a host and without a query
+         *     or a fragment, so a wrong setting fails at startup rather than on the first call
+         */
         public Builder baseUri(URI baseUri) {
+            var scheme = baseUri.getScheme();
+            boolean web = "https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme);
+            if (!web
+                    || baseUri.getHost() == null
+                    || baseUri.getRawQuery() != null
+                    || baseUri.getRawFragment() != null) {
+                throw new IllegalArgumentException(
+                        "baseUri must be an absolute http(s) URI with a host, without a query or a fragment: "
+                                + baseUri);
+            }
             var text = baseUri.toString();
             this.baseUri = text.endsWith("/") ? baseUri : URI.create(text + "/");
             return this;
@@ -257,6 +286,13 @@ public final class MonetaClient {
             return this;
         }
 
+        /** How long one request may take, connecting included; 30 seconds unless set. */
+        public Builder requestTimeout(Duration requestTimeout) {
+            this.requestTimeout = requestTimeout;
+            return this;
+        }
+
+        /** The client; the builder can be reused for another. */
         public MonetaClient build() {
             return new MonetaClient(this);
         }
