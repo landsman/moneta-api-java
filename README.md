@@ -8,6 +8,7 @@ Partly verified against the live API, not on Maven Central yet: see [what is kno
 
 | Read | For |
 |---|---|
+| [Getting access](.docs/access.md) | who can use MONETA API, the merchant's token, the developer portal |
 | [Using the client](.docs/usage.md) | accounts, transactions, money, symbols, failures |
 | [Spring Boot starter](modules/moneta-api-spring-boot-starter/README.md) | `moneta.*` in application.yml, a `MonetaClient` bean |
 | [Kotlin and Spring Boot](.docs/compatibility.md) | what a Kotlin caller gets, and the one fix Spring Boot 3 before 3.5.13 needs |

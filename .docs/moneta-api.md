@@ -7,6 +7,38 @@ on 2026-11-06 they were checked against a live business account with pending inc
 payments, and held, except the pending dates now handled. Booked movements are not yet checked. Not on Maven
 Central until they are.
 
+## MONETA API and PSD2
+
+MONETA runs two APIs over the same accounts:
+
+| | MONETA API | PSD2 |
+|---|---|---|
+| Who uses it | the account holder, or an application they give a token to | a licensed AISP or PISP only |
+| Price | free | — |
+| Specification | behind the [developer portal](https://apiportal.moneta.cz/pages/moneta/home.html) | ČOBS v7 with deviations ([PDF](https://www.moneta.cz/documents/20143/12541023/mmb-psd2-differences.pdf), 2025-08-14) |
+
+This client is for MONETA API. What it offers, per the portal: balances, transactions (card ones included),
+payment orders, standing orders, pending card transactions, electronic statements, CZK payment orders including
+bulk. The client reads accounts and transactions so far. Getting a token and a portal account:
+[access](access.md).
+
+MONETA's PSD2 deviations from ČOBS, as a hint of what MONETA API looks like (an inference; several held on the
+live API):
+
+- Transactions are `GET /my/accounts/{id}/transactions`; the id is `transactionIdentification`, not `paymentId`;
+  `additionalRemittanceInformation`, `charges`, `amountDetails` and others are missing; `enteredDate` is extra.
+- Payment symbols are one string, `"VS:123456,KS:456789,SS:879213546"`, not ČOBS's array.
+- Not found is a 404, not ČOBS's 400.
+
+## Where the first guesses came from
+
+The only public client before this one is [sloukapetr/moneta-laravel-package](https://github.com/sloukapetr/moneta-laravel-package)
+(PHP, MIT). Its fixtures are its author's own, so it was read as leads, not a specification: the host and paths
+under `api/v4/vip/aisp/my/`, `Authorization: Bearer`, the partner headers, a transaction's keys, the symbols in
+`creditorReferenceInformation.reference`, paging by `pageNumber`, `pageSize` and `pageCount`. It also names
+payments under `…/vip/pisp/…` and OAuth client credentials at `/auth/oauth/v2/token` with scope `vip_sandbox`,
+which this client does not use. It does not page; this client does.
+
 ## What the live API showed (2026-11-06)
 
 - `fromDate`, `toDate`, `page` and `size` are the real names: `size=100` comes back as `pageSize: 100`, a
