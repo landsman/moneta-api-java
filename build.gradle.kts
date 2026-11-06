@@ -81,7 +81,7 @@ val jacksonFloor =
         resolutionStrategy.force(
             "tools.jackson.core:jackson-databind:3.0.4",
             "tools.jackson.core:jackson-core:3.0.4",
-            "com.fasterxml.jackson.core:jackson-annotations:2.20",
+            "com.fasterxml.jackson.core:jackson-annotations:2.22",
         )
     }
 
