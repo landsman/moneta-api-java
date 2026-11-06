@@ -15,7 +15,7 @@ endpoint from the browser.
 
 A tag `vX.Y.Z` on `main` releases `X.Y.Z`:
 
-    git tag v0.1.0 && git push origin v0.1.0
+    gh release create v0.1.0 --target main --generate-notes   # or: git tag v0.1.0 && git push origin v0.1.0
 
 [release.yml](../.github/workflows/release.yml) then builds, tests and publishes both jars to GitHub Packages.
 Every push to `main` publishes the next snapshot the same way. `make publish` is what it runs; from a laptop it

@@ -27,11 +27,6 @@ tasks.jar {
     manifest { attributes("Automatic-Module-Name" to "cz.landsman.moneta") }
 }
 
-tasks.javadoc {
-    // A record's components are named well enough; an @param for each would only repeat the name.
-    (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:all,-missing", "-quiet")
-}
-
 // The oldest Jackson a caller is likely to resolve this to: Spring Boot 4.0.0's. Running the same tests on it
 // catches a call to an API newer than that, which would compile here and fail there with NoSuchMethodError.
 val jacksonFloor =
