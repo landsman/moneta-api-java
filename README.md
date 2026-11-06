@@ -100,7 +100,11 @@ specification.
 - How `business_name` is sent with diacritics; the client accepts only ASCII there for now.
 - Whether the `identification_number`, `business_name` and `application_name` headers are required, and whose
   values they hold.
-- Whether a token can be read-only, how long it lives, and the rate limits.
+- Whether a token can be read-only, and how long it lives.
+- The rate limits: per token, per application or per partner, over what window, and whether a 429 carries
+  `Retry-After`. Until they are known a 429 fails the whole read. If a normal read can hit them, the client
+  will retry the page it stopped on, only after a short `Retry-After` and a few times, and that can be turned
+  off; a limit shared across merchants still needs a limiter on the caller's side.
 
 ## Build
 
