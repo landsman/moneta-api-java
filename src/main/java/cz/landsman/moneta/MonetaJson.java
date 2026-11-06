@@ -77,6 +77,7 @@ final class MonetaJson {
             String status,
             String creditDebitIndicator,
             Amount amount,
+            @Nullable DateValue enteredDate,
             @Nullable DateValue bookingDate,
             @Nullable DateValue valueDate,
             @Nullable EntryDetails entryDetails) {
@@ -108,11 +109,8 @@ final class MonetaJson {
         }
     }
 
-    record DateValue(LocalDate date) {
-        DateValue {
-            requireNonNull(date, "date");
-        }
-    }
+    /** A pending movement sends {@code {"date": null}} for its booking and value dates (live, 2026-11-06). */
+    record DateValue(@Nullable LocalDate date) {}
 
     record EntryDetails(@Nullable TransactionDetails transactionDetails) {}
 

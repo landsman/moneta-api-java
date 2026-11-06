@@ -4,7 +4,7 @@
       "id": "acc-1",
       "nameI18N": "Business account",
       "currency": "CZK",
-      "identification": { "iban": "CZ6506000000000123456789", "other": "123456789" },
+      "identification": { "iban": "CZ0206000000000000001337", "other": "1337" },
       "ownersNames": ["Example s.r.o."],
       "servicer": { "bankCode": "0600", "bic": "AGBACZPP", "countryCode": "CZ" }
     }

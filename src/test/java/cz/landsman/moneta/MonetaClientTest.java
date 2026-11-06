@@ -92,7 +92,7 @@ class MonetaClientTest {
 
             var accounts = client.accounts(TOKEN);
 
-            assertEquals(List.of(new Account("acc-1", "CZ6506000000000123456789", CZK, "Business account")), accounts);
+            assertEquals(List.of(new Account("acc-1", "CZ0206000000000000001337", CZK, "Business account")), accounts);
             var headers = requests.getFirst().getRequestHeaders();
             assertEquals("Bearer " + TOKEN.value(), headers.getFirst("Authorization"));
             assertEquals("application/json", headers.getFirst("Accept"));
@@ -221,6 +221,37 @@ class MonetaClientTest {
             assertEquals(LocalDate.of(2026, 8, 2), outgoing.bookingDate());
             assertNull(outgoing.valueDate());
             assertEquals(new PaymentSymbols(null, null, null), outgoing.symbols());
+        }
+
+        @Test
+        void aPendingMovementHasOnlyTheDateItWasEntered() {
+            // Recorded from the live API, accounts and ids replaced.
+            answer(TRANSACTIONS, 200, fixture("live/pending-incoming.json"));
+
+            var pending = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
+
+            assertEquals(Transaction.Status.PENDING, pending.status());
+            assertEquals(new Money(new BigDecimal("1"), CZK), pending.amount());
+            assertEquals(LocalDate.of(2026, 11, 6), pending.enteredDate());
+            assertNull(pending.bookingDate());
+            assertNull(pending.valueDate());
+            assertEquals(new PaymentSymbols(null, null, null), pending.symbols());
+        }
+
+        @Test
+        void readsSymbolsAndSignsAnOutgoingPaymentAsMonetaSendsThem() {
+            // Recorded from the live API: a DBIT comes with a positive value, the symbols in one string.
+            answer(TRANSACTIONS, 200, fixture("live/pending-symbols-and-outgoing.json"));
+
+            var transactions = client.transactions(TOKEN, "acc-1", FROM, TO);
+
+            var incoming = transactions.get(0);
+            assertEquals(new PaymentSymbols("1337", "1000", "76789"), incoming.symbols());
+            assertEquals(new Money(new BigDecimal("1"), CZK), incoming.amount());
+            var outgoing = transactions.get(1);
+            assertEquals(Transaction.Direction.DEBIT, outgoing.direction());
+            assertEquals(new Money(new BigDecimal("-1"), CZK), outgoing.amount());
+            assertEquals(new PaymentSymbols("1337", null, null), outgoing.symbols());
         }
 
         @Test

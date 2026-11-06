@@ -9,6 +9,9 @@ import org.jspecify.annotations.Nullable;
  *
  * @param entryReference MONETA's id of the movement
  * @param amount signed: positive for money in, negative for money out, so amounts add up as they are
+ * @param enteredDate the day the bank took the movement in; the only date a pending one has
+ * @param bookingDate null while the movement is pending
+ * @param valueDate null while the movement is pending
  * @param raw the movement as MONETA sent it, re-serialised as JSON (key order and number formatting may
  *     differ), for whatever this record does not map; left out of {@link #toString()}, since it names the
  *     counterparty
@@ -18,6 +21,7 @@ public record Transaction(
         Status status,
         Direction direction,
         Money amount,
+        @Nullable LocalDate enteredDate,
         @Nullable LocalDate bookingDate,
         @Nullable LocalDate valueDate,
         PaymentSymbols symbols,
@@ -30,8 +34,8 @@ public record Transaction(
 
     @Override
     public String toString() {
-        return "Transaction[entryReference=%s, status=%s, direction=%s, amount=%s, bookingDate=%s, valueDate=%s, symbols=%s]"
-                .formatted(entryReference, status, direction, amount, bookingDate, valueDate, symbols);
+        return "Transaction[entryReference=%s, status=%s, direction=%s, amount=%s, enteredDate=%s, bookingDate=%s, valueDate=%s, symbols=%s]"
+                .formatted(entryReference, status, direction, amount, enteredDate, bookingDate, valueDate, symbols);
     }
 
     /** Which way the money moved; {@link #amount()} already carries it as the sign. */
@@ -76,6 +80,7 @@ public record Transaction(
                 status,
                 direction,
                 amount,
+                date(json.enteredDate()),
                 date(json.bookingDate()),
                 date(json.valueDate()),
                 PaymentSymbols.parse(json.reference()),
