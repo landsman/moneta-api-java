@@ -61,8 +61,15 @@ spotless {
     }
 }
 
+// Compiled once, for release 21, on whatever JDK runs Gradle; the tests run on the JDK -PtestsJdk names, so CI's
+// matrix checks the jar on each JDK it supports. Without it they run on Gradle's own.
+val testsJdk = providers.gradleProperty("testsJdk")
+
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    if (testsJdk.isPresent) {
+        javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(testsJdk.get()) }
+    }
 }
 
 // The oldest Jackson a caller is likely to resolve this to: Spring Boot 4.0.0's. Running the same tests on it
