@@ -26,7 +26,7 @@ import org.springframework.web.server.ResponseStatusException;
  * rather than at the next scheduled round.
  */
 @RestController
-@Tag(name = "Bills", description = "Bills the café issues, and whether they are paid")
+@Tag(name = "Bills")
 class BillsController {
 
     private final BillRepository bills;

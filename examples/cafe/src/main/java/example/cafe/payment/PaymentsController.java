@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
  * wins over the period. Only money in; the counterparty's account and name stay out of the answer.
  */
 @RestController
-@Tag(name = "Payments", description = "Incoming payments on the café's account, by period or range")
+@Tag(name = "Payments")
 class PaymentsController {
 
     private final MonetaClient moneta;
