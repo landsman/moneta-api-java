@@ -1,0 +1,124 @@
+{
+  "pageCount": 1,
+  "pageNumber": 0,
+  "pageSize": 100,
+  "transactions": [
+    {
+      "amount": {
+        "currency": "CZK",
+        "value": 1.00
+      },
+      "bankTransactionCode": {
+        "proprietary": {
+          "code": "10000301000",
+          "issuer": "CNB"
+        }
+      },
+      "bookingDate": {
+        "date": null
+      },
+      "creditDebitIndicator": "CRDT",
+      "enteredDate": {
+        "date": "2026-11-06"
+      },
+      "entryDetails": {
+        "transactionDetails": {
+          "references": {
+            "clearingSystemReference": "BLOCKED_PAYMENT_ORDER_DOMESTIC",
+            "endToEndIdentification": "1337",
+            "paymentInformationIdentification": "76789",
+            "transactionDescription": ""
+          },
+          "relatedParties": {
+            "creditorAccount": {
+              "identification": {
+                "other": {
+                  "identification": "1337"
+                }
+              }
+            },
+            "debtorAccount": {
+              "identification": {
+                "other": {
+                  "identification": "4040404040/0800"
+                }
+              }
+            }
+          },
+          "remittanceInformation": {
+            "structured": {
+              "creditorReferenceInformation": {
+                "reference": "VS:1337 KS:1000 SS:76789"
+              }
+            },
+            "unstructured": "Okamžitá platba"
+          }
+        }
+      },
+      "entryReference": "2600000000000000002",
+      "reversalIndicator": false,
+      "status": "PDNG",
+      "valueDate": {
+        "date": null
+      }
+    },
+    {
+      "amount": {
+        "currency": "CZK",
+        "value": 1.00
+      },
+      "bankTransactionCode": {
+        "proprietary": {
+          "code": "10000301000",
+          "issuer": "CNB"
+        }
+      },
+      "bookingDate": {
+        "date": null
+      },
+      "creditDebitIndicator": "DBIT",
+      "enteredDate": {
+        "date": "2026-11-06"
+      },
+      "entryDetails": {
+        "transactionDetails": {
+          "references": {
+            "clearingSystemReference": "BLOCKED_PAYMENT_ORDER_DOMESTIC",
+            "endToEndIdentification": "1337",
+            "transactionDescription": ""
+          },
+          "relatedParties": {
+            "creditorAccount": {
+              "identification": {
+                "other": {
+                  "identification": "1010101010/0100"
+                }
+              }
+            },
+            "debtorAccount": {
+              "identification": {
+                "other": {
+                  "identification": "1337"
+                }
+              }
+            }
+          },
+          "remittanceInformation": {
+            "structured": {
+              "creditorReferenceInformation": {
+                "reference": "VS:1337"
+              }
+            },
+            "unstructured": "Okamžitá platba"
+          }
+        }
+      },
+      "entryReference": "2600000000000000003",
+      "reversalIndicator": false,
+      "status": "PDNG",
+      "valueDate": {
+        "date": null
+      }
+    }
+  ]
+}

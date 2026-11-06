@@ -239,6 +239,22 @@ class MonetaClientTest {
         }
 
         @Test
+        void readsSymbolsAndSignsAnOutgoingPaymentAsMonetaSendsThem() {
+            // Recorded from the live API: a DBIT comes with a positive value, the symbols in one string.
+            answer(TRANSACTIONS, 200, fixture("live/pending-symbols-and-outgoing.json"));
+
+            var transactions = client.transactions(TOKEN, "acc-1", FROM, TO);
+
+            var incoming = transactions.get(0);
+            assertEquals(new PaymentSymbols("1337", "1000", "76789"), incoming.symbols());
+            assertEquals(new Money(new BigDecimal("1"), CZK), incoming.amount());
+            var outgoing = transactions.get(1);
+            assertEquals(Transaction.Direction.DEBIT, outgoing.direction());
+            assertEquals(new Money(new BigDecimal("-1"), CZK), outgoing.amount());
+            assertEquals(new PaymentSymbols("1337", null, null), outgoing.symbols());
+        }
+
+        @Test
         void keepsTheCounterpartyInRawButOutOfToString() {
             answerBothPages();
 
