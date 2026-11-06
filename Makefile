@@ -7,7 +7,7 @@ help: ## show this help
 		/^[a-zA-Z0-9_.-]+:.*##/ { printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
 ##@ Build
-.PHONY: build test lock dev format lint
+.PHONY: build test lock dev publish publish-local format lint
 build: ## check formatting, compile with error prone and nullaway, test and package the jar; TESTS_JDK=21 tests on that JDK
 	./gradlew build $(if $(TESTS_JDK),-PtestsJdk=$(TESTS_JDK))
 
@@ -20,6 +20,12 @@ lock: ## rewrite modules/moneta-api/gradle.lockfile after a dependency changes, 
 dev: ## run the example café app on :8080 against the account MONETA_TOKEN opens, see examples/cafe/README.md
 	@test -n "$${MONETA_TOKEN:-}" || { echo 'MONETA_TOKEN is empty: run it as MONETA_TOKEN=op://<vault>/<item>/<field> op run -- make dev' >&2; exit 1; }
 	./gradlew :examples:cafe:bootRun
+
+publish: ## build and publish both jars to GitHub Packages, as the release workflow does; RELEASE_VERSION=v0.1.0 releases
+	./gradlew build publish $(if $(RELEASE_VERSION),-PreleaseVersion=$(RELEASE_VERSION:v%=%))
+
+publish-local: ## install both jars into ~/.m2, to try them in another project without a token
+	./gradlew publishToMavenLocal
 
 ##@ Code style
 format: ## reformat java and gradle files in place
