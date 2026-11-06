@@ -28,8 +28,11 @@ import org.springframework.core.env.Environment;
  */
 class MonetaInSpringBootTest {
 
-    private static final String TRANSACTIONS = "{\"transactions\":[{\"entryReference\":\"t\",\"status\":\"BOOK\","
-            + "\"creditDebitIndicator\":\"DBIT\",\"amount\":{\"value\":12.5,\"currency\":\"CZK\"}}],\"pageCount\":1}";
+    private static final String TRANSACTIONS = """
+            {"transactions": [{
+              "entryReference": "t", "status": "BOOK", "creditDebitIndicator": "DBIT",
+              "amount": {"value": 12.5, "currency": "CZK"}
+            }], "pageCount": 1}""";
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
