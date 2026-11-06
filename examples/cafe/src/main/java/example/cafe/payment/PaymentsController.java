@@ -2,7 +2,6 @@ package example.cafe.payment;
 
 import cz.landsman.moneta.AccessToken;
 import cz.landsman.moneta.MonetaClient;
-import cz.landsman.moneta.Transaction;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,8 +48,7 @@ class PaymentsController {
                     LocalDate to) {
         var range = range(period, from, to);
         return moneta.accounts(token).stream()
-                .flatMap(account -> moneta.transactions(token, account.id(), range.from(), range.to()).stream())
-                .filter(t -> t.direction() == Transaction.Direction.CREDIT)
+                .flatMap(account -> moneta.incoming(token, account.id(), range.from(), range.to()).stream())
                 .map(ReceivedPayment::of)
                 .toList();
     }

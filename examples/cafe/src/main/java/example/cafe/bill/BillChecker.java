@@ -7,7 +7,6 @@ import cz.landsman.moneta.MonetaException;
 import example.cafe.CafeProperties;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.util.Comparator;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,8 +15,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Looks for the unpaid bills among the payments into the café's account ({@code cafe.iban}), every {@code
- * cafe.check-moneta-every}. Reads from the day the oldest unpaid bill was issued, since a payment cannot come
- * before its bill, and only that account: a payment into another account the token opens pays no bill.
+ * cafe.check-moneta-every}. Reads yesterday and today only, and only that account: a payment into another account
+ * the token opens pays no bill.
  */
 @Component
 class BillChecker {
@@ -54,12 +53,10 @@ class BillChecker {
             log.debug("No unpaid bills, nothing to look for");
             return;
         }
-        var oldest = unpaid.stream()
-                .map(Bill::createdAt)
-                .min(Comparator.naturalOrder())
-                .orElseThrow();
-        var from = LocalDate.ofInstant(oldest, clock.getZone());
         var today = LocalDate.now(clock);
+        // Yesterday too: a payment made at 23:59:55 is dated yesterday, and the first check after midnight would miss
+        // it for good if it read today alone. Two days stay a fixed, small read however old an unpaid bill is.
+        var from = today.minusDays(1);
         var account = cafeAccount();
         if (account.isEmpty()) {
             log.error(
@@ -67,7 +64,7 @@ class BillChecker {
                     cafe.iban());
             return;
         }
-        var payments = moneta.transactions(token, account.get().id(), from, today);
+        var payments = moneta.incoming(token, account.get().id(), from, today);
         var matches = PaymentMatching.match(unpaid, payments);
         log.info(
                 "Checked {} unpaid bills against {} movements since {}: {} paid",
