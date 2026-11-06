@@ -162,7 +162,8 @@ public final class MonetaClient {
     }
 
     private static <T> T bind(JsonNode node, Class<T> type) {
-        return parse("a " + type.getSimpleName(), () -> JSON.treeToValue(node, type));
+        // readerFor, not treeToValue(JsonNode, Class): that overload is 3.1+, and Spring Boot 4.0.0-4.0.3 ship 3.0.
+        return parse("a " + type.getSimpleName(), () -> JSON.readerFor(type).readValue(node));
     }
 
     /** Anything thrown while reading a body is MONETA's answer not having the expected shape. */

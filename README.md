@@ -41,6 +41,30 @@ for (var account : moneta.accounts(token)) {
 - **Records may gain components in a minor version** before 1.0. Read them by accessor; a record pattern over
   `Transaction` or `Account` would break on the next field.
 
+## Spring Boot 3
+
+The library uses Jackson 3, which lives beside a Spring Boot 3 application's Jackson 2 without conflict, except
+for one jar the two share: `com.fasterxml.jackson.core:jackson-annotations`. Jackson 3.2 needs 2.21 or newer,
+and Spring Boot's BOM pins it lower up to 3.5.12, so the client fails to load with `NoClassDefFoundError`. On
+those versions raise it in your own dependency management; Jackson 2.18 databind runs on it.
+
+```xml
+<!-- Maven, in <dependencyManagement><dependencies> -->
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-annotations</artifactId>
+    <version>2.21</version>
+</dependency>
+```
+
+```kotlin
+// Gradle with io.spring.dependency-management
+dependencyManagement { dependencies { dependency("com.fasterxml.jackson.core:jackson-annotations:2.21") } }
+```
+
+Spring Boot 3.5.13 and newer, and every Spring Boot 4, need nothing. The tests also run on Jackson 3.0.4, the
+oldest Spring Boot 4 ships (`make build` does both).
+
 ## Not covered yet
 
 Payments (PISP), balances, statements, OAuth client credentials for the sandbox. Each waits for the
