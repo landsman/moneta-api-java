@@ -1,0 +1,22 @@
+{
+  "transactions": [
+    {
+      "entryReference": "trx-1",
+      "status": "BOOK",
+      "creditDebitIndicator": "CRDT",
+      "amount": { "currency": "CZK", "value": 1234.10 },
+      "bookingDate": { "date": "2026-08-01" },
+      "valueDate": { "date": "2026-08-01" },
+      "entryDetails": {
+        "transactionDetails": {
+          "remittanceInformation": {
+            "structured": { "creditorReferenceInformation": { "reference": "VS:2026000123 KS:0308 SS:0001" } }
+          }
+        }
+      }
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 1,
+  "pageCount": 2
+}
