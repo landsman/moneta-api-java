@@ -1,0 +1,14 @@
+{
+  "transactions": [
+    {
+      "entryReference": "trx-2",
+      "status": "PDNG",
+      "creditDebitIndicator": "DBIT",
+      "amount": { "currency": "CZK", "value": 0.1 },
+      "bookingDate": { "date": "2026-08-02" }
+    }
+  ],
+  "pageNumber": 1,
+  "pageSize": 1,
+  "pageCount": 2
+}

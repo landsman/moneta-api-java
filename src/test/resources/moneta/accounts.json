@@ -1,0 +1,15 @@
+{
+  "accounts": [
+    {
+      "id": "acc-1",
+      "nameI18N": "Business account",
+      "currency": "CZK",
+      "identification": { "iban": "CZ6506000000000123456789", "other": "123456789" },
+      "ownersNames": ["Example s.r.o."],
+      "servicer": { "bankCode": "0600", "bic": "AGBACZPP", "countryCode": "CZ" }
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "pageCount": 1
+}
