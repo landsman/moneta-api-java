@@ -50,7 +50,7 @@ public class DevApplication {
 
         /** Everything mapped, but not {@code raw}: that holds the counterparty's name and account. */
         @GetMapping("/transactions")
-        List<Movement> transactions(@RequestParam(defaultValue = "7") int days) {
+        List<Movement> transactions(@RequestParam(name = "days", defaultValue = "7") int days) {
             var today = LocalDate.now(ZoneId.of("Europe/Prague"));
             return moneta.accounts(token).stream()
                     .flatMap(account -> moneta.transactions(token, account.id(), today.minusDays(days), today).stream())
