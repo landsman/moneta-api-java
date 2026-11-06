@@ -1,6 +1,12 @@
 spring:
   application:
     name: cafe
+  # The bills, in a file under build/: they survive a restart, and `./gradlew clean` starts the café afresh.
+  datasource:
+    url: jdbc:h2:file:./build/cafe
+  sql:
+    init:
+      mode: always
 
 moneta:
   # From the environment only: MONETA_TOKEN=op://<vault>/<item>/<field> op run -- make dev
@@ -8,3 +14,5 @@ moneta:
 
 cafe:
   time-zone: Europe/Prague
+  # How often unpaid bills are looked for among the incoming payments.
+  check-every: PT30S
