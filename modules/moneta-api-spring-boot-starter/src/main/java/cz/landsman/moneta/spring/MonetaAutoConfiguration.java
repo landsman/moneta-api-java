@@ -21,7 +21,16 @@ public class MonetaAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public MonetaClient monetaClient(MonetaProperties properties) {
-        var builder = MonetaClient.builder().baseUri(properties.baseUri()).requestTimeout(properties.requestTimeout());
+        // Only what the application set is passed on, so each default lives in one place: the client.
+        var builder = MonetaClient.builder();
+        var baseUri = properties.baseUri();
+        if (baseUri != null) {
+            builder.baseUri(baseUri);
+        }
+        var requestTimeout = properties.requestTimeout();
+        if (requestTimeout != null) {
+            builder.requestTimeout(requestTimeout);
+        }
         var partner = properties.partner();
         if (partner != null) {
             builder.partner(new MonetaClient.Partner(

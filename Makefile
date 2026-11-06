@@ -14,8 +14,8 @@ build: ## check formatting, compile with error prone and nullaway, test and pack
 test: ## run the tests
 	./gradlew test
 
-lock: ## rewrite gradle.lockfile after a dependency changes, the vulnerability scan reads it
-	./gradlew dependencies --configuration runtimeClasspath --write-locks
+lock: ## rewrite modules/moneta-api/gradle.lockfile after a dependency changes, the vulnerability scan reads it
+	./gradlew :modules:moneta-api:dependencies --configuration runtimeClasspath --write-locks
 
 dev: ## run the example café app on :8080 against the account MONETA_TOKEN opens, see examples/cafe/README.md
 	@test -n "$${MONETA_TOKEN:-}" || { echo 'MONETA_TOKEN is empty: run it as MONETA_TOKEN=op://<vault>/<item>/<field> op run -- make dev' >&2; exit 1; }

@@ -1,6 +1,7 @@
 rootProject.name = "moneta-api-java"
 
-include(":spring-boot-starter")
+// What ships: the client, and the Spring Boot starter around it.
+include(":modules:moneta-api", ":modules:moneta-api-spring-boot-starter")
 
 // Callers the library promises to work for, each on its own classpath; see testing/README.md.
 include(
@@ -9,5 +10,7 @@ include(
     ":testing:spring-boot:4.0.0",
     ":testing:spring-boot:4.1.2",
     ":testing:kotlin",
-    ":examples:cafe",
 )
+
+// make dev
+include(":examples:cafe")

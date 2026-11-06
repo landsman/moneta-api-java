@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":spring-boot-starter"))
+    implementation(project(":modules:moneta-api-spring-boot-starter"))
     implementation("org.springframework.boot:spring-boot-starter-web")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

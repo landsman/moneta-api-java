@@ -1,7 +1,7 @@
 # Testing
 
 Projects that use the library the way a caller's build would, so a version a caller is likely to have cannot
-break it unnoticed. `make build` runs them with the library's own tests, which stay in `src/test`.
+break it unnoticed. `make build` runs them with the library's own tests, which stay in each module under `modules/`.
 
 | Project | Proves |
 |---------|--------|

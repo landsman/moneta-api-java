@@ -2,19 +2,12 @@ plugins {
     `java-library`
 }
 
-group = rootProject.group
-version = rootProject.version
-
-base {
-    archivesName = "moneta-api-spring-boot-starter"
-}
-
 // Compiled against the oldest Spring Boot it supports; the application's own Spring Boot is what runs it, and
 // testing/spring-boot checks it on each version. Dependabot leaves this BOM alone (.github/dependabot.yml).
 val springBoot = dependencies.platform("org.springframework.boot:spring-boot-dependencies:3.5.16")
 
 dependencies {
-    api(project(":"))
+    api(project(":modules:moneta-api"))
     compileOnly(springBoot)
     compileOnly("org.springframework.boot:spring-boot-autoconfigure")
     // Writes the metadata IntelliJ reads to complete moneta.* in application.yml.

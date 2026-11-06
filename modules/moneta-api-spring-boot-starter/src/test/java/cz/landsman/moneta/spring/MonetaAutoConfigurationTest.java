@@ -3,11 +3,15 @@ package cz.landsman.moneta.spring;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import cz.landsman.moneta.AccessToken;
 import cz.landsman.moneta.MonetaClient;
+import java.io.IOException;
+import java.net.URI;
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -22,6 +26,15 @@ class MonetaAutoConfigurationTest {
         context.run(app -> {
             assertNotNull(app.getBean(MonetaClient.class));
             assertFalse(app.containsBean("monetaAccessToken"));
+        });
+    }
+
+    @Test
+    void leavesTheHostAndTimeoutToTheClientWhenUnset() {
+        context.run(app -> {
+            var properties = app.getBean(MonetaProperties.class);
+            assertNull(properties.baseUri());
+            assertNull(properties.requestTimeout());
         });
     }
 
@@ -47,10 +60,8 @@ class MonetaAutoConfigurationTest {
                         "moneta.partner.application-name=Cafe")
                 .run(app -> {
                     var properties = app.getBean(MonetaProperties.class);
-                    assertEquals(
-                            "https://sandbox.example/moneta",
-                            properties.baseUri().toString());
-                    assertEquals(5, properties.requestTimeout().toSeconds());
+                    assertEquals(URI.create("https://sandbox.example/moneta"), properties.baseUri());
+                    assertEquals(Duration.ofSeconds(5), properties.requestTimeout());
                     assertNotNull(properties.partner());
                     assertNotNull(app.getBean(MonetaClient.class));
                 });
@@ -72,7 +83,7 @@ class MonetaAutoConfigurationTest {
     }
 
     @Test
-    void writesMetadataForTheEditor() throws java.io.IOException {
+    void writesMetadataForTheEditor() throws IOException {
         assertTrue(MonetaProperties.class
                 .getClassLoader()
                 .getResources("META-INF/spring-configuration-metadata.json")

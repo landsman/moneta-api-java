@@ -19,7 +19,7 @@ its data. An app that needs it records when it first saw each `reference`, polli
 
 ## Configuration
 
-`src/main/resources/application.yml`. `moneta.*` is the [starter's](../../spring-boot-starter/README.md), which
+`src/main/resources/application.yml`. `moneta.*` is the [starter's](../../modules/moneta-api-spring-boot-starter/README.md), which
 builds the `MonetaClient` and, since a café reads its one account, the `AccessToken`; `cafe.*` is `CafeProperties`:
 
 | Property | |

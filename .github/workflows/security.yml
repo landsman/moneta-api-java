@@ -24,6 +24,6 @@ jobs:
     with:
       packs: p/java
 
-  # Reads gradle.lockfile; `make lock` rewrites it.
+  # Reads modules/moneta-api/gradle.lockfile; `make lock` rewrites it.
   dependencies:
     uses: landsman/config/.github/workflows/dependencies.yml@main
