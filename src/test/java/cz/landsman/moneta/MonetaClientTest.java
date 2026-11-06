@@ -26,6 +26,7 @@ import java.util.Currency;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CancellationException;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -392,7 +393,7 @@ class MonetaClientTest {
     }
 
     @Test
-    void anInterruptedThreadGetsNoAnswerAndStaysInterrupted() {
+    void anInterruptedThreadIsCancelledAndStaysInterrupted() {
         server.createContext(ACCOUNTS, exchange -> {
             sleep(Duration.ofSeconds(1));
             respond(exchange, 200, fixture("accounts.json"));
@@ -400,7 +401,8 @@ class MonetaClientTest {
 
         Thread.currentThread().interrupt();
         try {
-            assertThrows(MonetaException.NoAnswer.class, () -> client.accounts(TOKEN));
+            var cancelled = assertThrows(CancellationException.class, () -> client.accounts(TOKEN));
+            assertInstanceOf(InterruptedException.class, cancelled.getCause());
             assertTrue(Thread.currentThread().isInterrupted());
         } finally {
             Thread.interrupted();

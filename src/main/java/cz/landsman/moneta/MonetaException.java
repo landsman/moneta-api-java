@@ -82,7 +82,10 @@ public abstract sealed class MonetaException extends RuntimeException {
         }
     }
 
-    /** No answer came: a timeout, a refused connection, an interrupted thread. */
+    /**
+     * No answer came: a timeout or a refused connection. An interrupted thread is not one: that is a
+     * {@link java.util.concurrent.CancellationException}, so a retry does not repeat work someone cancelled.
+     */
     public static final class NoAnswer extends MonetaException {
         public NoAnswer(String message, Throwable cause) {
             super(message, cause);

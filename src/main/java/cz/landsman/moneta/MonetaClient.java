@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
@@ -78,6 +79,7 @@ public final class MonetaClient implements AutoCloseable {
      * The accounts the token can see, all pages read.
      *
      * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
      */
     public List<Account> accounts(AccessToken token) {
         return readAll(
@@ -97,6 +99,7 @@ public final class MonetaClient implements AutoCloseable {
      * @throws IllegalArgumentException when {@code to} is before {@code from}, or the account id is blank or a
      *     dot segment
      * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
      */
     public List<Transaction> transactions(AccessToken token, String accountId, LocalDate from, LocalDate to) {
         if (to.isBefore(from)) {
@@ -176,8 +179,12 @@ public final class MonetaClient implements AutoCloseable {
         } catch (IOException e) {
             throw new MonetaException.NoAnswer(what + " did not get an answer", e);
         } catch (InterruptedException e) {
+            // Whoever owns the thread asked it to stop; that is not MONETA failing, so it is not a MonetaException
+            // a retry would catch. Kotlin's coroutines read this type as cancellation.
             Thread.currentThread().interrupt();
-            throw new MonetaException.NoAnswer(what + " was interrupted", e);
+            var cancelled = new CancellationException(what + " was interrupted");
+            cancelled.initCause(e);
+            throw cancelled;
         }
         int status = response.statusCode();
         var message = what + " answered " + status;

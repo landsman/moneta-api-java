@@ -47,6 +47,9 @@ for (var account : moneta.accounts(token)) {
   `HttpError` any other status, `NoAnswer` a timeout or a refused connection, `InvalidResponse` a body that is
   not the expected shape. `InvalidToken` and `HttpError` keep the start of MONETA's answer in `body()`, out of
   the message. The constructors are public, so a fake in your tests can throw them.
+- **An interrupted thread is cancelled, not failed:** a `CancellationException` with the interrupt flag kept,
+  outside `MonetaException`, so a retry on `NoAnswer` does not repeat work that was cancelled on purpose, and a
+  Kotlin coroutine reads it as cancellation.
 - **Records may gain components in a minor version** before 1.0. Read them by accessor; a record pattern over
   `Transaction` or `Account` would break on the next field.
 
