@@ -95,11 +95,15 @@ val jacksonFloor =
     configurations.create("jacksonFloor") {
         isCanBeConsumed = false
         extendsFrom(configurations.testImplementation.get(), configurations.testRuntimeOnly.get())
-        resolutionStrategy.force(
-            "tools.jackson.core:jackson-databind:3.0.4",
-            "tools.jackson.core:jackson-core:3.0.4",
-            "com.fasterxml.jackson.core:jackson-annotations:2.22",
-        )
+        // Pinned on purpose, and not written as "group:name:version": Dependabot would take that for a dependency
+        // and bump it, raising the floor this test exists to hold.
+        val floor =
+            mapOf(
+                "tools.jackson.core:jackson-databind" to "3.0.4",
+                "tools.jackson.core:jackson-core" to "3.0.4",
+                "com.fasterxml.jackson.core:jackson-annotations" to "2.20",
+            )
+        resolutionStrategy.force(floor.map { (module, version) -> "$module:$version" })
     }
 
 val jacksonFloorTest =
