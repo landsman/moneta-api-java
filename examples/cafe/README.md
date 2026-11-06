@@ -48,6 +48,7 @@ builds the `MonetaClient` and, since a café reads its one account, the `AccessT
 | `moneta.token` | `${MONETA_TOKEN}`; set it in the environment, never in a file |
 | `cafe.time-zone` | whose "today" a period means, `Europe/Prague` |
 | `cafe.check-moneta-every` | how often unpaid bills are looked for, `PT30S` |
+| `cafe.iban` | the account the QR payments pay into; without it, the first account the token sees |
 
 The rest of `moneta.*` keeps the starter's defaults, production among them.
 

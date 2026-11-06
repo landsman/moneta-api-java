@@ -14,6 +14,9 @@ moneta:
 
 cafe:
   time-zone: Europe/Prague
+  # The café's own account at MONETA, which the bills' QR payments pay into. Public on purpose: a business prints
+  # it on every QR code and invoice. Leave it out and the first account MONETA_TOKEN sees is used.
+  iban: CZ5806000000000285985332
   # How often unpaid bills are looked for among the incoming payments.
   check-moneta-every: PT30S
 

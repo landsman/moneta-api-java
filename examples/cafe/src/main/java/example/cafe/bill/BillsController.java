@@ -2,6 +2,7 @@ package example.cafe.bill;
 
 import cz.landsman.moneta.AccessToken;
 import cz.landsman.moneta.MonetaClient;
+import example.cafe.CafeProperties;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Clock;
@@ -34,13 +35,21 @@ class BillsController {
     private final MonetaClient moneta;
     private final AccessToken token;
     private final Clock clock;
+    private final CafeProperties cafe;
 
-    BillsController(BillRepository bills, BillChecker checker, MonetaClient moneta, AccessToken token, Clock clock) {
+    BillsController(
+            BillRepository bills,
+            BillChecker checker,
+            MonetaClient moneta,
+            AccessToken token,
+            Clock clock,
+            CafeProperties cafe) {
         this.bills = bills;
         this.checker = checker;
         this.moneta = moneta;
         this.token = token;
         this.clock = clock;
+        this.cafe = cafe;
     }
 
     /**
@@ -69,7 +78,12 @@ class BillsController {
                 .body(QrPayment.png(iban, bill.amount(), bill.variableSymbol()));
     }
 
+    /** {@code cafe.iban} when set; otherwise the first account the token sees, asked of MONETA each time. */
     private String cafeIban() {
+        var configured = cafe.iban();
+        if (configured != null) {
+            return configured;
+        }
         var iban = moneta.accounts(token).getFirst().iban();
         if (iban == null) {
             throw new IllegalStateException("MONETA sent the café's account without an IBAN");
