@@ -5,6 +5,9 @@ plugins {
     `java-library`
     id("com.diffplug.spotless") version "8.11.0"
     id("net.ltgt.errorprone") version "5.2.0"
+    // For the compat projects only.
+    id("io.spring.dependency-management") version "1.1.7" apply false
+    kotlin("jvm") version "2.4.21" apply false
 }
 
 group = "cz.landsman"
@@ -54,9 +57,15 @@ tasks.withType<JavaCompile>().configureEach {
 
 spotless {
     java {
+        target("src/**/*.java", "compat/**/*.java")
         palantirJavaFormat("2.103.0")
     }
+    kotlin {
+        target("compat/**/*.kt")
+        ktlint()
+    }
     kotlinGradle {
+        target("*.gradle.kts", "compat/**/*.gradle.kts")
         ktlint()
     }
 }
@@ -65,10 +74,18 @@ spotless {
 // matrix checks the jar on each JDK it supports. Without it they run on Gradle's own.
 val testsJdk = providers.gradleProperty("testsJdk")
 
-tasks.withType<Test>().configureEach {
-    useJUnitPlatform()
-    if (testsJdk.isPresent) {
-        javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(testsJdk.get()) }
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+    tasks.withType<JavaCompile>().configureEach {
+        options.release = 21
+    }
+    tasks.withType<Test>().configureEach {
+        useJUnitPlatform()
+        if (testsJdk.isPresent) {
+            javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(testsJdk.get()) }
+        }
     }
 }
 
