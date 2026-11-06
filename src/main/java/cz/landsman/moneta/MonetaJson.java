@@ -1,10 +1,10 @@
 package cz.landsman.moneta;
 
 import static java.util.Objects.requireNonNull;
-import static java.util.Objects.requireNonNullElse;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Currency;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
@@ -35,7 +35,8 @@ final class MonetaJson {
             @Nullable Integer pageNumber,
             @Nullable Integer pageCount) implements Page {
         AccountsPage {
-            accounts = requireNonNullElse(accounts, List.of());
+            // A 200 without the key is not an empty list: a maintenance page or a renamed key would read as no data.
+            requireNonNull(accounts, "accounts");
         }
 
         @Override
@@ -49,7 +50,7 @@ final class MonetaJson {
             @Nullable Integer pageNumber,
             @Nullable Integer pageCount) implements Page {
         TransactionsPage {
-            transactions = requireNonNullElse(transactions, List.of());
+            requireNonNull(transactions, "transactions");
         }
 
         @Override
@@ -60,7 +61,7 @@ final class MonetaJson {
 
     record AccountJson(
             String id,
-            String currency,
+            Currency currency,
             @Nullable String nameI18N,
             @Nullable Identification identification) {
         AccountJson {
@@ -100,7 +101,7 @@ final class MonetaJson {
         }
     }
 
-    record Amount(BigDecimal value, String currency) {
+    record Amount(BigDecimal value, Currency currency) {
         Amount {
             requireNonNull(value, "value");
             requireNonNull(currency, "currency");

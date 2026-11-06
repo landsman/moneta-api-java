@@ -1,7 +1,6 @@
 package cz.landsman.moneta;
 
 import java.time.LocalDate;
-import java.util.Currency;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -67,10 +66,9 @@ public record Transaction(
             case "DBIT" -> Direction.DEBIT;
             default ->
                 throw new MonetaException.InvalidResponse(
-                        "Transaction " + json.entryReference() + " has an unknown creditDebitIndicator", null);
+                        "unknown creditDebitIndicator '" + json.creditDebitIndicator() + "'", null);
         };
-        var amount = new Money(
-                json.amount().value(), Currency.getInstance(json.amount().currency()));
+        var amount = new Money(json.amount().value(), json.amount().currency());
         return new Transaction(
                 json.entryReference(),
                 status,

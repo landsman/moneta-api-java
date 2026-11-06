@@ -25,6 +25,8 @@ import java.util.Objects;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class MonetaClientTest {
 
@@ -176,6 +178,86 @@ class MonetaClientTest {
         server.removeContext(ACCOUNTS);
         answer(ACCOUNTS, 200, "{\"accounts\":[{\"currency\":\"CZK\"}]}");
         assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "{\"accounts\":[{\"id\":\"a\",\"currency\":\"czk\"}]}",
+                "{\"accounts\":[{\"id\":\"a\",\"currency\":\"XYZ\"}]}",
+                "{\"accounts\":[null]}",
+                "null",
+                "{\"status\":\"maintenance\"}"
+            })
+    void anyAccountsBodyOfTheWrongShapeIsAnInvalidResponse(String body) {
+        answer(ACCOUNTS, 200, body);
+        assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "{\"transactions\":[{\"entryReference\":\"t\",\"status\":\"BOOK\",\"creditDebitIndicator\":\"CRDT\","
+                        + "\"amount\":{\"value\":1,\"currency\":\"\"}}]}",
+                "{\"status\":\"maintenance\"}"
+            })
+    void anyTransactionsBodyOfTheWrongShapeIsAnInvalidResponse(String body) {
+        answer(TRANSACTIONS, 200, body);
+        assertThrows(MonetaException.InvalidResponse.class, () -> client.transactions(TOKEN, "acc-1", FROM, TO));
+    }
+
+    @Test
+    void aBrokenItemNamesTheRequestThePageAndTheMovement() {
+        server.createContext(TRANSACTIONS, exchange -> {
+            var first = exchange.getRequestURI().getQuery().endsWith("page=0");
+            respond(
+                    exchange,
+                    200,
+                    first
+                            ? fixture("transactions-page-0.json")
+                            : transaction("\"status\":\"BOOK\",\"creditDebitIndicator\":\"XXXX\""));
+        });
+
+        var failed = assertThrows(
+                MonetaException.InvalidResponse.class, () -> client.transactions(TOKEN, "acc-1", FROM, TO));
+        var message = Objects.requireNonNull(failed.getMessage());
+        assertTrue(message.contains("page=1"), message);
+        assertTrue(message.contains("entryReference=t"), message);
+        assertTrue(message.contains("'XXXX'"), message);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "99999999999999999999", "Wed, 21 Oct 2026 07:28:00 GMT"})
+    void aRetryAfterThatIsNotSecondsIsStillRateLimited(String retryAfter) {
+        server.createContext(ACCOUNTS, exchange -> {
+            exchange.getResponseHeaders().add("Retry-After", retryAfter);
+            respond(exchange, 429, "{}");
+        });
+        var throttled = assertThrows(MonetaException.RateLimited.class, () -> client.accounts(TOKEN));
+        assertNull(throttled.retryAfter());
+    }
+
+    @Test
+    void anErrorKeepsTheStartOfItsBodyOutOfTheMessage() {
+        answer(ACCOUNTS, 400, "{\"error\":\"unknown parameter size\"}");
+        var failed = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
+        assertEquals("{\"error\":\"unknown parameter size\"}", failed.body());
+        assertFalse(Objects.requireNonNull(failed.getMessage()).contains("unknown parameter"));
+
+        server.removeContext(ACCOUNTS);
+        answer(ACCOUNTS, 400, "x".repeat(5_000));
+        var long_ = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
+        assertEquals(2_000, Objects.requireNonNull(long_.body()).length());
+    }
+
+    @Test
+    void aMaintenanceAnswerSaysWhenToComeBack() {
+        server.createContext(ACCOUNTS, exchange -> {
+            exchange.getResponseHeaders().add("Retry-After", "120");
+            respond(exchange, 503, "{}");
+        });
+        var failed = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
+        assertEquals(Duration.ofMinutes(2), failed.retryAfter());
     }
 
     @Test

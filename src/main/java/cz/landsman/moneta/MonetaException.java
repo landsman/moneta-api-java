@@ -5,7 +5,10 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * A call to MONETA that did not return what was asked for, one subtype per thing a caller does about it, so
- * a {@code switch} over them is exhaustive. The message never carries the token.
+ * a {@code switch} over them is exhaustive. The message never carries the token, nor MONETA's response body.
+ *
+ * <p>The subtypes' constructors are public so a caller's own tests can throw them from a fake; the hierarchy
+ * stays closed.
  */
 public abstract sealed class MonetaException extends RuntimeException {
 
@@ -16,15 +19,22 @@ public abstract sealed class MonetaException extends RuntimeException {
     /** The token was refused: revoked, expired, or without the rights the call needs. Retrying will not help. */
     public static final class InvalidToken extends MonetaException {
         private final int status;
+        private final @Nullable String body;
 
-        InvalidToken(String message, int status) {
+        public InvalidToken(String message, int status, @Nullable String body) {
             super(message, null);
             this.status = status;
+            this.body = body;
         }
 
         /** 401 or 403. */
         public int status() {
             return status;
+        }
+
+        /** The start of MONETA's answer, which may say why; kept out of the message so logging it is safe. */
+        public @Nullable String body() {
+            return body;
         }
     }
 
@@ -32,7 +42,7 @@ public abstract sealed class MonetaException extends RuntimeException {
     public static final class RateLimited extends MonetaException {
         private final @Nullable Duration retryAfter;
 
-        RateLimited(String message, @Nullable Duration retryAfter) {
+        public RateLimited(String message, @Nullable Duration retryAfter) {
             super(message, null);
             this.retryAfter = retryAfter;
         }
@@ -46,27 +56,42 @@ public abstract sealed class MonetaException extends RuntimeException {
     /** Any other status that is not a success. */
     public static final class HttpError extends MonetaException {
         private final int status;
+        private final @Nullable String body;
+        private final @Nullable Duration retryAfter;
 
-        HttpError(String message, int status) {
+        public HttpError(String message, int status, @Nullable String body, @Nullable Duration retryAfter) {
             super(message, null);
             this.status = status;
+            this.body = body;
+            this.retryAfter = retryAfter;
         }
 
+        /** The HTTP status MONETA answered with. */
         public int status() {
             return status;
+        }
+
+        /** The first 2,000 characters of MONETA's answer, which usually say what was wrong with the request. */
+        public @Nullable String body() {
+            return body;
+        }
+
+        /** Set when MONETA said when to come back, as it may on a 503 during maintenance. */
+        public @Nullable Duration retryAfter() {
+            return retryAfter;
         }
     }
 
     /** No answer came: a timeout, a refused connection, an interrupted thread. */
     public static final class NoAnswer extends MonetaException {
-        NoAnswer(String message, Throwable cause) {
+        public NoAnswer(String message, Throwable cause) {
             super(message, cause);
         }
     }
 
     /** An answer came, but not in a shape this library can read: not JSON, or a required key missing. */
     public static final class InvalidResponse extends MonetaException {
-        InvalidResponse(String message, @Nullable Throwable cause) {
+        public InvalidResponse(String message, @Nullable Throwable cause) {
             super(message, cause);
         }
     }

@@ -16,6 +16,6 @@ public record Account(
 
     static Account from(MonetaJson.AccountJson json) {
         var iban = json.identification() instanceof MonetaJson.Identification(var value) ? value : null;
-        return new Account(json.id(), iban, Currency.getInstance(json.currency()), json.nameI18N());
+        return new Account(json.id(), iban, json.currency(), json.nameI18N());
     }
 }

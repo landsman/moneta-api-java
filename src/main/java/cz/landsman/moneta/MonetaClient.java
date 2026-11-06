@@ -30,6 +30,7 @@ public final class MonetaClient {
     private static final int PAGE_SIZE = 100;
     // ponytail: a backstop against a server that never sends an empty page; a million movements is far past it.
     private static final int MAX_PAGES = 10_000;
+    private static final int MAX_BODY = 2_000;
     private static final JsonMapper JSON = JsonMapper.builder()
             // An amount is money: 0.1 must stay 0.1, not the nearest double.
             .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
@@ -101,7 +102,8 @@ public final class MonetaClient {
         var sized = query.with("size", PAGE_SIZE);
         List<JsonNode> previous = List.of();
         for (int page = 0; page < MAX_PAGES; page++) {
-            var body = get(token, path, sized.with("page", page), pageType);
+            var what = "GET /" + sized.with("page", page).appendTo(path);
+            var body = get(token, what, sized.with("page", page).appendTo(path), pageType);
             var items = body.items();
             Integer number = body.pageNumber();
             if (number != null && number != page) {
@@ -115,7 +117,13 @@ public final class MonetaClient {
                         null);
             }
             for (var node : items) {
-                all.add(map.apply(node));
+                try {
+                    all.add(map.apply(node));
+                } catch (MonetaException.InvalidResponse e) {
+                    var reference = node.path("entryReference").asString("?");
+                    throw new MonetaException.InvalidResponse(
+                            what + ", item entryReference=" + reference + ": " + e.getMessage(), e);
+                }
             }
             Integer count = body.pageCount();
             if (items.isEmpty() || (count != null && count > 0 && page + 1 >= count)) {
@@ -126,10 +134,8 @@ public final class MonetaClient {
         throw new MonetaException.InvalidResponse("GET /" + path + " did not end within " + MAX_PAGES + " pages", null);
     }
 
-    private <T> T get(String token, String path, Query query, Class<T> type) {
-        var pathAndQuery = query.appendTo(path);
-        // The query carries only dates and paging, so the path is safe to put in a message; the token is not.
-        var what = "GET /" + pathAndQuery;
+    /** {@code what} names the request in messages: the query carries only dates and paging, the token is not in it. */
+    private <T> T get(String token, String what, String pathAndQuery, Class<T> type) {
         var request = HttpRequest.newBuilder(baseUri.resolve(pathAndQuery))
                 .timeout(Duration.ofSeconds(30))
                 .header("Authorization", "Bearer " + checked(token))
@@ -154,11 +160,19 @@ public final class MonetaClient {
             case 2 -> parse(what, () -> JSON.readValue(response.body(), type));
             default ->
                 throw switch (status) {
-                    case 401, 403 -> new MonetaException.InvalidToken(message, status);
+                    case 401, 403 -> new MonetaException.InvalidToken(message, status, excerpt(response));
                     case 429 -> new MonetaException.RateLimited(message, retryAfter(response));
-                    default -> new MonetaException.HttpError(message, status);
+                    default -> new MonetaException.HttpError(message, status, excerpt(response), retryAfter(response));
                 };
         };
+    }
+
+    private static @Nullable String excerpt(HttpResponse<String> response) {
+        var body = response.body();
+        if (body == null || body.isEmpty()) {
+            return null;
+        }
+        return body.length() > MAX_BODY ? body.substring(0, MAX_BODY) : body;
     }
 
     private static <T> T bind(JsonNode node, Class<T> type) {
@@ -166,13 +180,18 @@ public final class MonetaClient {
         return parse("a " + type.getSimpleName(), () -> JSON.readerFor(type).readValue(node));
     }
 
-    /** Anything thrown while reading a body is MONETA's answer not having the expected shape. */
-    private static <T> T parse(String what, Supplier<T> read) {
+    /** Anything thrown while reading a body, or a JSON {@code null}, is MONETA's answer not having the expected shape. */
+    private static <T> T parse(String what, Supplier<@Nullable T> read) {
+        T value;
         try {
-            return read.get();
+            value = read.get();
         } catch (RuntimeException e) {
             throw new MonetaException.InvalidResponse(what + " returned a body this library cannot read", e);
         }
+        if (value == null) {
+            throw new MonetaException.InvalidResponse(what + " returned null", null);
+        }
+        return value;
     }
 
     /**
@@ -190,7 +209,8 @@ public final class MonetaClient {
     private static @Nullable Duration retryAfter(HttpResponse<?> response) {
         return response.headers()
                 .firstValue("Retry-After")
-                .filter(value -> value.chars().allMatch(Character::isDigit))
+                // Seconds only; nine digits keep parseLong from overflowing. An HTTP date is ignored.
+                .filter(value -> value.matches("\\d{1,9}"))
                 .map(seconds -> Duration.ofSeconds(Long.parseLong(seconds)))
                 .orElse(null);
     }
