@@ -12,7 +12,7 @@ Then try it by hand at http://localhost:8080/scalar, an API reference built from
 |---------|---------|
 | `POST /bills` `{"amount": 65.00}` | a new bill for 65.00 CZK, answered with its QR code as a PNG; its variable symbol is in `X-Variable-Symbol` |
 | `GET /bills` | every bill, newest first: paid or not, by which payment, seen when |
-| `POST /bills/check` | looks for payments now, rather than at the next round |
+| `GET /bills/{variableSymbol}` | whether that bill is paid; still unpaid, it is first looked for in MONETA |
 | `GET /payments` | today's incoming payments |
 | `GET /payments?period=yesterday` | `today`, `yesterday`, `this-week`, `last-week`, `last-7-days`, `this-month` |
 | `GET /payments?from=2026-11-01&to=2026-11-06` | a range of its own, both days included; wins over `period` |

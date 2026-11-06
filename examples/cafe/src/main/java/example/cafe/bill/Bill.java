@@ -16,7 +16,7 @@ import org.springframework.data.annotation.Version;
  *     payment pays one bill
  * @param paidSeenAt when the café first saw that payment. MONETA gives a payment a date and no time, so this,
  *     to the polling interval, is the closest there is to "when it was paid"
- * @param version optimistic locking: two checks running at once (the schedule and {@code POST /bills/check}, or
+ * @param version optimistic locking: two checks running at once (the schedule and a {@code GET /bills/{variableSymbol}}, or
  *     two instances) can each find a different payment for the same bill; the second save fails instead of
  *     overwriting which payment paid it. The unique {@code moneta_entry_reference} would not stop that, the references differ.
  */

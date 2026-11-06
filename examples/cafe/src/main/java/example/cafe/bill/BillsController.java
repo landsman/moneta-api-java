@@ -2,10 +2,10 @@ package example.cafe.bill;
 
 import example.cafe.CafeProperties;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Clock;
 import java.util.List;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.CacheControl;
@@ -13,14 +13,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * {@code POST /bills} with {@code {"amount": 1.00}} issues a bill and answers with its QR payment to show the
- * customer; {@code GET /bills} lists them, paid or not; {@code POST /bills/check} looks for payments now
- * rather than at the next scheduled round.
+ * customer; {@code GET /bills} lists them; {@code GET /bills/{variableSymbol}} answers whether one is paid,
+ * looking in MONETA first when it is not yet.
  */
 @RestController
 @Tag(name = "Bills")
@@ -74,11 +76,25 @@ class BillsController {
         return bills.findAllByOrderByIdDesc().stream().map(BillView::of).toList();
     }
 
-    @PostMapping("/bills/check")
+    /**
+     * What the till asks after showing the QR code: is this bill paid? An unpaid bill is looked for in MONETA first,
+     * so the answer does not wait for the next scheduled round.
+     */
+    @GetMapping("/bills/{variableSymbol}")
     @Operation(
-            summary = "Look for payments now",
-            description = "Rather than at the next scheduled round; answers how many bills it found paid.")
-    Map<String, Integer> check() {
-        return Map.of("paid", checker.check());
+            summary = "Look up a bill",
+            description = "Paid or not; still unpaid, it is first looked for among the payments into the café's"
+                    + " account.")
+    BillView lookUp(@Parameter(example = "1000") @PathVariable("variableSymbol") long variableSymbol) {
+        var bill = bills.findById(variableSymbol).orElseThrow(() -> noBill(variableSymbol));
+        if (!bill.paid()) {
+            checker.check();
+            bill = bills.findById(variableSymbol).orElseThrow(() -> noBill(variableSymbol));
+        }
+        return BillView.of(bill);
+    }
+
+    private static ResponseStatusException noBill(long variableSymbol) {
+        return new ResponseStatusException(HttpStatus.NOT_FOUND, "no bill " + variableSymbol);
     }
 }
