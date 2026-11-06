@@ -95,6 +95,22 @@ public final class MonetaClient implements AutoCloseable {
     }
 
     /**
+     * The money that came in: {@link #transactions} with only {@link Transaction.Direction#CREDIT}, pending ones
+     * included. MONETA has no such filter of its own that is known, so all movements are read and the debits
+     * dropped here.
+     *
+     * @throws IllegalArgumentException when {@code to} is before {@code from}, or the account id is blank or a
+     *     dot segment
+     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
+     */
+    public List<Transaction> incoming(AccessToken token, String accountId, LocalDate from, LocalDate to) {
+        return transactions(token, accountId, from, to).stream()
+                .filter(t -> t.direction() == Transaction.Direction.CREDIT)
+                .toList();
+    }
+
+    /**
      * Every transaction on the account between two dates, all pages read, pending ones included
      * ({@link Transaction#booked()} tells them apart). Both dates are assumed inclusive; see .docs/moneta-api.md
      * for what is still open. All or nothing: a failure on a later page discards the earlier

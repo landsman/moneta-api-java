@@ -259,6 +259,17 @@ class MonetaClientTest {
         }
 
         @Test
+        void incomingLeavesOutTheMoneyThatWentOut() {
+            answer(TRANSACTIONS, 200, fixture("live/pending-symbols-and-outgoing.json"));
+
+            var incoming = client.incoming(TOKEN, "acc-1", FROM, TO);
+
+            assertEquals(
+                    List.of(Transaction.Direction.CREDIT),
+                    incoming.stream().map(Transaction::direction).toList());
+        }
+
+        @Test
         void keepsTheCounterpartyInRawButOutOfToString() {
             answerBothPages();
 
