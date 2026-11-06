@@ -1,7 +1,5 @@
 package example.cafe.bill;
 
-import cz.landsman.moneta.AccessToken;
-import cz.landsman.moneta.MonetaClient;
 import example.cafe.CafeProperties;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,22 +30,12 @@ class BillsController {
 
     private final BillRepository bills;
     private final BillChecker checker;
-    private final MonetaClient moneta;
-    private final AccessToken token;
     private final Clock clock;
     private final CafeProperties cafe;
 
-    BillsController(
-            BillRepository bills,
-            BillChecker checker,
-            MonetaClient moneta,
-            AccessToken token,
-            Clock clock,
-            CafeProperties cafe) {
+    BillsController(BillRepository bills, BillChecker checker, Clock clock, CafeProperties cafe) {
         this.bills = bills;
         this.checker = checker;
-        this.moneta = moneta;
-        this.token = token;
         this.clock = clock;
         this.cafe = cafe;
     }
@@ -67,7 +55,7 @@ class BillsController {
             throw new IllegalArgumentException("amount is above 0, in crowns with at most two decimals");
         }
         var bill = bills.save(Bill.issue(amount, clock.instant()));
-        var iban = cafeIban();
+        var iban = cafe.iban();
         log.info(
                 "Issued bill {}: {}",
                 bill.variableSymbol(),
@@ -76,19 +64,6 @@ class BillsController {
                 .header("X-Variable-Symbol", bill.variableSymbol())
                 .cacheControl(CacheControl.noStore())
                 .body(QrPayment.png(iban, bill.amount(), bill.variableSymbol()));
-    }
-
-    /** {@code cafe.iban} when set; otherwise the first account the token sees, asked of MONETA each time. */
-    private String cafeIban() {
-        var configured = cafe.iban();
-        if (configured != null) {
-            return configured;
-        }
-        var iban = moneta.accounts(token).getFirst().iban();
-        if (iban == null) {
-            throw new IllegalStateException("MONETA sent the café's account without an IBAN");
-        }
-        return iban;
     }
 
     @GetMapping("/bills")
