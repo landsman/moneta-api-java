@@ -12,7 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Looks for the unpaid bills among the incoming payments, every {@code cafe.check-every}. Reads from the day
+ * Looks for the unpaid bills among the incoming payments, every {@code cafe.check-moneta-every}. Reads from the day
  * the oldest unpaid bill was issued, since a payment cannot come before its bill.
  */
 @Component
@@ -32,7 +32,7 @@ class BillChecker {
         this.clock = clock;
     }
 
-    @Scheduled(fixedDelayString = "${cafe.check-every:PT30S}")
+    @Scheduled(fixedDelayString = "${cafe.check-moneta-every:PT30S}")
     void checkOnSchedule() {
         try {
             check();
@@ -46,6 +46,7 @@ class BillChecker {
     int check() {
         var unpaid = bills.findByPaidByIsNullOrderById();
         if (unpaid.isEmpty()) {
+            log.debug("No unpaid bills, nothing to look for");
             return 0;
         }
         var oldest = unpaid.stream()
@@ -58,6 +59,12 @@ class BillChecker {
                 .flatMap(account -> moneta.transactions(token, account.id(), from, today).stream())
                 .toList();
         var matches = PaymentMatching.match(unpaid, payments);
+        log.info(
+                "Checked {} unpaid bills against {} movements since {}: {} paid",
+                unpaid.size(),
+                payments.size(),
+                from,
+                matches.size());
         var seenAt = clock.instant();
         for (var match : matches) {
             bills.save(match.bill().paidBy(match.payment().entryReference(), seenAt));

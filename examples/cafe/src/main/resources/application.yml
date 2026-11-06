@@ -15,4 +15,9 @@ moneta:
 cafe:
   time-zone: Europe/Prague
   # How often unpaid bills are looked for among the incoming payments.
-  check-every: PT30S
+  check-moneta-every: PT30S
+
+logging:
+  level:
+    # Every call to MONETA with its status, time and X-Request-Id; never the token.
+    cz.landsman.moneta: debug

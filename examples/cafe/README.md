@@ -20,7 +20,7 @@ class for MONETA.
 
 - **A bill's variable symbol is its id**, ascending from 1000 and never reused, so no two bills share one. The
   bills live in H2 in `build/cafe`; `./gradlew clean` starts afresh.
-- **Every `cafe.check-every` (30 s)** the café reads the incoming payments since its oldest unpaid bill was
+- **Every `cafe.check-moneta-every` (30 s)** the café reads the incoming payments since its oldest unpaid bill was
   issued, pending ones included, and a payment pays a bill when the variable symbol, amount and currency are the
   bill's exactly (leading zeros in the symbol do not count). `PaymentMatching` is that rule, tested on its own.
 - **One payment pays one bill**: the table holds a unique `paid_by`, so the database refuses a second.
@@ -46,7 +46,7 @@ builds the `MonetaClient` and, since a café reads its one account, the `AccessT
 |----------|---|
 | `moneta.token` | `${MONETA_TOKEN}`; set it in the environment, never in a file |
 | `cafe.time-zone` | whose "today" a period means, `Europe/Prague` |
-| `cafe.check-every` | how often unpaid bills are looked for, `PT30S` |
+| `cafe.check-moneta-every` | how often unpaid bills are looked for, `PT30S` |
 
 The rest of `moneta.*` keeps the starter's defaults, production among them.
 

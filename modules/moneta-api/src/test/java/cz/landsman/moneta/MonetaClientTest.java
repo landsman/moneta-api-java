@@ -26,6 +26,10 @@ import java.util.Currency;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -458,6 +462,42 @@ class MonetaClientTest {
             });
             var failed = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
             assertEquals(Duration.ofMinutes(2), failed.retryAfter());
+        }
+
+        @Test
+        void logsEachCallWithItsRequestIdButNeverTheToken() {
+            server.createContext(ACCOUNTS, exchange -> {
+                exchange.getResponseHeaders().add("X-Request-Id", "req-42");
+                respond(exchange, 200, fixture("accounts.json"));
+            });
+            var logger = Logger.getLogger(MonetaClient.class.getName());
+            var lines = new ArrayList<String>();
+            var handler = new Handler() {
+                @Override
+                public void publish(LogRecord record) {
+                    lines.add(record.getMessage());
+                }
+
+                @Override
+                public void flush() {}
+
+                @Override
+                public void close() {}
+            };
+            var level = logger.getLevel();
+            logger.setLevel(Level.FINE);
+            logger.addHandler(handler);
+            try {
+                client.accounts(TOKEN);
+            } finally {
+                logger.removeHandler(handler);
+                logger.setLevel(level);
+            }
+
+            assertEquals(1, lines.size(), lines.toString());
+            assertTrue(lines.getFirst().contains("answered 200"), lines.getFirst());
+            assertTrue(lines.getFirst().contains("X-Request-Id req-42"), lines.getFirst());
+            assertFalse(lines.getFirst().contains(TOKEN.value()));
         }
 
         @Test

@@ -3,6 +3,7 @@ package cz.landsman.moneta;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.lang.System.Logger.Level;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -30,6 +31,9 @@ public final class MonetaClient implements AutoCloseable {
 
     /** MONETA's production host. */
     public static final URI PRODUCTION = URI.create("https://api.moneta.cz/");
+
+    /** The JDK's own logging API, so the library adds no dependency; Spring Boot routes it into its log. */
+    private static final System.Logger LOG = System.getLogger(MonetaClient.class.getName());
 
     private static final int PAGE_SIZE = 100;
     // ponytail: a backstop against a server that never sends an empty page; a million movements is far past it.
@@ -174,9 +178,11 @@ public final class MonetaClient implements AutoCloseable {
                     .header("application_name", partner.applicationName());
         }
         HttpResponse<String> response;
+        long started = System.nanoTime();
         try {
             response = http.send(request.build(), HttpResponse.BodyHandlers.ofString());
         } catch (IOException e) {
+            LOG.log(Level.DEBUG, () -> what + " got no answer after " + millisSince(started) + " ms: " + e);
             throw new MonetaException.NoAnswer(what + " did not get an answer", e);
         } catch (InterruptedException e) {
             // Whoever owns the thread asked it to stop; that is not MONETA failing, so it is not a MonetaException
@@ -188,6 +194,11 @@ public final class MonetaClient implements AutoCloseable {
         }
         int status = response.statusCode();
         var message = what + " answered " + status;
+        // X-Request-Id is what MONETA's support asks for about one call. Never the token, never the body.
+        LOG.log(
+                Level.DEBUG,
+                () -> message + " in " + millisSince(started) + " ms, X-Request-Id "
+                        + response.headers().firstValue("X-Request-Id").orElse("none"));
         return switch (status / 100) {
             case 2 -> parse(what, () -> JSON.readValue(response.body(), type));
             default ->
@@ -197,6 +208,10 @@ public final class MonetaClient implements AutoCloseable {
                     default -> new MonetaException.HttpError(message, status, excerpt(response), retryAfter(response));
                 };
         };
+    }
+
+    private static long millisSince(long nanos) {
+        return (System.nanoTime() - nanos) / 1_000_000;
     }
 
     private static @Nullable String excerpt(HttpResponse<String> response) {
