@@ -7,4 +7,5 @@ include(
     ":testing:spring-boot:4.0.0",
     ":testing:spring-boot:4.1.2",
     ":testing:kotlin",
+    ":examples:cafe",
 )
