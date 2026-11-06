@@ -2,7 +2,9 @@ package example.cafe;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 /**
  * The periods a café asks about. Whole days only: MONETA dates a movement but gives it no time, so "the last
@@ -18,7 +20,17 @@ enum Period {
 
     /** {@code last-week} or {@code LAST_WEEK}. */
     static Period parse(String value) {
-        return valueOf(value.trim().toUpperCase(Locale.ROOT).replace('-', '_'));
+        try {
+            return valueOf(value.trim().toUpperCase(Locale.ROOT).replace('-', '_'));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("period is one of " + names(), e);
+        }
+    }
+
+    private static String names() {
+        return Arrays.stream(values())
+                .map(p -> p.name().toLowerCase(Locale.ROOT).replace('_', '-'))
+                .collect(Collectors.joining(", "));
     }
 
     /** Both ends inclusive; weeks start on Monday. */

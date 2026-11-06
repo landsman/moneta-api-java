@@ -35,6 +35,9 @@ class PeriodTest {
 
     @Test
     void refusesAPeriodItDoesNotKnow() {
-        assertThrows(IllegalArgumentException.class, () -> Period.parse("last-hour"));
+        var refused = assertThrows(IllegalArgumentException.class, () -> Period.parse("last-hour"));
+        assertEquals(
+                "period is one of today, yesterday, this-week, last-week, last-7-days, this-month",
+                refused.getMessage());
     }
 }
