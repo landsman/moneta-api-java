@@ -17,7 +17,8 @@ import java.math.BigDecimal;
  */
 final class QrPayment {
 
-    private static final int PNG_SIZE = 320;
+    // Large enough to scan from a screen across a counter; a PNG of one colour costs little at any size.
+    private static final int PNG_SIZE = 600;
 
     static String spayd(String iban, BigDecimal amount, String variableSymbol) {
         return SpaydSerializer.serialize(payment(iban, amount, variableSymbol));
