@@ -35,7 +35,8 @@ record Query(List<Map.Entry<String, String>> parameters) {
                 .collect(Collectors.joining("&", path + "?", ""));
     }
 
-    private static String encode(String value) {
+    /** Percent-encodes a query name or value, or one path segment: the one encoding the library uses. */
+    static String encode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
     }
 }

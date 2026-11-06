@@ -1,5 +1,6 @@
 package cz.landsman.moneta;
 
+import java.util.Currency;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -10,12 +11,11 @@ import org.jspecify.annotations.Nullable;
 public record Account(
         String id,
         @Nullable String iban,
-        String currency,
+        Currency currency,
         @Nullable String name) {
 
     static Account from(MonetaJson.AccountJson json) {
-        var identification = json.identification();
-        return new Account(
-                json.id(), identification == null ? null : identification.iban(), json.currency(), json.nameI18N());
+        var iban = json.identification() instanceof MonetaJson.Identification(var value) ? value : null;
+        return new Account(json.id(), iban, Currency.getInstance(json.currency()), json.nameI18N());
     }
 }

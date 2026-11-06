@@ -12,7 +12,7 @@ Usable from Java 21 and from Kotlin; its only dependencies are Jackson and JSpec
 ## Use
 
 ```java
-var moneta = new MonetaClient();                  // or new MonetaClient(sandboxUri, partner)
+var moneta = new MonetaClient();   // or MonetaClient.builder().baseUri(sandbox).partner(partner).build()
 
 for (var account : moneta.accounts(token)) {
     for (var t : moneta.transactions(token, account.id(), LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31))) {
@@ -25,13 +25,21 @@ for (var account : moneta.accounts(token)) {
 
 - **One client for many merchants.** The token goes with each call and is never stored, logged or put in an
   exception message.
-- **Amounts are `BigDecimal`**, parsed without a detour through `double`. MONETA sends them positive with a
-  direction; `signedAmount()` applies it.
+- **Amounts are `Money`**, a `BigDecimal` with a `Currency`, parsed without a detour through `double`. MONETA
+  sends them positive with a direction; `signedAmount()` applies it.
+- **The status is an enum**, `BOOKED`, `PENDING` or `OTHER` for a code not known yet. An unknown direction is
+  refused instead: a wrong sign on money is worse than a failed read.
 - **Payment symbols** come in one string, `"VS:123456 KS:0308 SS:0001"` or comma-separated. `PaymentSymbols`
   reads either and keeps leading zeros.
-- **`raw`** holds each transaction as MONETA sent it, for the fields not mapped yet (the counterparty among them).
-- **Failures:** `MonetaException.InvalidToken` (401, 403) means a new token is needed, `RateLimited` (429)
-  means wait, and any other `MonetaException` carries its status, or 0 when no answer came.
+- **`raw`** holds each transaction as JSON, for the fields not mapped yet (the counterparty among them). It is
+  left out of `toString()`, so logging a transaction does not log who paid.
+- **Failures** are a sealed `MonetaException`, one subtype per thing to do about it, so a `switch` over them is
+  exhaustive: `InvalidToken` (401, 403) needs a new token, `RateLimited` (429) carries `retryAfter()`,
+  `HttpError` any other status, `NoAnswer` a timeout or a refused connection, `InvalidResponse` a body that is
+  not the expected shape. A token with a space or a control character is refused before it is sent, without
+  being repeated in the message.
+- **Records may gain components in a minor version** before 1.0. Read them by accessor; a record pattern over
+  `Transaction` or `Account` would break on the next field.
 
 ## Not covered yet
 
