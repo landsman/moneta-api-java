@@ -5,6 +5,9 @@ plugins {
     `java-library`
     id("com.diffplug.spotless") version "8.11.0"
     id("net.ltgt.errorprone") version "5.2.0"
+    // For the compatibility tests only.
+    id("io.spring.dependency-management") version "1.1.7" apply false
+    kotlin("jvm") version "2.4.21" apply false
 }
 
 group = "cz.landsman"
@@ -54,9 +57,15 @@ tasks.withType<JavaCompile>().configureEach {
 
 spotless {
     java {
+        target("src/**/*.java", "testing/**/*.java")
         palantirJavaFormat("2.103.0")
     }
+    kotlin {
+        target("testing/**/*.kt")
+        ktlint()
+    }
     kotlinGradle {
+        target("*.gradle.kts", "testing/**/*.gradle.kts")
         ktlint()
     }
 }
@@ -65,10 +74,18 @@ spotless {
 // matrix checks the jar on each JDK it supports. Without it they run on Gradle's own.
 val testsJdk = providers.gradleProperty("testsJdk")
 
-tasks.withType<Test>().configureEach {
-    useJUnitPlatform()
-    if (testsJdk.isPresent) {
-        javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(testsJdk.get()) }
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+    tasks.withType<JavaCompile>().configureEach {
+        options.release = 21
+    }
+    tasks.withType<Test>().configureEach {
+        useJUnitPlatform()
+        if (testsJdk.isPresent) {
+            javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(testsJdk.get()) }
+        }
     }
 }
 
@@ -78,11 +95,15 @@ val jacksonFloor =
     configurations.create("jacksonFloor") {
         isCanBeConsumed = false
         extendsFrom(configurations.testImplementation.get(), configurations.testRuntimeOnly.get())
-        resolutionStrategy.force(
-            "tools.jackson.core:jackson-databind:3.0.4",
-            "tools.jackson.core:jackson-core:3.0.4",
-            "com.fasterxml.jackson.core:jackson-annotations:2.22",
-        )
+        // Pinned on purpose, and not written as "group:name:version": Dependabot would take that for a dependency
+        // and bump it, raising the floor this test exists to hold.
+        val floor =
+            mapOf(
+                "tools.jackson.core:jackson-databind" to "3.0.4",
+                "tools.jackson.core:jackson-core" to "3.0.4",
+                "com.fasterxml.jackson.core:jackson-annotations" to "2.20",
+            )
+        resolutionStrategy.force(floor.map { (module, version) -> "$module:$version" })
     }
 
 val jacksonFloorTest =

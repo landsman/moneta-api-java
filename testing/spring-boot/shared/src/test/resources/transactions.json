@@ -1,0 +1,11 @@
+{
+  "transactions": [
+    {
+      "entryReference": "t",
+      "status": "BOOK",
+      "creditDebitIndicator": "DBIT",
+      "amount": { "value": 12.5, "currency": "CZK" }
+    }
+  ],
+  "pageCount": 1
+}

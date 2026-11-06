@@ -80,8 +80,8 @@ those versions raise it in your own dependency management; Jackson 2.18 databind
 dependencyManagement { dependencies { dependency("com.fasterxml.jackson.core:jackson-annotations:2.21") } }
 ```
 
-Spring Boot 3.5.13 and newer, and every Spring Boot 4, need nothing. The tests also run on Jackson 3.0.4, the
-oldest Spring Boot 4 ships (`make build` does both).
+Spring Boot 3.5.13 and newer, and every Spring Boot 4, need nothing. `make build` checks all three cases, and a
+Kotlin caller, in [testing/](testing/README.md).
 
 ## Not covered yet
 
