@@ -58,6 +58,11 @@ subprojects {
             }
         }
 
+        tasks.withType<Javadoc>().configureEach {
+            // An @param per record component or bean method would only repeat its name; broken links still fail.
+            (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:all,-missing", "-quiet")
+        }
+
         // Published to this repository's GitHub Packages; .docs/development.md says how a release is cut.
         apply(plugin = "maven-publish")
         plugins.withType<JavaLibraryPlugin> {

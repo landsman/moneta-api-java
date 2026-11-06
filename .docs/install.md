@@ -25,7 +25,7 @@ repositories {
 }
 
 dependencies {
-    implementation("cz.landsman:moneta-api-spring-boot-starter:0.1.0") // or moneta-api without Spring Boot
+    implementation("cz.landsman:moneta-api-spring-boot-starter:0.0.1") // or moneta-api without Spring Boot
 }
 ```
 
@@ -44,7 +44,7 @@ with `gpr.user` and `gpr.key` in `~/.gradle/gradle.properties`, not in the proje
 <dependency>
     <groupId>cz.landsman</groupId>
     <artifactId>moneta-api-spring-boot-starter</artifactId>
-    <version>0.1.0</version>
+    <version>0.0.1</version>
 </dependency>
 ```
 
