@@ -1,5 +1,7 @@
 package cz.landsman.moneta;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -60,7 +62,7 @@ public final class MonetaClient {
     }
 
     /** The accounts the token can see, all pages read. */
-    public List<Account> accounts(String token) {
+    public List<Account> accounts(AccessToken token) {
         return readAll(
                 token,
                 MonetaPaths.ACCOUNTS,
@@ -73,7 +75,7 @@ public final class MonetaClient {
      * Every transaction on the account between two dates, inclusive, all pages read. Pending ones are
      * included; {@link Transaction#booked()} tells them apart.
      */
-    public List<Transaction> transactions(String token, String accountId, LocalDate from, LocalDate to) {
+    public List<Transaction> transactions(AccessToken token, String accountId, LocalDate from, LocalDate to) {
         if (to.isBefore(from)) {
             throw new IllegalArgumentException("to " + to + " is before from " + from);
         }
@@ -93,7 +95,7 @@ public final class MonetaClient {
      * the read. A short page does not end it, so a server that caps {@code size} loses nothing.
      */
     private <T> List<T> readAll(
-            String token,
+            AccessToken token,
             String path,
             Query query,
             Class<? extends MonetaJson.Page> pageType,
@@ -135,10 +137,10 @@ public final class MonetaClient {
     }
 
     /** {@code what} names the request in messages: the query carries only dates and paging, the token is not in it. */
-    private <T> T get(String token, String what, String pathAndQuery, Class<T> type) {
+    private <T> T get(AccessToken token, String what, String pathAndQuery, Class<T> type) {
         var request = HttpRequest.newBuilder(baseUri.resolve(pathAndQuery))
                 .timeout(Duration.ofSeconds(30))
-                .header("Authorization", "Bearer " + checked(token))
+                .header("Authorization", "Bearer " + token.value())
                 .header("Accept", "application/json");
         if (partner != null) {
             request.header("identification_number", partner.identificationNumber())
@@ -194,18 +196,6 @@ public final class MonetaClient {
         return value;
     }
 
-    /**
-     * The JDK's own header check would quote the whole value in its exception, token included, so a stray
-     * newline from a file or an environment variable is refused here, without repeating it.
-     */
-    private static String checked(String token) {
-        boolean printable = !token.isEmpty() && token.chars().allMatch(c -> c > 0x20 && c < 0x7F);
-        if (!printable) {
-            throw new IllegalArgumentException("The token is empty or holds a space or a control character");
-        }
-        return token;
-    }
-
     private static @Nullable Duration retryAfter(HttpResponse<?> response) {
         return response.headers()
                 .firstValue("Retry-After")
@@ -219,7 +209,25 @@ public final class MonetaClient {
      * Sent as the {@code identification_number}, {@code business_name} and {@code application_name}
      * headers. Whether MONETA requires them, and whose values they are, is not documented publicly.
      */
-    public record Partner(String identificationNumber, String businessName, String applicationName) {}
+    public record Partner(String identificationNumber, String businessName, String applicationName) {
+
+        /**
+         * @throws IllegalArgumentException when a value is blank or not printable ASCII: HTTP/1.1 headers cannot
+         *     carry diacritics, and the JDK would refuse them on every call or send them as {@code ?}
+         */
+        public Partner {
+            ascii("identificationNumber", identificationNumber);
+            ascii("businessName", businessName);
+            ascii("applicationName", applicationName);
+        }
+
+        private static void ascii(String name, String value) {
+            requireNonNull(value, name);
+            if (value.isBlank() || !value.chars().allMatch(c -> c >= 0x20 && c < 0x7F)) {
+                throw new IllegalArgumentException(name + " must be printable ASCII; transliterate diacritics");
+            }
+        }
+    }
 
     /** Everything optional; {@code new MonetaClient()} is production with defaults. */
     public static final class Builder {

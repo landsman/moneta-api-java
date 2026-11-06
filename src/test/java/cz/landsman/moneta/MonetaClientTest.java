@@ -30,7 +30,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class MonetaClientTest {
 
-    private static final String TOKEN = "secret-token";
+    private static final AccessToken TOKEN = new AccessToken("secret-token");
     private static final String ACCOUNTS = "/api/v4/vip/aisp/my/accounts";
     private static final String TRANSACTIONS = ACCOUNTS + "/acc-1/transactions";
     private static final LocalDate FROM = LocalDate.of(2026, 8, 1);
@@ -66,7 +66,7 @@ class MonetaClientTest {
 
         assertEquals(List.of(new Account("acc-1", "CZ6506000000000123456789", CZK, "Business account")), accounts);
         var headers = requests.getFirst().getRequestHeaders();
-        assertEquals("Bearer " + TOKEN, headers.getFirst("Authorization"));
+        assertEquals("Bearer " + TOKEN.value(), headers.getFirst("Authorization"));
         assertEquals("12345678", headers.getFirst("identification_number"));
         assertEquals("Example s.r.o.", headers.getFirst("business_name"));
         assertEquals("Example app", headers.getFirst("application_name"));
@@ -93,7 +93,7 @@ class MonetaClientTest {
         var incoming = transactions.get(0);
         assertEquals("trx-1", incoming.entryReference());
         assertTrue(incoming.booked());
-        assertEquals(new Money(new BigDecimal("1234.10"), CZK), incoming.signedAmount());
+        assertEquals(new Money(new BigDecimal("1234.10"), CZK), incoming.amount());
         assertEquals(LocalDate.of(2026, 8, 1), incoming.bookingDate());
         assertEquals(new PaymentSymbols("2026000123", "0308", "0001"), incoming.symbols());
         assertTrue(incoming.raw().contains("\"entryReference\":\"trx-1\""));
@@ -101,7 +101,7 @@ class MonetaClientTest {
 
         var outgoing = transactions.get(1);
         assertEquals(Transaction.Status.PENDING, outgoing.status());
-        assertEquals(new Money(new BigDecimal("-0.1"), CZK), outgoing.signedAmount());
+        assertEquals(new Money(new BigDecimal("-0.10"), CZK), outgoing.amount());
         assertNull(outgoing.valueDate());
         assertEquals(new PaymentSymbols(null, null, null), outgoing.symbols());
     }
@@ -261,10 +261,50 @@ class MonetaClientTest {
     }
 
     @Test
-    void aTokenWithANewlineIsRefusedWithoutBeingRepeated() {
-        var refused = assertThrows(IllegalArgumentException.class, () -> client.accounts(TOKEN + "\n"));
-        assertFalse(Objects.requireNonNull(refused.getMessage()).contains(TOKEN));
-        assertTrue(requests.isEmpty());
+    void anAmountADoubleCannotHoldArrivesExact() {
+        answer(
+                TRANSACTIONS,
+                200,
+                "{\"transactions\":[{\"entryReference\":\"t\",\"status\":\"BOOK\",\"creditDebitIndicator\":\"CRDT\","
+                        + "\"amount\":{\"value\":1234567890123456.78,\"currency\":\"CZK\"}}],\"pageCount\":1}");
+        assertEquals(
+                new BigDecimal("1234567890123456.78"),
+                client.transactions(TOKEN, "acc-1", FROM, TO)
+                        .getFirst()
+                        .amount()
+                        .amount());
+    }
+
+    @Test
+    void amountsAreSignedSoTheyAddUp() {
+        server.createContext(TRANSACTIONS, exchange -> {
+            var page = exchange.getRequestURI().getQuery().endsWith("page=0") ? 0 : 1;
+            respond(exchange, 200, fixture("transactions-page-" + page + ".json"));
+        });
+
+        var sum = client.transactions(TOKEN, "acc-1", FROM, TO).stream()
+                .map(t -> t.amount().amount())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        assertEquals(new BigDecimal("1234.00"), sum);
+    }
+
+    @Test
+    void aNegativeAmountBesideADebitIsRefusedRatherThanSignedTwice() {
+        answer(
+                TRANSACTIONS,
+                200,
+                "{\"transactions\":[{\"entryReference\":\"t\",\"status\":\"BOOK\",\"creditDebitIndicator\":\"DBIT\","
+                        + "\"amount\":{\"value\":-100.00,\"currency\":\"CZK\"}}]}");
+        assertThrows(MonetaException.InvalidResponse.class, () -> client.transactions(TOKEN, "acc-1", FROM, TO));
+    }
+
+    @Test
+    void partnerValuesHaveToBeAsciiOrTheyCouldNotBeSent() {
+        assertThrows(IllegalArgumentException.class, () -> new MonetaClient.Partner("1", "Pekařství Novák", "app"));
+        assertThrows(IllegalArgumentException.class, () -> new MonetaClient.Partner("1", "Kávárna", "app"));
+        assertThrows(IllegalArgumentException.class, () -> new MonetaClient.Partner("1", " ", "app"));
+        new MonetaClient.Partner("1", "Example s.r.o.", "app");
     }
 
     @Test
@@ -272,7 +312,7 @@ class MonetaClientTest {
         answer(ACCOUNTS, 401, "{}");
         var refused = assertThrows(MonetaException.InvalidToken.class, () -> client.accounts(TOKEN));
         assertEquals(401, refused.status());
-        assertFalse(Objects.requireNonNull(refused.getMessage()).contains(TOKEN));
+        assertFalse(Objects.requireNonNull(refused.getMessage()).contains(TOKEN.value()));
 
         server.removeContext(ACCOUNTS);
         server.createContext(ACCOUNTS, exchange -> {

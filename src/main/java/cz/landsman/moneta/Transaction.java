@@ -8,7 +8,7 @@ import org.jspecify.annotations.Nullable;
  * tests and match on them by accessor rather than by record pattern.
  *
  * @param entryReference MONETA's id of the movement
- * @param amount always positive, as MONETA sends it; {@link #signedAmount()} applies the direction
+ * @param amount signed: positive for money in, negative for money out, so amounts add up as they are
  * @param raw the movement as MONETA sent it, re-serialised as JSON (key order and number formatting may
  *     differ), for whatever this record does not map; left out of {@link #toString()}, since it names the
  *     counterparty
@@ -28,20 +28,13 @@ public record Transaction(
         return status == Status.BOOKED;
     }
 
-    /** Positive for money in, negative for money out. */
-    public Money signedAmount() {
-        return switch (direction) {
-            case CREDIT -> amount;
-            case DEBIT -> amount.negate();
-        };
-    }
-
     @Override
     public String toString() {
         return "Transaction[entryReference=%s, status=%s, direction=%s, amount=%s, bookingDate=%s, valueDate=%s, symbols=%s]"
                 .formatted(entryReference, status, direction, amount, bookingDate, valueDate, symbols);
     }
 
+    /** Which way the money moved; {@link #amount()} already carries it as the sign. */
     public enum Direction {
         CREDIT,
         DEBIT
@@ -68,7 +61,16 @@ public record Transaction(
                 throw new MonetaException.InvalidResponse(
                         "unknown creditDebitIndicator '" + json.creditDebitIndicator() + "'", null);
         };
-        var amount = new Money(json.amount().value(), json.amount().currency());
+        // MONETA sends the amount unsigned beside the direction. A negative one would be signed twice, so it is
+        // refused for the same reason as an unknown direction.
+        if (json.amount().value().signum() < 0) {
+            throw new MonetaException.InvalidResponse("a negative amount beside creditDebitIndicator", null);
+        }
+        var unsigned = new Money(json.amount().value(), json.amount().currency());
+        var amount = switch (direction) {
+            case CREDIT -> unsigned;
+            case DEBIT -> unsigned.negate();
+        };
         return new Transaction(
                 json.entryReference(),
                 status,
