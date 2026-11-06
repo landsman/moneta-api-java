@@ -7,9 +7,16 @@ help: ## show this help
 		/^[a-zA-Z0-9_.-]+:.*##/ { printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
 ##@ Build
-.PHONY: build test
-build: ## compile, test and package the jar
+.PHONY: build test format lint
+build: ## check formatting, compile with error prone and nullaway, test and package the jar
 	./gradlew build
 
 test: ## run the tests
 	./gradlew test
+
+##@ Code style
+format: ## reformat java and gradle files in place
+	./gradlew spotlessApply
+
+lint: ## fail on formatting that make format would change
+	./gradlew spotlessCheck
