@@ -35,7 +35,13 @@ for (var account : moneta.accounts(token)) {
 - **Payment symbols** come in one string, `"VS:123456 KS:0308 SS:0001"` or comma-separated. `PaymentSymbols`
   reads either and keeps leading zeros.
 - **`raw`** holds each transaction as JSON, for the fields not mapped yet (the counterparty among them). It is
-  left out of `toString()`, so logging a transaction does not log who paid.
+  left out of `toString()`, so logging a transaction does not log who paid. A JSON serialiser still writes it,
+  name and IBAN of the counterparty included, so map a `Transaction` to your own type before returning it from
+  a controller or logging it as JSON.
+- **A read is all or nothing.** A 429 on page five discards pages one to four, and a retry starts over. Read a
+  long range month by month.
+- **One client per application.** It is `AutoCloseable`; `close()` releases the HTTP client it made, not one
+  you passed in.
 - **Failures** are a sealed `MonetaException`, one subtype per thing to do about it, so a `switch` over them is
   exhaustive: `InvalidToken` (401, 403) needs a new token, `RateLimited` (429) carries `retryAfter()`,
   `HttpError` any other status, `NoAnswer` a timeout or a refused connection, `InvalidResponse` a body that is
@@ -43,6 +49,12 @@ for (var account : moneta.accounts(token)) {
   the message. The constructors are public, so a fake in your tests can throw them.
 - **Records may gain components in a minor version** before 1.0. Read them by accessor; a record pattern over
   `Transaction` or `Account` would break on the next field.
+
+## Kotlin
+
+The JSpecify annotations make `iban` a `String?` and a `when` over `MonetaException` exhaustive without an
+`else`, enforced from Kotlin 2.1. Kotlin 1.9, which Spring Boot 3 manages, only warns; add
+`-Xjspecify-annotations=strict` to the compiler options to make it an error.
 
 ## Spring Boot 3
 
@@ -77,7 +89,12 @@ specification.
 
 - The transaction filter's parameter names; `fromDate`, `toDate`, `page` and `size` are the Czech open-banking
   standard's, assumed here.
-- Whether `pageNumber` starts at 0.
+- Whether `pageNumber` starts at 0. The client refuses a page numbered other than it asked for, rather than
+  read it twice.
+- Whether `toDate` is inclusive, which date the range filters on (booking or value), and whether it returns
+  pending movements.
+- The format of `bookingDate` and `valueDate`, and whether `reference` is one string or a list.
+- How `business_name` is sent with diacritics; the client accepts only ASCII there for now.
 - Whether the `identification_number`, `business_name` and `application_name` headers are required, and whose
   values they hold.
 - Whether a token can be read-only, how long it lives, and the rate limits.
