@@ -3,31 +3,31 @@ package example.cafe.bill;
 import cz.landsman.moneta.AccessToken;
 import cz.landsman.moneta.MonetaClient;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 /**
- * {@code POST /bills} with {@code {"amount": 1.00}} issues a bill and answers with its variable symbol and the QR payment to show
- * the customer; {@code GET /bills} lists them, paid or not; {@code POST /bills/check} looks for payments now
+ * {@code POST /bills} with {@code {"amount": 1.00}} issues a bill and answers with its QR payment to show the
+ * customer; {@code GET /bills} lists them, paid or not; {@code POST /bills/check} looks for payments now
  * rather than at the next scheduled round.
  */
 @RestController
 @Tag(name = "Bills")
 class BillsController {
+
+    private static final Logger log = LoggerFactory.getLogger(BillsController.class);
 
     private final BillRepository bills;
     private final BillChecker checker;
@@ -43,36 +43,30 @@ class BillsController {
         this.clock = clock;
     }
 
-    @PostMapping("/bills")
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Issue a bill", description = "Its variable symbol is the next one, ascending from 1000.")
-    IssuedBill issue(@RequestBody NewBill request) {
+    /**
+     * Answers with the bill's QR payment, the PNG the customer's banking app scans, so the till shows it at once.
+     * Never cached: the code holds the café's IBAN as MONETA reports it now.
+     */
+    @PostMapping(path = "/bills", produces = MediaType.IMAGE_PNG_VALUE)
+    @Operation(
+            summary = "Issue a bill",
+            description = "Answers with its QR payment as a PNG; the variable symbol, ascending from 1000, is in the"
+                    + " X-Variable-Symbol header.")
+    ResponseEntity<byte[]> issue(@RequestBody NewBill request) {
         var amount = request.amount();
         if (amount.signum() <= 0 || amount.scale() > 2) {
             throw new IllegalArgumentException("amount is above 0, in crowns with at most two decimals");
         }
         var bill = bills.save(Bill.issue(amount, clock.instant()));
-        return new IssuedBill(
+        var iban = cafeIban();
+        log.info(
+                "Issued bill {}: {}",
                 bill.variableSymbol(),
-                bill.amount(),
-                bill.currency(),
-                QrPayment.spayd(cafeIban(), bill.amount(), bill.variableSymbol()),
-                "/bills/" + bill.variableSymbol() + "/qr-code");
-    }
-
-    /** The code to show the customer: their banking app scans it and pre-fills the payment. */
-    /**
-     * Never cached: the code holds the café's IBAN as MONETA reports it now, so a browser always shows the current
-     * one rather than a copy.
-     */
-    @GetMapping(path = "/bills/{variableSymbol}/qr-code", produces = MediaType.IMAGE_PNG_VALUE)
-    @Operation(summary = "The bill's QR payment", description = "The PNG a banking app scans to pay it.")
-    ResponseEntity<byte[]> qrCode(@Parameter(example = "1000") @PathVariable("variableSymbol") long variableSymbol) {
-        var bill = bills.findById(variableSymbol)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "no bill " + variableSymbol));
-        return ResponseEntity.ok()
+                QrPayment.spayd(iban, bill.amount(), bill.variableSymbol()));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header("X-Variable-Symbol", bill.variableSymbol())
                 .cacheControl(CacheControl.noStore())
-                .body(QrPayment.png(cafeIban(), bill.amount(), bill.variableSymbol()));
+                .body(QrPayment.png(iban, bill.amount(), bill.variableSymbol()));
     }
 
     private String cafeIban() {
@@ -84,7 +78,9 @@ class BillsController {
     }
 
     @GetMapping("/bills")
-    @Operation(summary = "Every bill, newest first", description = "Paid or not, by which payment, first seen when.")
+    @Operation(
+            summary = "List every bill, newest first",
+            description = "Paid or not, by which payment, first seen when.")
     List<BillView> list() {
         return bills.findAllByOrderByIdDesc().stream().map(BillView::of).toList();
     }
