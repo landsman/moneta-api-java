@@ -8,7 +8,8 @@ updates:
       default-days: 7
     commit-message:
       prefix: deps
-    # The compatibility tests pin the Spring Boot versions they prove the library on; a bump would stop testing them.
+    # The compatibility tests and the starter pin the Spring Boot versions they prove or build against; a bump
+    # would stop testing them.
     ignore:
       - dependency-name: org.springframework.boot:spring-boot-dependencies
       # Named only in the Jackson floor in build.gradle.kts, never as a dependency. jackson-databind cannot be

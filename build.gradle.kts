@@ -58,7 +58,7 @@ tasks.withType<JavaCompile>().configureEach {
 
 spotless {
     java {
-        target("src/**/*.java", "testing/**/*.java", "examples/**/*.java")
+        target("src/**/*.java", "spring-boot-starter/**/*.java", "testing/**/*.java", "examples/**/*.java")
         palantirJavaFormat("2.103.0")
     }
     kotlin {
@@ -66,7 +66,7 @@ spotless {
         ktlint()
     }
     kotlinGradle {
-        target("*.gradle.kts", "testing/**/*.gradle.kts", "examples/**/*.gradle.kts")
+        target("*.gradle.kts", "spring-boot-starter/**/*.gradle.kts", "testing/**/*.gradle.kts", "examples/**/*.gradle.kts")
         ktlint()
     }
 }

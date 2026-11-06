@@ -1,7 +1,7 @@
 # Café payments
 
 An example app: a café checking which payments reached its MONETA account, the way an application uses the
-library. Spring Boot 4.1, one `MonetaClient` bean, one endpoint.
+library. Spring Boot 4.1 with the starter, one endpoint, no configuration class for MONETA.
 
     MONETA_TOKEN=op://<vault>/<item>/<field> op run -- make dev
 
@@ -19,14 +19,15 @@ its data. An app that needs it records when it first saw each `reference`, polli
 
 ## Configuration
 
-`src/main/resources/application.yml`, bound to `MonetaProperties` and `CafeProperties`:
+`src/main/resources/application.yml`. `moneta.*` is the [starter's](../../spring-boot-starter/README.md), which
+builds the `MonetaClient` and, since a café reads its one account, the `AccessToken`; `cafe.*` is `CafeProperties`:
 
-| Property | Default | |
-|----------|---------|---|
-| `moneta.token` | — | `${MONETA_TOKEN}`; set it in the environment, never in a file |
-| `moneta.base-uri` | `https://api.moneta.cz/` | the sandbox's host once the portal gives it |
-| `moneta.request-timeout` | `30s` | one call to MONETA |
-| `cafe.time-zone` | `Europe/Prague` | whose "today" a period means |
+| Property | |
+|----------|---|
+| `moneta.token` | `${MONETA_TOKEN}`; set it in the environment, never in a file |
+| `cafe.time-zone` | whose "today" a period means, `Europe/Prague` |
 
-`MonetaConfiguration` builds the one `MonetaClient` and the `AccessToken` from them; a blank token or one with a
-stray newline stops the app at startup. Use a read-only token, and revoke it in Internet Banka when done.
+The rest of `moneta.*` keeps the starter's defaults, production among them.
+
+A blank token or one with a stray newline stops the app at startup. Use a read-only token, and revoke it in
+Internet Banka when done.

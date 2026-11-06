@@ -1,0 +1,81 @@
+package cz.landsman.moneta.spring;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import cz.landsman.moneta.AccessToken;
+import cz.landsman.moneta.MonetaClient;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+
+class MonetaAutoConfigurationTest {
+
+    private final ApplicationContextRunner context =
+            new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(MonetaAutoConfiguration.class));
+
+    @Test
+    void givesAClientAndNoTokenWhenNoneIsSet() {
+        context.run(app -> {
+            assertNotNull(app.getBean(MonetaClient.class));
+            assertFalse(app.containsBean("monetaAccessToken"));
+        });
+    }
+
+    @Test
+    void givesTheTokenOfTheOneAccountWhenItIsSet() {
+        context.withPropertyValues("moneta.token=secret-token").run(app -> {
+            assertEquals(new AccessToken("secret-token"), app.getBean(AccessToken.class));
+        });
+    }
+
+    @Test
+    void aTokenWithAStrayNewlineStopsTheApplication() {
+        context.withPropertyValues("moneta.token=secret token").run(app -> assertNotNull(app.getStartupFailure()));
+    }
+
+    @Test
+    void readsTheHostTimeoutAndPartner() {
+        context.withPropertyValues(
+                        "moneta.base-uri=https://sandbox.example/moneta",
+                        "moneta.request-timeout=5s",
+                        "moneta.partner.identification-number=12345678",
+                        "moneta.partner.business-name=Example s.r.o.",
+                        "moneta.partner.application-name=Cafe")
+                .run(app -> {
+                    var properties = app.getBean(MonetaProperties.class);
+                    assertEquals(
+                            "https://sandbox.example/moneta",
+                            properties.baseUri().toString());
+                    assertEquals(5, properties.requestTimeout().toSeconds());
+                    assertNotNull(properties.partner());
+                    assertNotNull(app.getBean(MonetaClient.class));
+                });
+    }
+
+    @Test
+    void partnerHeadersWithDiacriticsStopTheApplication() {
+        context.withPropertyValues(
+                        "moneta.partner.identification-number=12345678",
+                        "moneta.partner.business-name=Kavárna",
+                        "moneta.partner.application-name=Cafe")
+                .run(app -> assertNotNull(app.getStartupFailure()));
+    }
+
+    @Test
+    void stepsBackForAClientTheApplicationDefines() {
+        var own = MonetaClient.builder().build();
+        context.withBean(MonetaClient.class, () -> own).run(app -> assertSame(own, app.getBean(MonetaClient.class)));
+    }
+
+    @Test
+    void writesMetadataForTheEditor() throws java.io.IOException {
+        assertTrue(MonetaProperties.class
+                .getClassLoader()
+                .getResources("META-INF/spring-configuration-metadata.json")
+                .hasMoreElements());
+    }
+}

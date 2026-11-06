@@ -12,7 +12,7 @@ break it unnoticed. `make build` runs them with the library's own tests, which s
 | `kotlin` | a `when` over `MonetaException` needs no `else`, and a nullable component is nullable in Kotlin |
 
 Each Spring Boot version is only a `build.gradle.kts` naming it; the test is in `spring-boot/shared`. A context
-builds `MonetaClient` as a bean and reads transactions from a local server, which is where both failures a
+with only the starter on it gets `MonetaClient` and `AccessToken` from its auto-configuration and reads transactions from a local server, which is where both failures a
 wrong Jackson causes show up, at class loading and on the first call. Another version is another folder with a
 copy of that build file.
 

@@ -1,5 +1,7 @@
 rootProject.name = "moneta-api-java"
 
+include(":spring-boot-starter")
+
 // Callers the library promises to work for, each on its own classpath; see testing/README.md.
 include(
     ":testing:spring-boot:3.5.12",
