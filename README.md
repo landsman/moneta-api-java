@@ -6,7 +6,7 @@ Usable from Java 21 and from Kotlin; its only dependencies are Jackson and JSpec
 
 Partly verified against the live API, not on Maven Central yet: see [what is known](.docs/moneta-api.md).
 
-| | |
+| Read | For |
 |---|---|
 | [Using the client](.docs/usage.md) | accounts, transactions, money, symbols, failures |
 | [Spring Boot starter](modules/moneta-api-spring-boot-starter/README.md) | `moneta.*` in application.yml, a `MonetaClient` bean |
