@@ -88,6 +88,10 @@ oldest Spring Boot 4 ships (`make build` does both).
 Payments (PISP), balances, statements, OAuth client credentials for the sandbox. Each waits for the
 specification.
 
+GraalVM native image is untested. The JSON records are bound by reflection and the jar carries no
+reachability metadata, so in a native image every call would likely fail as `InvalidResponse`. Supporting it
+means shipping `META-INF/native-image/…/reachability-metadata.json` and running the tests once natively.
+
 ## What the specification has to answer
 
 - The transaction filter's parameter names; `fromDate`, `toDate`, `page` and `size` are the Czech open-banking
