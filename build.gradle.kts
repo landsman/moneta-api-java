@@ -57,3 +57,9 @@ spotless {
 tasks.test {
     useJUnitPlatform()
 }
+
+// Trivy reads Gradle only through gradle.lockfile. Only what ships is locked: tooling and tests stay out of
+// the scan, where a finding could not be acted on anyway.
+configurations.named("runtimeClasspath") {
+    resolutionStrategy.activateDependencyLocking()
+}
