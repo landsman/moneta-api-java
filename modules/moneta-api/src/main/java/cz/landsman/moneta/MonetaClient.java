@@ -182,7 +182,7 @@ public final class MonetaClient implements AutoCloseable {
         try {
             response = http.send(request.build(), HttpResponse.BodyHandlers.ofString());
         } catch (IOException e) {
-            LOG.log(Level.DEBUG, () -> what + " got no answer after " + millisSince(started) + " ms: " + e);
+            log(new Call(what, null, millisSince(started), null, e.toString()));
             throw new MonetaException.NoAnswer(what + " did not get an answer", e);
         } catch (InterruptedException e) {
             // Whoever owns the thread asked it to stop; that is not MONETA failing, so it is not a MonetaException
@@ -195,10 +195,12 @@ public final class MonetaClient implements AutoCloseable {
         int status = response.statusCode();
         var message = what + " answered " + status;
         // X-Request-Id is what MONETA's support asks for about one call. Never the token, never the body.
-        LOG.log(
-                Level.DEBUG,
-                () -> message + " in " + millisSince(started) + " ms, X-Request-Id "
-                        + response.headers().firstValue("X-Request-Id").orElse("none"));
+        log(new Call(
+                what,
+                status,
+                millisSince(started),
+                response.headers().firstValue("X-Request-Id").orElse(null),
+                null));
         return switch (status / 100) {
             case 2 -> parse(what, () -> JSON.readValue(response.body(), type));
             default ->
@@ -208,6 +210,23 @@ public final class MonetaClient implements AutoCloseable {
                     default -> new MonetaException.HttpError(message, status, excerpt(response), retryAfter(response));
                 };
         };
+    }
+
+    /**
+     * One call to MONETA as it is logged, as JSON. Never the token, never the body.
+     *
+     * @param requestId MONETA's {@code X-Request-Id}, what its support asks for about one call
+     */
+    record Call(
+            String request,
+            @Nullable Integer status,
+            long millis,
+            @Nullable String requestId,
+            @Nullable String error) {}
+
+    /** Serialised only when debug is on. */
+    private static void log(Call call) {
+        LOG.log(Level.DEBUG, () -> JSON.writeValueAsString(call));
     }
 
     private static long millisSince(long nanos) {

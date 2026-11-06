@@ -4,16 +4,14 @@ import cz.landsman.moneta.AccessToken;
 import cz.landsman.moneta.MonetaClient;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.math.BigDecimal;
 import java.time.Clock;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import org.jspecify.annotations.Nullable;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -59,16 +57,22 @@ class BillsController {
                 bill.amount(),
                 bill.currency(),
                 QrPayment.spayd(cafeIban(), bill.amount(), bill.variableSymbol()),
-                "/bills/" + bill.variableSymbol() + "/qr.png");
+                "/bills/" + bill.variableSymbol() + "/qr-code");
     }
 
     /** The code to show the customer: their banking app scans it and pre-fills the payment. */
-    @GetMapping(path = "/bills/{variableSymbol}/qr.png", produces = MediaType.IMAGE_PNG_VALUE)
+    /**
+     * Never cached: the code holds the café's IBAN as MONETA reports it now, so a browser always shows the current
+     * one rather than a copy.
+     */
+    @GetMapping(path = "/bills/{variableSymbol}/qr-code", produces = MediaType.IMAGE_PNG_VALUE)
     @Operation(summary = "The bill's QR payment", description = "The PNG a banking app scans to pay it.")
-    byte[] qr(@Parameter(example = "1000") @PathVariable("variableSymbol") long variableSymbol) {
+    ResponseEntity<byte[]> qrCode(@Parameter(example = "1000") @PathVariable("variableSymbol") long variableSymbol) {
         var bill = bills.findById(variableSymbol)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "no bill " + variableSymbol));
-        return QrPayment.png(cafeIban(), bill.amount(), bill.variableSymbol());
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(QrPayment.png(cafeIban(), bill.amount(), bill.variableSymbol()));
     }
 
     private String cafeIban() {
@@ -91,35 +95,5 @@ class BillsController {
             description = "Rather than at the next scheduled round; answers how many bills it found paid.")
     Map<String, Integer> check() {
         return Map.of("paid", checker.check());
-    }
-
-    /** @param amount in crowns, at most two decimals */
-    record NewBill(@Schema(example = "1.00") BigDecimal amount) {}
-
-    /**
-     * @param qrPayment the SPAYD string the code holds
-     * @param qrCode where the code itself is, as a PNG
-     */
-    record IssuedBill(String variableSymbol, BigDecimal amount, String currency, String qrPayment, String qrCode) {}
-
-    record BillView(
-            String variableSymbol,
-            BigDecimal amount,
-            String currency,
-            Instant issuedAt,
-            boolean paid,
-            @Nullable String paidBy,
-            @Nullable Instant paidSeenAt) {
-
-        static BillView of(Bill bill) {
-            return new BillView(
-                    bill.variableSymbol(),
-                    bill.amount(),
-                    bill.currency(),
-                    bill.createdAt(),
-                    bill.paid(),
-                    bill.paidBy(),
-                    bill.paidSeenAt());
-        }
     }
 }

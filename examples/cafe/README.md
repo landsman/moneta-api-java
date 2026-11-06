@@ -11,7 +11,7 @@ Then try it by hand at http://localhost:8080/scalar, an API reference built from
 | Request | Answers |
 |---------|---------|
 | `POST /bills` `{"amount": 65.00}` | a new bill for 65.00 CZK: its variable symbol, the SPAYD string and where its QR code is |
-| `GET /bills/{variableSymbol}/qr.png` | that bill's QR code, with its amount and symbol, for the customer's banking app to scan |
+| `GET /bills/{variableSymbol}/qr-code` | that bill's QR code as a PNG, never cached, for the customer's banking app to scan |
 | `GET /bills` | every bill, newest first: paid or not, by which payment, seen when |
 | `POST /bills/check` | looks for payments now, rather than at the next round |
 | `GET /payments` | today's incoming payments |

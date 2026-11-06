@@ -495,8 +495,12 @@ class MonetaClientTest {
             }
 
             assertEquals(1, lines.size(), lines.toString());
-            assertTrue(lines.getFirst().contains("answered 200"), lines.getFirst());
-            assertTrue(lines.getFirst().contains("X-Request-Id req-42"), lines.getFirst());
+            var line = JSON.readTree(lines.getFirst());
+            assertEquals(
+                    "GET /api/v4/vip/aisp/my/accounts?size=100&page=0",
+                    line.get("request").asString());
+            assertEquals(200, line.get("status").asInt());
+            assertEquals("req-42", line.get("requestId").asString());
             assertFalse(lines.getFirst().contains(TOKEN.value()));
         }
 

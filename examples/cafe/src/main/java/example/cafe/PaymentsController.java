@@ -6,7 +6,6 @@ import cz.landsman.moneta.Transaction;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
@@ -64,29 +63,5 @@ class PaymentsController {
             throw new IllegalArgumentException("from and to go together");
         }
         return new Period.DateRange(from, to);
-    }
-
-    /**
-     * What the till needs to match a payment: how much, which variable symbol, and whether it is booked yet.
-     *
-     * @param day the booking day, or the day MONETA took it in while it is pending
-     */
-    record ReceivedPayment(
-            String reference,
-            BigDecimal amount,
-            String currency,
-            @Nullable String variableSymbol,
-            boolean booked,
-            @Nullable LocalDate day) {
-
-        static ReceivedPayment of(Transaction t) {
-            return new ReceivedPayment(
-                    t.entryReference(),
-                    t.amount().amount(),
-                    t.amount().currency().getCurrencyCode(),
-                    t.symbols().variable(),
-                    t.booked(),
-                    t.bookingDate() != null ? t.bookingDate() : t.enteredDate());
-        }
     }
 }
