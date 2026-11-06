@@ -5,7 +5,7 @@ break it unnoticed. `make build` runs them with the library's own tests, which s
 
 | Project | Proves |
 |---------|--------|
-| `spring-boot/3.5.12` | the README's `jackson-annotations` 2.21 fix works on the last Spring Boot that needs it |
+| `spring-boot/3.5.12` | the `jackson-annotations` 2.21 fix from [compatibility](../.docs/compatibility.md) works on the last Spring Boot that needs it |
 | `spring-boot/3.5.16` | Spring Boot 3.5.13 and newer need nothing |
 | `spring-boot/4.0.0` | the oldest Spring Boot 4, with its Jackson 3.0 |
 | `kotlin` | a `when` over `MonetaException` needs no `else`, and a nullable component is nullable in Kotlin |

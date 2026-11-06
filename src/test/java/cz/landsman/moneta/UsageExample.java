@@ -2,12 +2,12 @@ package cz.landsman.moneta;
 
 import java.time.LocalDate;
 
-/** The README's example, word for word. Compiled, never run: a renamed accessor breaks the build, not the README. */
+/** The example in .docs/usage.md, word for word. Compiled, never run: a renamed accessor breaks the build, not the doc. */
 @SuppressWarnings("unused")
-final class ReadmeExample {
+final class UsageExample {
 
     static void example(AccessToken token) {
-        // --- README start
+        // --- .docs/usage.md start
         var moneta = new MonetaClient(); // or MonetaClient.builder().baseUri(sandbox).partner(partner).build()
 
         for (var account : moneta.accounts(token)) {
@@ -18,8 +18,8 @@ final class ReadmeExample {
                 }
             }
         }
-        // --- README end
+        // --- .docs/usage.md end
     }
 
-    private ReadmeExample() {}
+    private UsageExample() {}
 }
