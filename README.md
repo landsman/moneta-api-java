@@ -24,10 +24,10 @@ Partly verified against the live API, not on Maven Central yet: see [what is kno
 What MONETA API offers, per [its portal](https://apiportal.moneta.cz/pages/moneta/home.html), against what this
 client implements:
 
-| | MONETA API | This client |
+| Feature | MONETA API | This client |
 |---|:---:|:---:|
 | Accounts the token sees | ✅ | ✅ |
-| Transactions, pending and booked | ✅ | ✅ |
+| Transactions | ✅ | ✅ pending checked live, booked not yet ([#10](https://github.com/landsman/moneta-api-java/issues/10)) |
 | Card transactions | ✅ | ⬜ not checked |
 | Balances | ✅ | ⬜ |
 | Pending card transactions | ✅ | ⬜ |
