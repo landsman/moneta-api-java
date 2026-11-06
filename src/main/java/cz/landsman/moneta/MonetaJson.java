@@ -21,11 +21,19 @@ final class MonetaJson {
     sealed interface Page permits AccountsPage, TransactionsPage {
         List<JsonNode> items();
 
-        /** 0 when MONETA did not say. */
-        int pageCount();
+        /** The page MONETA says it returned; null when it did not say. */
+        @Nullable
+        Integer pageNumber();
+
+        /** Null when MONETA did not say. */
+        @Nullable
+        Integer pageCount();
     }
 
-    record AccountsPage(List<JsonNode> accounts, int pageCount) implements Page {
+    record AccountsPage(
+            List<JsonNode> accounts,
+            @Nullable Integer pageNumber,
+            @Nullable Integer pageCount) implements Page {
         AccountsPage {
             accounts = requireNonNullElse(accounts, List.of());
         }
@@ -36,7 +44,10 @@ final class MonetaJson {
         }
     }
 
-    record TransactionsPage(List<JsonNode> transactions, int pageCount) implements Page {
+    record TransactionsPage(
+            List<JsonNode> transactions,
+            @Nullable Integer pageNumber,
+            @Nullable Integer pageCount) implements Page {
         TransactionsPage {
             transactions = requireNonNullElse(transactions, List.of());
         }

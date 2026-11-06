@@ -120,6 +120,41 @@ class MonetaClientTest {
     }
 
     @Test
+    void aServerThatIgnoresThePageIsRefusedRatherThanReadThreeTimes() {
+        answer(ACCOUNTS, 200, "{\"accounts\":[{\"id\":\"a\",\"currency\":\"CZK\"}],\"pageNumber\":0,\"pageCount\":3}");
+        assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+    }
+
+    @Test
+    void aServerThatCountsPagesFromOneIsRefused() {
+        answer(ACCOUNTS, 200, "{\"accounts\":[{\"id\":\"a\",\"currency\":\"CZK\"}],\"pageNumber\":1,\"pageCount\":2}");
+        assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+    }
+
+    @Test
+    void theSamePageOverAndOverWithoutPageNumbersIsRefused() {
+        answer(ACCOUNTS, 200, "{\"accounts\":[{\"id\":\"a\",\"currency\":\"CZK\"}]}");
+        assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+        assertEquals(2, requests.size());
+    }
+
+    @Test
+    void aNullPageCountReadsUntilAnEmptyPage() {
+        server.createContext(ACCOUNTS, exchange -> {
+            requests.add(exchange);
+            var first = exchange.getRequestURI().getQuery().endsWith("page=0");
+            respond(
+                    exchange,
+                    200,
+                    first
+                            ? "{\"accounts\":[{\"id\":\"a\",\"currency\":\"CZK\"}],\"pageCount\":null}"
+                            : "{\"accounts\":[],\"pageCount\":null}");
+        });
+
+        assertEquals(1, client.accounts(TOKEN).size());
+    }
+
+    @Test
     void anUnknownStatusIsKeptAsOther() {
         answer(TRANSACTIONS, 200, transaction("\"status\":\"XYZ\",\"creditDebitIndicator\":\"CRDT\""));
         assertEquals(

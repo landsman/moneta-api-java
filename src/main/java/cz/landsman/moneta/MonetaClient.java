@@ -28,6 +28,8 @@ public final class MonetaClient {
     public static final URI PRODUCTION = URI.create("https://api.moneta.cz/");
 
     private static final int PAGE_SIZE = 100;
+    // ponytail: a backstop against a server that never sends an empty page; a million movements is far past it.
+    private static final int MAX_PAGES = 10_000;
     private static final JsonMapper JSON = JsonMapper.builder()
             // An amount is money: 0.1 must stay 0.1, not the nearest double.
             .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
@@ -84,8 +86,10 @@ public final class MonetaClient {
     }
 
     /**
-     * Reads page after page until one comes back empty or the last one by {@code pageCount} is read. A
-     * missing {@code pageCount} reads until the empty page, rather than stopping after the first.
+     * Reads page after page until one comes back empty or the last one by {@code pageCount} is read. The page
+     * names are assumed, so a server that ignores {@code page} is caught rather than read as more data: a
+     * {@code pageNumber} that is not the one asked for, or, without one, a page equal to the previous, fails
+     * the read. A short page does not end it, so a server that caps {@code size} loses nothing.
      */
     private <T> List<T> readAll(
             String token,
@@ -95,16 +99,31 @@ public final class MonetaClient {
             Function<JsonNode, T> map) {
         var all = new ArrayList<T>();
         var sized = query.with("size", PAGE_SIZE);
-        for (int page = 0; ; page++) {
+        List<JsonNode> previous = List.of();
+        for (int page = 0; page < MAX_PAGES; page++) {
             var body = get(token, path, sized.with("page", page), pageType);
-            for (var node : body.items()) {
+            var items = body.items();
+            Integer number = body.pageNumber();
+            if (number != null && number != page) {
+                throw new MonetaException.InvalidResponse(
+                        "GET /" + path + " asked for page " + page + " and got page " + number, null);
+            }
+            if (number == null && !items.isEmpty() && items.equals(previous)) {
+                throw new MonetaException.InvalidResponse(
+                        "GET /" + path + " returned the same items for page " + page + " as for the one before,"
+                                + " so the server likely ignores the page parameter",
+                        null);
+            }
+            for (var node : items) {
                 all.add(map.apply(node));
             }
-            boolean last = body.pageCount() > 0 && page + 1 >= body.pageCount();
-            if (body.items().isEmpty() || last) {
+            Integer count = body.pageCount();
+            if (items.isEmpty() || (count != null && count > 0 && page + 1 >= count)) {
                 return all;
             }
+            previous = items;
         }
+        throw new MonetaException.InvalidResponse("GET /" + path + " did not end within " + MAX_PAGES + " pages", null);
     }
 
     private <T> T get(String token, String path, Query query, Class<T> type) {
