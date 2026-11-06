@@ -48,12 +48,11 @@ class BillChecker {
         }
     }
 
-    /** The number of bills it found paid. */
-    int check() {
+    void check() {
         var unpaid = bills.findByMonetaEntryReferenceIsNullOrderById();
         if (unpaid.isEmpty()) {
             log.debug("No unpaid bills, nothing to look for");
-            return 0;
+            return;
         }
         var oldest = unpaid.stream()
                 .map(Bill::createdAt)
@@ -66,7 +65,7 @@ class BillChecker {
             log.error(
                     "The token does not open the café's account {} (cafe.iban), so no bill can be found paid",
                     cafe.iban());
-            return 0;
+            return;
         }
         var payments = moneta.transactions(token, account.get().id(), from, today);
         var matches = PaymentMatching.match(unpaid, payments);
@@ -84,7 +83,6 @@ class BillChecker {
                     match.bill().variableSymbol(),
                     match.payment().entryReference());
         }
-        return matches.size();
     }
 
     /** The account the bills are paid into: the one with cafe.iban, among those the token opens. */
