@@ -15,13 +15,17 @@ import java.math.BigDecimal;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Currency;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,10 +47,11 @@ class MonetaClientTest {
     private MonetaClient client;
 
     @BeforeEach
-    void start() throws IOException {
+    void start() throws IOException, URISyntaxException {
         server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         server.start();
-        base = URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/");
+        var address = server.getAddress();
+        base = new URI("http", null, address.getHostString(), address.getPort(), "/", null, null);
         client = MonetaClient.builder()
                 .baseUri(base)
                 .partner(new MonetaClient.Partner("12345678", "Example s.r.o.", "Example app"))
@@ -67,6 +72,7 @@ class MonetaClientTest {
         assertEquals(List.of(new Account("acc-1", "CZ6506000000000123456789", CZK, "Business account")), accounts);
         var headers = requests.getFirst().getRequestHeaders();
         assertEquals("Bearer " + TOKEN.value(), headers.getFirst("Authorization"));
+        assertEquals("application/json", headers.getFirst("Accept"));
         assertEquals("12345678", headers.getFirst("identification_number"));
         assertEquals("Example s.r.o.", headers.getFirst("business_name"));
         assertEquals("Example app", headers.getFirst("application_name"));
@@ -74,36 +80,83 @@ class MonetaClientTest {
 
     @Test
     void readsEveryPageOfTransactions() {
-        server.createContext(TRANSACTIONS, exchange -> {
-            requests.add(exchange);
-            var page = exchange.getRequestURI().getQuery().endsWith("page=0") ? 0 : 1;
-            respond(exchange, 200, fixture("transactions-page-" + page + ".json"));
-        });
+        answerBothPages();
 
         var transactions = client.transactions(TOKEN, "acc-1", FROM, TO);
 
-        assertEquals(2, transactions.size());
+        assertEquals(
+                List.of("trx-1", "trx-2"),
+                transactions.stream().map(Transaction::entryReference).toList());
         assertEquals(
                 "fromDate=2026-08-01&toDate=2026-08-31&size=100&page=0",
                 requests.get(0).getRequestURI().getQuery());
         assertEquals(
                 "fromDate=2026-08-01&toDate=2026-08-31&size=100&page=1",
                 requests.get(1).getRequestURI().getQuery());
+    }
+
+    @Test
+    void mapsEachMovement() {
+        answerBothPages();
+
+        var transactions = client.transactions(TOKEN, "acc-1", FROM, TO);
 
         var incoming = transactions.get(0);
-        assertEquals("trx-1", incoming.entryReference());
         assertTrue(incoming.booked());
+        assertEquals(Transaction.Direction.CREDIT, incoming.direction());
         assertEquals(new Money(new BigDecimal("1234.10"), CZK), incoming.amount());
         assertEquals(LocalDate.of(2026, 8, 1), incoming.bookingDate());
+        assertEquals(LocalDate.of(2026, 8, 3), incoming.valueDate());
         assertEquals(new PaymentSymbols("2026000123", "0308", "0001"), incoming.symbols());
-        assertTrue(incoming.raw().contains("\"entryReference\":\"trx-1\""));
-        assertFalse(incoming.toString().contains("entryDetails"));
 
         var outgoing = transactions.get(1);
+        assertFalse(outgoing.booked());
         assertEquals(Transaction.Status.PENDING, outgoing.status());
+        assertEquals(Transaction.Direction.DEBIT, outgoing.direction());
         assertEquals(new Money(new BigDecimal("-0.10"), CZK), outgoing.amount());
+        assertEquals(LocalDate.of(2026, 8, 2), outgoing.bookingDate());
         assertNull(outgoing.valueDate());
         assertEquals(new PaymentSymbols(null, null, null), outgoing.symbols());
+    }
+
+    @Test
+    void keepsTheCounterpartyInRawButOutOfToString() {
+        answerBothPages();
+
+        var incoming = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
+
+        assertTrue(incoming.raw().contains("Jan Novak"));
+        assertTrue(incoming.toString().contains("entryReference=trx-1"), incoming.toString());
+        assertFalse(incoming.toString().contains("Jan Novak"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"entryReference", "status", "creditDebitIndicator", "amount"})
+    void aMovementWithoutARequiredKeyIsAnInvalidResponse(String key) {
+        var movement = new LinkedHashMap<String, String>();
+        movement.put("entryReference", "\"t\"");
+        movement.put("status", "\"BOOK\"");
+        movement.put("creditDebitIndicator", "\"CRDT\"");
+        movement.put("amount", "{\"value\":1,\"currency\":\"CZK\"}");
+        movement.remove(key);
+        var json = movement.entrySet().stream()
+                .map(e -> "\"" + e.getKey() + "\":" + e.getValue())
+                .collect(Collectors.joining(",", "{\"transactions\":[{", "}],\"pageCount\":1}"));
+        answer(TRANSACTIONS, 200, json);
+
+        assertThrows(MonetaException.InvalidResponse.class, () -> client.transactions(TOKEN, "acc-1", FROM, TO));
+    }
+
+    @Test
+    void anAccountWithoutACurrencyIsAnInvalidResponse() {
+        answer(ACCOUNTS, 200, "{\"accounts\":[{\"id\":\"a\"}],\"pageCount\":1}");
+        assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+    }
+
+    @Test
+    void aRangeOfOneDayIsAllowed() {
+        answer(TRANSACTIONS, 200, "{\"transactions\":[]}");
+        assertEquals(List.of(), client.transactions(TOKEN, "acc-1", FROM, FROM));
     }
 
     @Test
@@ -277,10 +330,7 @@ class MonetaClientTest {
 
     @Test
     void amountsAreSignedSoTheyAddUp() {
-        server.createContext(TRANSACTIONS, exchange -> {
-            var page = exchange.getRequestURI().getQuery().endsWith("page=0") ? 0 : 1;
-            respond(exchange, 200, fixture("transactions-page-" + page + ".json"));
-        });
+        answerBothPages();
 
         var sum = client.transactions(TOKEN, "acc-1", FROM, TO).stream()
                 .map(t -> t.amount().amount())
@@ -307,14 +357,17 @@ class MonetaClientTest {
         new MonetaClient.Partner("1", "Example s.r.o.", "app");
     }
 
-    @Test
-    void tellsARefusedTokenFromThrottling() {
-        answer(ACCOUNTS, 401, "{}");
+    @ParameterizedTest
+    @ValueSource(ints = {401, 403})
+    void aRefusedTokenIsInvalidToken(int status) {
+        answer(ACCOUNTS, status, "{}");
         var refused = assertThrows(MonetaException.InvalidToken.class, () -> client.accounts(TOKEN));
-        assertEquals(401, refused.status());
+        assertEquals(status, refused.status());
         assertFalse(Objects.requireNonNull(refused.getMessage()).contains(TOKEN.value()));
+    }
 
-        server.removeContext(ACCOUNTS);
+    @Test
+    void throttlingSaysHowLongToWait() {
         server.createContext(ACCOUNTS, exchange -> {
             exchange.getResponseHeaders().add("Retry-After", "30");
             respond(exchange, 429, "{}");
@@ -338,6 +391,40 @@ class MonetaClientTest {
     }
 
     @Test
+    void anInterruptedThreadGetsNoAnswerAndStaysInterrupted() {
+        server.createContext(ACCOUNTS, exchange -> {
+            sleep(Duration.ofSeconds(1));
+            respond(exchange, 200, fixture("accounts.json"));
+        });
+
+        Thread.currentThread().interrupt();
+        try {
+            assertThrows(MonetaException.NoAnswer.class, () -> client.accounts(TOKEN));
+            assertTrue(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    void usesTheHttpClientItIsGiven() {
+        server.createContext("/moved/", exchange -> {
+            exchange.getResponseHeaders()
+                    .add("Location", base.resolve(ACCOUNTS.substring(1)).toString());
+            respond(exchange, 302, "");
+        });
+        answer(ACCOUNTS, 200, fixture("accounts.json"));
+        var following = MonetaClient.builder()
+                .baseUri(base.resolve("moved/"))
+                .httpClient(HttpClient.newBuilder()
+                        .followRedirects(HttpClient.Redirect.ALWAYS)
+                        .build())
+                .build();
+
+        assertEquals(1, following.accounts(TOKEN).size());
+    }
+
+    @Test
     void keepsThePathOfABaseUriWithoutATrailingSlash() {
         answer("/sandbox" + ACCOUNTS, 200, fixture("accounts.json"));
         var sandbox =
@@ -354,6 +441,22 @@ class MonetaClientTest {
     private static String transaction(String statusAndDirection) {
         return "{\"transactions\":[{\"entryReference\":\"t\"," + statusAndDirection
                 + ",\"amount\":{\"value\":1,\"currency\":\"CZK\"}}],\"pageCount\":1}";
+    }
+
+    private void answerBothPages() {
+        server.createContext(TRANSACTIONS, exchange -> {
+            requests.add(exchange);
+            var page = exchange.getRequestURI().getQuery().endsWith("page=0") ? 0 : 1;
+            respond(exchange, 200, fixture("transactions-page-" + page + ".json"));
+        });
+    }
+
+    private static void sleep(Duration duration) {
+        try {
+            Thread.sleep(duration);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private void answer(String path, int status, String body) {
