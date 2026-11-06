@@ -32,14 +32,14 @@
             "creditorAccount": {
               "identification": {
                 "other": {
-                  "identification": "123456789"
+                  "identification": "1337"
                 }
               }
             },
             "debtorAccount": {
               "identification": {
                 "other": {
-                  "identification": "0000123456/0800"
+                  "identification": "4040404040/0800"
                 }
               }
             }

@@ -92,7 +92,7 @@ class MonetaClientTest {
 
             var accounts = client.accounts(TOKEN);
 
-            assertEquals(List.of(new Account("acc-1", "CZ6506000000000123456789", CZK, "Business account")), accounts);
+            assertEquals(List.of(new Account("acc-1", "CZ0206000000000000001337", CZK, "Business account")), accounts);
             var headers = requests.getFirst().getRequestHeaders();
             assertEquals("Bearer " + TOKEN.value(), headers.getFirst("Authorization"));
             assertEquals("application/json", headers.getFirst("Accept"));
