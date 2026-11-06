@@ -224,6 +224,21 @@ class MonetaClientTest {
         }
 
         @Test
+        void aPendingMovementHasOnlyTheDateItWasEntered() {
+            // Recorded from the live API, accounts and ids replaced.
+            answer(TRANSACTIONS, 200, fixture("live/pending-incoming.json"));
+
+            var pending = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
+
+            assertEquals(Transaction.Status.PENDING, pending.status());
+            assertEquals(new Money(new BigDecimal("1"), CZK), pending.amount());
+            assertEquals(LocalDate.of(2026, 11, 6), pending.enteredDate());
+            assertNull(pending.bookingDate());
+            assertNull(pending.valueDate());
+            assertEquals(new PaymentSymbols(null, null, null), pending.symbols());
+        }
+
+        @Test
         void keepsTheCounterpartyInRawButOutOfToString() {
             answerBothPages();
 
