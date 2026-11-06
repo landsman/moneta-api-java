@@ -4,10 +4,12 @@ A Java client for **MONETA API**, MONETA Money Bank's API for business accounts.
 third-party application with a token they issue in Internet Banka, so the application needs no PSD2 licence.
 Usable from Java 21 and from Kotlin; its only dependencies are Jackson and JSpecify.
 
-> **Unverified.** MONETA publishes the specification only to organisations registered in its
+> **Partly verified.** MONETA publishes the specification only to organisations registered in its
 > [developer portal](https://apiportal.moneta.cz/pages/moneta/home.html). The paths, headers and response
-> shapes here follow the one public client, [sloukapetr/moneta-laravel-package](https://github.com/sloukapetr/moneta-laravel-package),
-> whose test data is its author's own. Not on Maven Central until it has been run against the sandbox.
+> shapes started from the one public client, [sloukapetr/moneta-laravel-package](https://github.com/sloukapetr/moneta-laravel-package);
+> on 2026-11-06 they were checked against a live business account with pending incoming and outgoing
+> payments, and held, except the pending dates now handled. Booked movements are not yet checked. Not on Maven
+> Central until they are.
 
 ## Use
 
@@ -92,18 +94,30 @@ GraalVM native image is untested. The JSON records are bound by reflection and t
 reachability metadata, so in a native image every call would likely fail as `InvalidResponse`. Supporting it
 means shipping `META-INF/native-image/…/reachability-metadata.json` and running the tests once natively.
 
-## What the specification has to answer
+## What the live API showed (2026-11-06)
 
-- The transaction filter's parameter names; `fromDate`, `toDate`, `page` and `size` are the Czech open-banking
-  standard's, assumed here.
-- Whether `pageNumber` starts at 0. The client refuses a page numbered other than it asked for, rather than
-  read it twice.
-- Whether `toDate` is inclusive, which date the range filters on (booking or value), and whether it returns
-  pending movements.
-- The format of `bookingDate` and `valueDate`, and whether `reference` is one string or a list.
+- `fromDate`, `toDate`, `page` and `size` are the real names: `size=100` comes back as `pageSize: 100`, a
+  reversed range is a 400 `DT01`. An unknown name is ignored without an error, so a typo returns the account
+  unfiltered.
+- Pages count from 0. A page past the last is a 404 `PAGE_NOT_FOUND`, not an empty page; the client stops by
+  `pageCount`, which MONETA always sends.
+- An empty range is `"transactions": []`.
+- The partner headers are not required: every call above was made without them.
+- A pending movement (`PDNG`) has `bookingDate` and `valueDate` as `{"date": null}`; only `enteredDate` is set.
+- A debit comes as `DBIT` with a positive value, as assumed.
+- The symbols are one string: `"VS:1337 KS:1000 SS:76789"`, `"VS:1337  SS:76789"` with KS left out,
+  `"VS:"` with none.
+- No counterparty name is sent, only its account number. The message for the recipient is "Okamžitá platba"
+  on instant payments, in Internet Banka's own export as well.
+- An account has no `nameI18N` unless one is set, so `Account.name()` is null; `productI18N` names the
+  product.
+- A nonsense date is a 500, not a 400.
+
+## What is still open
+
+- Booked movements: when a pending one becomes `BOOK`, its dates, and whether a message appears.
+- Whether `toDate` is inclusive, and which date the range filters on (booking, value or entered).
 - How `business_name` is sent with diacritics; the client accepts only ASCII there for now.
-- Whether the `identification_number`, `business_name` and `application_name` headers are required, and whose
-  values they hold.
 - Whether a token can be read-only, and how long it lives.
 - The rate limits: per token, per application or per partner, over what window, and whether a 429 carries
   `Retry-After`. Until they are known a 429 fails the whole read. If a normal read can hit them, the client
