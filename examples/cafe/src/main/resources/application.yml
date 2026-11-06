@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: cafe
+
+moneta:
+  # From the environment only: MONETA_TOKEN=op://<vault>/<item>/<field> op run -- make dev
+  token: ${MONETA_TOKEN}
+
+cafe:
+  time-zone: Europe/Prague

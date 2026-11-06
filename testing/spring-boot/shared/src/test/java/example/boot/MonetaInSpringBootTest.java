@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.URI;
 import java.time.LocalDate;
 import java.util.Currency;
 import java.util.Objects;
@@ -19,26 +18,17 @@ import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.builder.SpringApplicationBuilder;
-import org.springframework.context.annotation.Bean;
-import org.springframework.core.env.Environment;
 
 /**
- * The library inside a Spring Boot application whose BOM picks the Jackson versions, the way a caller's build
+ * The starter inside a Spring Boot application whose BOM picks the Jackson versions, the way a caller's build
  * does. Shared by every testing/spring-boot/<version> project; each sets a different Spring Boot version.
  */
 class MonetaInSpringBootTest {
 
+    /** No bean of its own: the starter's auto-configuration builds the client and the token. */
     @SpringBootConfiguration
     @EnableAutoConfiguration
-    static class App {
-
-        @Bean
-        MonetaClient moneta(Environment environment) {
-            return MonetaClient.builder()
-                    .baseUri(URI.create(environment.getRequiredProperty("moneta.base-uri")))
-                    .build();
-        }
-    }
+    static class App {}
 
     @Test
     void aClientTheContextBuiltReadsTransactions() throws IOException {
@@ -58,12 +48,12 @@ class MonetaInSpringBootTest {
                 + server.getAddress().getPort() + "/";
         try (var context = new SpringApplicationBuilder(App.class)
                 .web(WebApplicationType.NONE)
-                .properties("moneta.base-uri=" + base)
+                .properties("moneta.base-uri=" + base, "moneta.token=t")
                 .run()) {
             var moneta = context.getBean(MonetaClient.class);
+            var token = context.getBean(AccessToken.class);
 
-            var transactions = moneta.transactions(
-                    new AccessToken("t"), "acc-1", LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31));
+            var transactions = moneta.transactions(token, "acc-1", LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31));
 
             assertEquals(
                     new Money(new BigDecimal("-12.50"), Currency.getInstance("CZK")),

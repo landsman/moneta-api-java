@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-    testImplementation(project(":"))
+    testImplementation(project(":modules:moneta-api"))
     testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     // Compiles a caller that must be refused, which a test source set cannot hold.

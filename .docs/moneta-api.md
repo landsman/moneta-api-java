@@ -12,6 +12,7 @@ Central until they are.
 - `fromDate`, `toDate`, `page` and `size` are the real names: `size=100` comes back as `pageSize: 100`, a
   reversed range is a 400 `DT01`. An unknown name is ignored without an error, so a typo returns the account
   unfiltered.
+- `toDate` is inclusive: `fromDate` = `toDate` = a day returns that day's movements.
 - Pages count from 0. A page past the last is a 404 `PAGE_NOT_FOUND`, not an empty page; the client stops by
   `pageCount`, which MONETA always sends.
 - An empty range is `"transactions": []`.
@@ -28,8 +29,11 @@ Central until they are.
 
 ## What is still open
 
-- Booked movements: when a pending one becomes `BOOK`, its dates, and whether a message appears.
-- Whether `toDate` is inclusive, and which date the range filters on (booking, value or entered).
+- Booked movements: when a pending one becomes `BOOK`, its dates, whether a message appears, and whether its
+  `entryReference` stays the same.
+- The time of a movement: none is sent anywhere ([#9](https://github.com/landsman/moneta-api-java/issues/9)).
+- Which date the range filters a booked movement on (booking or value); a pending one is filtered by its
+  `enteredDate`.
 - How `business_name` is sent with diacritics; the client accepts only ASCII there for now.
 - Whether a token can be read-only, and how long it lives.
 - The rate limits: per token, per application or per partner, over what window, and whether a 429 carries

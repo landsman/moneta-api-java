@@ -10,7 +10,7 @@ dependencyManagement {
 }
 
 dependencies {
-    testImplementation(project(":"))
+    testImplementation(project(":modules:moneta-api-spring-boot-starter"))
     testImplementation("org.springframework.boot:spring-boot-starter-json")
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
