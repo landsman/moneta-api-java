@@ -5,7 +5,7 @@ plugins {
     `java-library`
     id("com.diffplug.spotless") version "8.11.0"
     id("net.ltgt.errorprone") version "5.2.0"
-    // For the compat projects only.
+    // For the compatibility tests only.
     id("io.spring.dependency-management") version "1.1.7" apply false
     kotlin("jvm") version "2.4.21" apply false
 }
@@ -57,15 +57,15 @@ tasks.withType<JavaCompile>().configureEach {
 
 spotless {
     java {
-        target("src/**/*.java", "compat/**/*.java")
+        target("src/**/*.java", "testing/**/*.java")
         palantirJavaFormat("2.103.0")
     }
     kotlin {
-        target("compat/**/*.kt")
+        target("testing/**/*.kt")
         ktlint()
     }
     kotlinGradle {
-        target("*.gradle.kts", "compat/**/*.gradle.kts")
+        target("*.gradle.kts", "testing/**/*.gradle.kts")
         ktlint()
     }
 }

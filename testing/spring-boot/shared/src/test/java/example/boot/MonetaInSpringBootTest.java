@@ -11,9 +11,9 @@ import java.math.BigDecimal;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.Currency;
+import java.util.Objects;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.WebApplicationType;
@@ -24,15 +24,9 @@ import org.springframework.core.env.Environment;
 
 /**
  * The library inside a Spring Boot application whose BOM picks the Jackson versions, the way a caller's build
- * does. Shared by every compat/spring-boot-* project; each sets a different Spring Boot version.
+ * does. Shared by every testing/spring-boot/<version> project; each sets a different Spring Boot version.
  */
 class MonetaInSpringBootTest {
-
-    private static final String TRANSACTIONS = """
-            {"transactions": [{
-              "entryReference": "t", "status": "BOOK", "creditDebitIndicator": "DBIT",
-              "amount": {"value": 12.5, "currency": "CZK"}
-            }], "pageCount": 1}""";
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
@@ -50,7 +44,10 @@ class MonetaInSpringBootTest {
     void aClientTheContextBuiltReadsTransactions() throws IOException {
         var server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         server.createContext("/", exchange -> {
-            var bytes = TRANSACTIONS.getBytes(StandardCharsets.UTF_8);
+            byte[] bytes;
+            try (var in = Objects.requireNonNull(getClass().getResourceAsStream("/transactions.json"))) {
+                bytes = in.readAllBytes();
+            }
             exchange.sendResponseHeaders(200, bytes.length);
             try (var out = exchange.getResponseBody()) {
                 out.write(bytes);

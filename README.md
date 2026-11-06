@@ -81,7 +81,7 @@ dependencyManagement { dependencies { dependency("com.fasterxml.jackson.core:jac
 ```
 
 Spring Boot 3.5.13 and newer, and every Spring Boot 4, need nothing. `make build` checks all three cases, and a
-Kotlin caller, in [compat/](compat/README.md).
+Kotlin caller, in [testing/](testing/README.md).
 
 ## Not covered yet
 

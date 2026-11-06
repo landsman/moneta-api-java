@@ -16,4 +16,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-sourceSets.test { java.srcDir("../spring-boot/src/test/java") }
+sourceSets.test {
+    java.srcDir("../shared/src/test/java")
+    resources.srcDir("../shared/src/test/resources")
+}
