@@ -1,8 +1,12 @@
 # moneta-api-java
 
-A Java client for **MONETA API**, MONETA Money Bank's API for business accounts. A merchant opens it to a
-third-party application with a token they issue in Internet Banka, so the application needs no PSD2 licence.
-Usable from Java 21 and from Kotlin; its only dependencies are Jackson and JSpecify.
+The Czech bank MONETA Money Bank lets its business clients, sole traders included, use its API for free: an
+application reads their accounts and transactions, and can enter payments, with a token they issue in Internet
+Banka. No PSD2 licence is needed.
+
+This is a client for that API, **MONETA API**, for Java 21+ and Kotlin projects, with a Spring Boot starter. It
+reads accounts and transactions so far; payments are not covered yet. Its only dependencies are Jackson and
+JSpecify.
 
 Partly verified against the live API, not on Maven Central yet: see [what is known](.docs/moneta-api.md).
 
