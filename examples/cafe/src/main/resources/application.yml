@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: cafe
+
+moneta:
+  # From the environment only: MONETA_TOKEN=op://<vault>/<item>/<field> op run -- make dev
+  token: ${MONETA_TOKEN}
+  base-uri: https://api.moneta.cz/
+  request-timeout: 30s
+
+cafe:
+  time-zone: Europe/Prague

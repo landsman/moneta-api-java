@@ -17,4 +17,16 @@ booking day, or while pending the day MONETA took it in. The counterparty's acco
 **Whole days only.** MONETA dates a movement but gives it no time, so "the last hour" cannot be answered from
 its data. An app that needs it records when it first saw each `reference`, polling every few seconds.
 
-The token comes only from `MONETA_TOKEN`. Use a read-only one, and revoke it in Internet Banka when done.
+## Configuration
+
+`src/main/resources/application.yml`, bound to `MonetaProperties` and `CafeProperties`:
+
+| Property | Default | |
+|----------|---------|---|
+| `moneta.token` | — | `${MONETA_TOKEN}`; set it in the environment, never in a file |
+| `moneta.base-uri` | `https://api.moneta.cz/` | the sandbox's host once the portal gives it |
+| `moneta.request-timeout` | `30s` | one call to MONETA |
+| `cafe.time-zone` | `Europe/Prague` | whose "today" a period means |
+
+`MonetaConfiguration` builds the one `MonetaClient` and the `AccessToken` from them; a blank token or one with a
+stray newline stops the app at startup. Use a read-only token, and revoke it in Internet Banka when done.
