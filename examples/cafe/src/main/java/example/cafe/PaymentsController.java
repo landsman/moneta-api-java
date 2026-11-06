@@ -3,6 +3,9 @@ package example.cafe;
 import cz.landsman.moneta.AccessToken;
 import cz.landsman.moneta.MonetaClient;
 import cz.landsman.moneta.Transaction;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -18,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
  * wins over the period. Only money in; the counterparty's account and name stay out of the answer.
  */
 @RestController
+@Tag(name = "Payments", description = "Incoming payments on the café's account, by period or range")
 class PaymentsController {
 
     private final MonetaClient moneta;
@@ -31,8 +35,15 @@ class PaymentsController {
     }
 
     @GetMapping("/payments")
+    @Operation(
+            summary = "Incoming payments",
+            description = "Whole days only: MONETA dates a payment, it gives no time.")
     List<ReceivedPayment> payments(
-            @RequestParam(name = "period", defaultValue = "today") String period,
+            @Parameter(
+                            description =
+                                    "today, yesterday, this-week, last-week, last-7-days or this-month; ignored with from and to")
+                    @RequestParam(name = "period", defaultValue = "today")
+                    String period,
             @RequestParam(name = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @Nullable
                     LocalDate from,
             @RequestParam(name = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) @Nullable

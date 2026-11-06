@@ -14,6 +14,8 @@ dependencies {
     // The QR payment a bill is shown as: the SPAYD string and its PNG, checked by its author against the format's
     // own API. An example's dependency, not the library's.
     implementation("io.github.janhalasa:spayd-qr-java:1.0.2")
+    // An API reference to try the endpoints by hand, at /scalar; the OpenAPI document is at /v3/api-docs.
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-scalar:3.2.0")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-data-jdbc-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

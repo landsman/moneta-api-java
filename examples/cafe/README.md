@@ -6,10 +6,12 @@ class for MONETA.
 
     MONETA_TOKEN=op://<vault>/<item>/<field> op run -- make dev
 
+Then try it by hand at http://localhost:8080/scalar, an API reference built from the controllers.
+
 | Request | Answers |
 |---------|---------|
-| `POST /bills?amount=65.00` | a new bill: its variable symbol, the SPAYD string and where its QR code is |
-| `GET /bills/1000/qr.png` | the QR code for the customer's banking app to scan |
+| `POST /bills` `{"amount": 65.00}` | a new bill for 65.00 CZK: its variable symbol, the SPAYD string and where its QR code is |
+| `GET /bills/{variableSymbol}/qr.png` | that bill's QR code, with its amount and symbol, for the customer's banking app to scan |
 | `GET /bills` | every bill, newest first: paid or not, by which payment, seen when |
 | `POST /bills/check` | looks for payments now, rather than at the next round |
 | `GET /payments` | today's incoming payments |
@@ -20,8 +22,8 @@ class for MONETA.
 
 - **A bill's variable symbol is its id**, ascending from 1000 and never reused, so no two bills share one. The
   bills live in H2 in `build/cafe`; `./gradlew clean` starts afresh.
-- **Every `cafe.check-moneta-every` (30 s)** the café reads the incoming payments since its oldest unpaid bill was
-  issued, pending ones included, and a payment pays a bill when the variable symbol, amount and currency are the
+- **Every `cafe.check-moneta-every` (30 s)** the café reads the incoming payments since its oldest unpaid bill
+  was issued, pending ones included, and a payment pays a bill when the variable symbol, amount and currency are the
   bill's exactly (leading zeros in the symbol do not count). `PaymentMatching` is that rule, tested on its own.
 - **One payment pays one bill**: the table holds a unique `paid_by`, so the database refuses a second.
 - **`paidSeenAt` is when the café first saw the payment.** MONETA gives a payment a date and no time, so this,
