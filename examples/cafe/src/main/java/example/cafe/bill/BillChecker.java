@@ -1,4 +1,4 @@
-package example.cafe;
+package example.cafe.bill;
 
 import cz.landsman.moneta.AccessToken;
 import cz.landsman.moneta.MonetaClient;
@@ -44,7 +44,7 @@ class BillChecker {
 
     /** The number of bills it found paid. */
     int check() {
-        var unpaid = bills.findByPaidByIsNullOrderById();
+        var unpaid = bills.findByMonetaEntryReferenceIsNullOrderById();
         if (unpaid.isEmpty()) {
             log.debug("No unpaid bills, nothing to look for");
             return 0;
@@ -67,7 +67,7 @@ class BillChecker {
                 matches.size());
         var seenAt = clock.instant();
         for (var match : matches) {
-            bills.save(match.bill().paidBy(match.payment().entryReference(), seenAt));
+            bills.save(match.bill().paidWith(match.payment().entryReference(), seenAt));
             log.info(
                     "Bill {} paid by {}",
                     match.bill().variableSymbol(),

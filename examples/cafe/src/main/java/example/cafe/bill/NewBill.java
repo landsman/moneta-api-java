@@ -1,4 +1,4 @@
-package example.cafe;
+package example.cafe.bill;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;

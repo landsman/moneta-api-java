@@ -1,4 +1,4 @@
-package example.cafe;
+package example.cafe.bill;
 
 import com.google.zxing.WriterException;
 import io.github.janhalasa.spaydqr.model.BankAccount;

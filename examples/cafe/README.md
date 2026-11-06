@@ -25,7 +25,7 @@ Then try it by hand at http://localhost:8080/scalar, an API reference built from
 - **Every `cafe.check-moneta-every` (30 s)** the café reads the incoming payments since its oldest unpaid bill
   was issued, pending ones included, and a payment pays a bill when the variable symbol, amount and currency are the
   bill's exactly (leading zeros in the symbol do not count). `PaymentMatching` is that rule, tested on its own.
-- **One payment pays one bill**: the table holds a unique `paid_by`, so the database refuses a second.
+- **One payment pays one bill**: the table holds a unique `moneta_entry_reference`, MONETA's id of the payment, so the database refuses a second.
 - **`paidSeenAt` is when the café first saw the payment.** MONETA gives a payment a date and no time, so this,
   to the polling interval, is the closest there is to when it was paid.
 - **The QR code** is drawn by [spayd-qr-java](https://github.com/janhalasa/spayd-qr-java), with instant payment

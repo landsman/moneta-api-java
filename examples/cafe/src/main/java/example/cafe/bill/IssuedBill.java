@@ -1,4 +1,4 @@
-package example.cafe;
+package example.cafe.bill;
 
 import java.math.BigDecimal;
 

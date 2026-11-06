@@ -1,4 +1,4 @@
-package example.cafe;
+package example.cafe.bill;
 
 import cz.landsman.moneta.AccessToken;
 import cz.landsman.moneta.MonetaClient;

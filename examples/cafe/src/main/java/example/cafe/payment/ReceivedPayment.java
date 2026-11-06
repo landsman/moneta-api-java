@@ -1,4 +1,4 @@
-package example.cafe;
+package example.cafe.payment;
 
 import cz.landsman.moneta.Transaction;
 import java.math.BigDecimal;

@@ -1,4 +1,4 @@
-package example.cafe;
+package example.cafe.bill;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -24,14 +24,14 @@ class BillRepositoryTest {
     void symbolsAscendFromAThousandAndOnlyUnpaidBillsAreLookedFor() {
         var coffee = bills.save(Bill.issue(new BigDecimal("65"), NOW));
         var cake = bills.save(Bill.issue(new BigDecimal("89"), NOW));
-        bills.save(cake.paidBy("t1", NOW));
+        bills.save(cake.paidWith("t1", NOW));
 
         // A rolled-back test does not give its ids back, and neither does production: a symbol is never reused.
         assertTrue(Long.parseLong(coffee.variableSymbol()) >= 1000);
         assertEquals(Long.parseLong(coffee.variableSymbol()) + 1, Long.parseLong(cake.variableSymbol()));
         assertEquals(
                 List.of(coffee.variableSymbol()),
-                bills.findByPaidByIsNullOrderById().stream()
+                bills.findByMonetaEntryReferenceIsNullOrderById().stream()
                         .map(Bill::variableSymbol)
                         .toList());
     }
@@ -40,8 +40,8 @@ class BillRepositoryTest {
     void oneSymbolCannotPayTwoBills() {
         var coffee = bills.save(Bill.issue(new BigDecimal("65"), NOW));
         var cake = bills.save(Bill.issue(new BigDecimal("65"), NOW));
-        bills.save(coffee.paidBy("t1", NOW));
+        bills.save(coffee.paidWith("t1", NOW));
 
-        assertThrows(RuntimeException.class, () -> bills.save(cake.paidBy("t1", NOW)));
+        assertThrows(RuntimeException.class, () -> bills.save(cake.paidWith("t1", NOW)));
     }
 }

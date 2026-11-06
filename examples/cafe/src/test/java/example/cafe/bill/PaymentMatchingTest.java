@@ -1,4 +1,4 @@
-package example.cafe;
+package example.cafe.bill;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
