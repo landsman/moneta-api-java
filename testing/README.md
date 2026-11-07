@@ -18,12 +18,14 @@ break it unnoticed. `make build` runs them with the library's own tests, which s
 | `kotlin` | a `when` over `MonetaException` needs no `else`, and a nullable component is nullable in Kotlin |
 | `native` | the client's metadata is enough for a native image: built by `make native-test`, not `make build`, it prints the same as on the JVM |
 
-Each Spring Boot version is a folder whose `build.gradle.kts` only imports its BOM; what they share is in
-`spring-boot/build.gradle.kts`, and the test is in `spring-boot/shared`. A context
+Each Spring Boot version is a folder whose `build.gradle.kts` imports its BOM, plus whatever only that version
+needs; what they share is in `spring-boot/build.gradle.kts`, and the test is in `spring-boot/shared`. A context
 with only the starter on it gets `MonetaClient` and `AccessToken` from its auto-configuration and reads transactions from a local server, which is where both failures a
-wrong Jackson causes show up, at class loading and on the first call. Another version is another folder with that
-one line, and an entry in `settings.gradle.kts`. Play and Micronaut are laid out the same, around `play/shared` and
-`micronaut/shared`. Quarkus is not: its Gradle plugin carries the version too. The Micronaut projects
+wrong Jackson causes show up, at class loading and on the first call. Another version is another folder with its
+BOM line, and an entry in `settings.gradle.kts`. Play and Micronaut are laid out the same, around `play/shared` and
+`micronaut/shared`; a Micronaut version also names the `slf4j-jdk-platform-logging` matching its BOM. Quarkus could
+share its build the same way, except the plugin version in each `plugins {}`, but with two projects it is not worth
+a parent. The Micronaut projects
 keep Micrometer off their classpath: the module names its types in a method signature, and these projects
 are what proves it loads without them.
 
