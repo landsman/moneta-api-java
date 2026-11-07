@@ -5,8 +5,9 @@ import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
 /**
- * MONETA's JSON, one record per object, named exactly as MONETA names the keys. Jackson binds them by those
- * names, so a key is written once, here, and the rest of the library reads typed fields. Unknown keys are
+ * MONETA's JSON, one record per object, each component named exactly as MONETA names its key. Jackson binds
+ * them by those names, so a key is written once, in its record, and the rest of the library reads typed fields.
+ * The types end in {@code Json}, so they are not taken for the library's own model. Unknown keys are
  * ignored. A key the library relies on is checked in the compact constructor, so a missing one fails at
  * binding, as {@link MonetaException.InvalidResponse}, and not as a null three calls later.
  *
