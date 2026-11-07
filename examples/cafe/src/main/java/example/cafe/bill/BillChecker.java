@@ -65,7 +65,14 @@ class BillChecker {
             return;
         }
         var payments = moneta.incoming(token, account.get().id(), from, today);
-        var matches = PaymentMatching.match(lookedFor, payments);
+        var result = PaymentMatching.match(lookedFor, payments);
+        var matches = result.matches();
+        for (var second : result.secondPayments()) {
+            log.warn(
+                    "Payment {} has the symbol {} and amount of a bill another payment paid; paid twice?",
+                    second.entryReference(),
+                    second.symbols().variable());
+        }
         log.info(
                 "Checked {} bills unpaid or awaiting booking against {} payments since {}: {} matched",
                 lookedFor.size(),

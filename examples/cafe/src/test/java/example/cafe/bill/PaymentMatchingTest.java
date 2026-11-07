@@ -26,7 +26,7 @@ class PaymentMatchingTest {
 
         assertEquals(
                 List.of(new PaymentMatching.Match(CAKE, payment)),
-                PaymentMatching.match(List.of(COFFEE, CAKE), List.of(payment)));
+                PaymentMatching.match(List.of(COFFEE, CAKE), List.of(payment)).matches());
     }
 
     @Test
@@ -34,6 +34,7 @@ class PaymentMatchingTest {
         assertEquals(
                 1,
                 PaymentMatching.match(List.of(COFFEE), List.of(pending("t1", "0001000", "65")))
+                        .matches()
                         .size());
     }
 
@@ -57,8 +58,9 @@ class PaymentMatchingTest {
         assertEquals(
                 List.of(),
                 PaymentMatching.match(
-                        List.of(COFFEE),
-                        List.of(pending("short", "1000", "60"), pending("no-symbol", null, "65"), out)));
+                                List.of(COFFEE),
+                                List.of(pending("short", "1000", "60"), pending("no-symbol", null, "65"), out))
+                        .matches());
     }
 
     @Test
@@ -78,13 +80,16 @@ class PaymentMatchingTest {
                 true,
                 "{}");
 
-        assertEquals(List.of(), PaymentMatching.match(List.of(COFFEE), List.of(reversal)));
+        assertEquals(
+                List.of(),
+                PaymentMatching.match(List.of(COFFEE), List.of(reversal)).matches());
     }
 
     @Test
     void aBillIsPaidOnceEvenIfItIsPaidTwice() {
         var matches = PaymentMatching.match(
-                List.of(COFFEE), List.of(pending("t1", "1000", "65"), pending("t2", "1000", "65")));
+                        List.of(COFFEE), List.of(pending("t1", "1000", "65"), pending("t2", "1000", "65")))
+                .matches();
 
         assertEquals(
                 List.of("t1"),
@@ -92,10 +97,25 @@ class PaymentMatchingTest {
     }
 
     @Test
+    void theSecondPaymentForABillInOneRoundIsReportedNotLost() {
+        var result = PaymentMatching.match(
+                List.of(COFFEE), List.of(pending("t1", "1000", "65"), pending("t2", "1000", "65")));
+
+        assertEquals(
+                List.of("t2"),
+                result.secondPayments().stream()
+                        .map(Transaction::entryReference)
+                        .toList());
+    }
+
+    @Test
     void aBillPaidByAPendingPaymentIsNotPaidAgainByIt() {
         var paid = COFFEE.paidWith(pending("t1", "1000", "65"), SEEN);
 
-        assertEquals(List.of(), PaymentMatching.match(List.of(paid), List.of(pending("t1", "1000", "65"))));
+        assertEquals(
+                List.of(),
+                PaymentMatching.match(List.of(paid), List.of(pending("t1", "1000", "65")))
+                        .matches());
     }
 
     @Test
@@ -103,7 +123,7 @@ class PaymentMatchingTest {
         var paid = COFFEE.paidWith(pending("t1", "1000", "65"), SEEN);
         var booked = booked("1337:20261109:00001:1", "1000", "65", "KAVARNA UCET 1000");
 
-        var matches = PaymentMatching.match(List.of(paid), List.of(booked));
+        var matches = PaymentMatching.match(List.of(paid), List.of(booked)).matches();
         var updated = matches.getFirst().bill().paidWith(booked, SEEN.plusSeconds(86_400));
 
         assertEquals("1337:20261109:00001:1", updated.monetaEntryReference());

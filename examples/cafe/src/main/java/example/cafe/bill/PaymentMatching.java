@@ -21,16 +21,24 @@ import java.util.Optional;
  *       booked, and this is how the bill learns it.
  * </ol>
  *
- * Each bill takes the first payment that does.
+ * Each bill takes the first payment that does; a second one in the same round is reported, not dropped.
  */
 final class PaymentMatching {
 
     record Match(Bill bill, Transaction payment) {}
 
+    /**
+     * @param secondPayments payments with the symbol and amount of a bill another payment took in the same round:
+     *     the customer most likely paid twice, which a person sorts out
+     */
+    record Result(List<Match> matches, List<Transaction> secondPayments) {}
+
     // ponytail: exact amount only; an underpayment or a tip stays unmatched, a person sorts those out.
-    static List<Match> match(List<Bill> lookedFor, List<Transaction> payments) {
+    static Result match(List<Bill> lookedFor, List<Transaction> payments) {
         Map<String, Bill> billsBySymbol = bySymbol(lookedFor);
+        Map<String, Bill> takenThisRound = new HashMap<>();
         List<Match> matches = new ArrayList<>();
+        List<Transaction> secondPayments = new ArrayList<>();
 
         for (Transaction payment : payments) {
             if (!isMoneyIn(payment) || payment.reversed()) {
@@ -42,9 +50,14 @@ final class PaymentMatching {
                 continue;
             }
 
+            Bill taken = takenThisRound.get(symbol.get());
+            if (taken != null && paysExactly(payment, taken)) {
+                secondPayments.add(payment);
+                continue;
+            }
+
             Bill bill = billsBySymbol.get(symbol.get());
             if (bill == null) {
-                // No bill has this symbol, or an earlier payment in this round already took it.
                 continue;
             }
 
@@ -59,9 +72,10 @@ final class PaymentMatching {
 
             matches.add(new Match(bill, payment));
             billsBySymbol.remove(symbol.get());
+            takenThisRound.put(symbol.get(), bill);
         }
 
-        return matches;
+        return new Result(matches, secondPayments);
     }
 
     private static Map<String, Bill> bySymbol(List<Bill> bills) {
