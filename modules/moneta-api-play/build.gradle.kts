@@ -19,12 +19,6 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-dependencyAnalysis {
-    // No client type is in this module's signatures, but the application injects MonetaClient and AccessToken, so
-    // it needs them on its compile classpath without declaring the client itself.
-    issues { onIncorrectConfiguration { exclude(":modules:moneta-api") } }
-}
-
 java {
     withSourcesJar()
     withJavadocJar()

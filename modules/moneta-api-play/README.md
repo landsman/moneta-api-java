@@ -71,20 +71,24 @@ guide. The module ships neither, because that class takes a Pekko `ActorSystem` 
 ## A proxy, mTLS or metrics
 
 The module builds a plain client. For anything the Spring starter configures with beans, disable it and bind your
-own, closed the same way:
+own, closed the same way. `MonetaConfig.builder(config)` still reads `moneta.*`, so only the HTTP part is yours:
 
 ```hocon
 play.modules.disabled += "cz.insuit.moneta.play.MonetaModule"
 ```
 
 ```java
+// play.api.inject.ApplicationLifecycle, as the module uses: every application has it. play.inject's is bound
+// only with play-java, so a Scala application without it would not start.
+import play.api.inject.ApplicationLifecycle;
+
 public class MonetaProvider implements Provider<MonetaClient> {
     @Inject Config config;
     @Inject ApplicationLifecycle lifecycle;
 
     @Override
     public MonetaClient get() {
-        var client = MonetaClient.builder()
+        var client = MonetaConfig.builder(config)
                 .configureHttpClient(http -> http.sslContext(mtls()))
                 .decorateHttpClient(http -> MicrometerHttpClient.instrumentationBuilder(http, registry)
                         .uriMapper(MonetaClient::uriTemplate)
@@ -104,5 +108,5 @@ the application's.
 
 ## Jackson
 
-Play 3.0 and 2.9 pin Jackson 2.14.3, and the client brings `jackson-annotations` 2.21 or newer, which sbt and
-Gradle both pick. Play's own `Json` runs on it; testing/play checks that too. Nothing to change in the build.
+Play 3.0 and 2.9 pin Jackson 2.14.3, and the client needs `jackson-annotations` 2.21 or newer; sbt and Gradle
+both pick the client's, whichever it brings (2.22 as of this writing). Play's own `Json` runs on it; testing/play checks that too. Nothing to change in the build.

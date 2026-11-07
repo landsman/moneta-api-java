@@ -8,6 +8,7 @@ import com.google.inject.ConfigurationException;
 import com.sun.net.httpserver.HttpServer;
 import cz.insuit.moneta.AccessToken;
 import cz.insuit.moneta.MonetaClient;
+import cz.insuit.moneta.MonetaException;
 import cz.insuit.moneta.Money;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -94,8 +95,9 @@ class MonetaInPlayTest {
         var moneta = app.injector().instanceOf(MonetaClient.class);
         stop(app);
 
+        // The JDK client refuses to send once closed; the library reports that as no answer.
         assertThrows(
-                RuntimeException.class,
+                MonetaException.NoAnswer.class,
                 () -> moneta.transactions(
                         new AccessToken("t"), "acc-1", LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31)));
     }
