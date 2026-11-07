@@ -1,6 +1,6 @@
 package example.kotlin
 
-import cz.landsman.moneta.MonetaException
+import cz.insuit.moneta.MonetaException
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
@@ -32,12 +32,12 @@ class KotlinCallerTest {
 
     @Test
     fun aNonNullComponentNeedsNoSafeCall() {
-        assertEquals(listOf<String>(), compile("fun f(a: cz.landsman.moneta.Account): Int = a.id.length"))
+        assertEquals(listOf<String>(), compile("fun f(a: cz.insuit.moneta.Account): Int = a.id.length"))
     }
 
     @Test
     fun aNullableComponentCannotBeReadAsNonNull() {
-        val errors = compile("fun f(a: cz.landsman.moneta.Account): Int = a.iban.length")
+        val errors = compile("fun f(a: cz.insuit.moneta.Account): Int = a.iban.length")
         assertTrue(errors.isNotEmpty(), "iban read as non-null compiled, so Kotlin sees it as a platform type")
     }
 

@@ -1,4 +1,4 @@
-package cz.landsman.moneta;
+package cz.insuit.moneta;
 
 /** Every path the client calls, relative to the host. */
 final class MonetaPaths {

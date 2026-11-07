@@ -1,9 +1,9 @@
 package example.cafe.bill;
 
-import cz.landsman.moneta.AccessToken;
-import cz.landsman.moneta.Account;
-import cz.landsman.moneta.MonetaClient;
-import cz.landsman.moneta.MonetaException;
+import cz.insuit.moneta.AccessToken;
+import cz.insuit.moneta.Account;
+import cz.insuit.moneta.MonetaClient;
+import cz.insuit.moneta.MonetaException;
 import example.cafe.CafeProperties;
 import java.time.Clock;
 import java.time.LocalDate;

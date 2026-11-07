@@ -1,4 +1,4 @@
-package cz.landsman.moneta;
+package cz.insuit.moneta;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;

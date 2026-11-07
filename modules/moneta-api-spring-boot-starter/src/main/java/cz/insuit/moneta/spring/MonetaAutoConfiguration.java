@@ -1,9 +1,9 @@
-package cz.landsman.moneta.spring;
+package cz.insuit.moneta.spring;
 
 import static java.util.Objects.requireNonNull;
 
-import cz.landsman.moneta.AccessToken;
-import cz.landsman.moneta.MonetaClient;
+import cz.insuit.moneta.AccessToken;
+import cz.insuit.moneta.MonetaClient;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

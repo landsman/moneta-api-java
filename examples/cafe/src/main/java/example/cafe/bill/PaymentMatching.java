@@ -1,6 +1,6 @@
 package example.cafe.bill;
 
-import cz.landsman.moneta.Transaction;
+import cz.insuit.moneta.Transaction;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

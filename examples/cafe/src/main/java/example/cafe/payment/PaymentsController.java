@@ -1,7 +1,7 @@
 package example.cafe.payment;
 
-import cz.landsman.moneta.AccessToken;
-import cz.landsman.moneta.MonetaClient;
+import cz.insuit.moneta.AccessToken;
+import cz.insuit.moneta.MonetaClient;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;

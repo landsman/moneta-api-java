@@ -1,6 +1,6 @@
 package example.cafe.payment;
 
-import cz.landsman.moneta.Transaction;
+import cz.insuit.moneta.Transaction;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import org.jspecify.annotations.Nullable;
