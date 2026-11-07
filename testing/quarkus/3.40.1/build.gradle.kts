@@ -8,6 +8,9 @@ dependencies {
     implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.40.1"))
     implementation(project(":modules:moneta-api-quarkus"))
     implementation("io.quarkus:quarkus-arc")
+    // Micrometer without micrometer-java11, the setup most applications have: the extension must not register its
+    // observation, which needs the binder. 3.33.4 has no Micrometer at all.
+    implementation("io.quarkus:quarkus-micrometer")
     testImplementation("io.quarkus:quarkus-junit")
     testImplementation("org.junit.jupiter:junit-jupiter")
 }
