@@ -115,7 +115,7 @@ reference" is `entryReference`), and shows the same "Okamžitá platba" while pe
 Since a payment's id changes when it is booked, a poller has three choices:
 
 - **Act on booked movements only.** Simplest and final, but a booked payment can arrive days later.
-- **Act on pending ones, and match the booked version back** by amount, symbol, payer's account and day, then
+- **Act on pending ones, and match the booked version back** by amount, symbol and payer's account, then
   replace the stored id. Compare the account as one value: MONETA writes it differently pending
   (`4040404040/0800`) and booked (`0 4040404040/0800`). [examples/cafe](../examples/cafe/README.md) keeps one row
   per payment this way.
