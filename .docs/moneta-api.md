@@ -16,9 +16,11 @@ unknown, and what this library does next, is the working document [plan/roadmap.
    `valueDate` once booked. `bookingDate` can be a later business day than the payment.
 4. **The payer's message and name arrive only once booked.** A pending instant payment says "Okamžitá platba"
    where the message would be.
-5. **An unknown query parameter is ignored without an error**, so a misspelt filter returns the whole account.
-6. **A page past the last is a 404**, not an empty page.
-7. **A nonsense date is a 500**, which a retrying client mistakes for an outage.
+5. **`toDate` does not bound a movement booked for a later day**: every range starting on or before its booking
+   day returns it, a range in 2020 included.
+6. **An unknown query parameter is ignored without an error**, so a misspelt filter returns the whole account.
+7. **A page past the last is a 404**, not an empty page.
+8. **A nonsense date is a 500**, which a retrying client mistakes for an outage.
 
 ## MONETA API and PSD2
 
@@ -48,10 +50,16 @@ and a portal account: [access](access.md).
 
 - **`fromDate`, `toDate`, `page` and `size`** are the real names. `size=100` comes back as `pageSize: 100`; the
   default is 10.
-- **`toDate` is inclusive**: `fromDate` = `toDate` = a day returns that day's movements. No limit on a range's
-  length was met, back to 2020.
-- **A pending movement is filtered by `enteredDate`, a booked one by `valueDate`**: a range ending on Saturday
-  returned movements booked for the Monday after.
+- **`toDate` is inclusive**: `fromDate` = `toDate` = a day returned that day's pending movements (2026-11-06). No
+  limit on a range's length was met, back to 2020.
+- **A pending movement is filtered by `enteredDate`** (2026-11-06).
+- **A movement booked for a later day comes back from every range that starts on or before its `bookingDate`**,
+  whatever `toDate` says. On Saturday 2026-11-07 the account held ten movements valued 6 and 7 November and booked
+  for Monday 9 November. Each of these ranges returned all ten: a single day from 3 to 9 November,
+  `2020-01-01..2020-01-01`, `2026-10-01..2026-10-31`, `2026-11-09..2026-11-30`. A range starting on 10 November
+  returned none. So a range is no upper bound: a poller sees such a movement on every read until its booking day
+  passes. Which date filters a movement once its booking day is in the past is not checked yet
+  ([#27](https://github.com/landsman/moneta-api-java/issues/27)).
 - **Pages count from 0**, and `pageCount` is always sent. A page past the last is a 404 `PAGE_NOT_FOUND`.
 - **An empty range is `"transactions": []`**, never a missing key.
 - **An unknown parameter is ignored**: `dateFrom=…` returns the account unfiltered.
@@ -109,7 +117,7 @@ reference" is `entryReference`), and shows the same "Okamžitá platba" while pe
 Since a payment's id changes when it is booked, a poller has three choices:
 
 - **Act on booked movements only.** Simplest and final, but a booked payment can arrive days later.
-- **Act on pending ones, and match the booked version back** by amount, symbol, payer's account and day, then
+- **Act on pending ones, and match the booked version back** by amount, symbol and payer's account, then
   replace the stored id. Compare the account as one value: MONETA writes it differently pending
   (`4040404040/0800`) and booked (`0 4040404040/0800`). [examples/cafe](../examples/cafe/README.md) keeps one row
   per payment this way.

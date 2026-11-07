@@ -112,8 +112,9 @@ public final class MonetaClient implements AutoCloseable {
 
     /**
      * Every transaction on the account between two dates, both inclusive, all pages read, pending ones included
-     * ({@link Transaction#booked()} tells them apart). MONETA filters a pending movement by its entered date and a
-     * booked one by its value date, the day the payment was made; .docs/moneta-api.md has the rest. All or nothing:
+     * ({@link Transaction#booked()} tells them apart). MONETA filters a pending movement by its entered date; a
+     * movement booked for a later day comes back from every range starting on or before that day, whatever
+     * {@code to} says. .docs/moneta-api.md has the rest. All or nothing:
      * a failure on a later page discards the earlier ones, so read a long range month by month.
      *
      * @throws IllegalArgumentException when {@code to} is before {@code from}, or the account id is blank or a
