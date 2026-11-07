@@ -8,10 +8,13 @@ updates:
       default-days: 7
     commit-message:
       prefix: deps
-    # The compatibility tests and the starter pin the Spring Boot versions they prove or build against; a bump
-    # would stop testing them.
+    # The compatibility tests, the starter and the Play module pin the Spring Boot and Play versions they prove or
+    # build against; a bump would stop testing them.
     ignore:
       - dependency-name: org.springframework.boot:spring-boot-dependencies
+      # The same for Play, in the module and testing/play.
+      - dependency-name: org.playframework:*
+      - dependency-name: com.typesafe.play:*
       # Named only in the Jackson floor in build.gradle.kts, never as a dependency. jackson-databind cannot be
       # ignored the same way, since the library does depend on it; the floor is written so Dependabot skips it.
       - dependency-name: tools.jackson.core:jackson-core

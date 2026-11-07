@@ -9,6 +9,8 @@ break it unnoticed. `make build` runs them with the library's own tests, which s
 | `spring-boot/3.5.16` | Spring Boot 3.5.13 and newer need nothing |
 | `spring-boot/4.0.0` | the oldest Spring Boot 4, with its Jackson 3.0 |
 | `spring-boot/4.1.2` | the current Spring Boot 4 |
+| `play/3.0-scala-2.13`, `play/3.0-scala-3` | the Play module on Play 3.0 for both Scalas, with the Jackson 2.14 it pins |
+| `play/2.9` | the same jar on Play 2.9, the Akka line |
 | `kotlin` | a `when` over `MonetaException` needs no `else`, and a nullable component is nullable in Kotlin |
 
 Each Spring Boot version is only a `build.gradle.kts` naming it; the test is in `spring-boot/shared`. A context
