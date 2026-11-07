@@ -16,5 +16,5 @@ dependencies {
 
 sourceSets.test {
     java.srcDir("../shared/src/test/java")
-    resources.srcDir("../shared/src/test/resources")
+    resources.srcDir("../../resources") // one MONETA answer for every testing project
 }

@@ -10,8 +10,8 @@ import cz.insuit.moneta.AccessToken;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
@@ -24,10 +24,7 @@ class MonetaConfigTest {
         var server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         server.createContext("/", exchange -> {
             partnerHeader.set(exchange.getRequestHeaders().getFirst("identification_number"));
-            byte[] bytes;
-            try (var in = Objects.requireNonNull(getClass().getResourceAsStream("/transactions.json"))) {
-                bytes = in.readAllBytes();
-            }
+            var bytes = "{\"transactions\": [], \"pageCount\": 1}".getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(200, bytes.length);
             try (var out = exchange.getResponseBody()) {
                 out.write(bytes);
