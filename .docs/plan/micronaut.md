@@ -104,6 +104,11 @@ Spike: `testing/micronaut/5.x` running a module compiled against 4.10. Then:
 | it loads and binds on 5 | one module, compiled against 4.10, release 21, tested on 4.10 and 5.x |
 | it does not | `moneta-api-micronaut` for 5 (release 25); a `-micronaut4` twin only when someone asks for it |
 
+**Result (2026-11-07):** it loads and binds on Micronaut 5 (core 5.2.22, BOM 5.2.5), so one module. The spike also
+found that the nested `Partner` record needs `@Requires(property = "moneta.partner")`, or Micronaut builds it
+when nothing is set and fails, and that `5s` reads as a `Duration` only with `micronaut-context` present, which
+every Micronaut application has. `missingBeans` on the method that makes the same bean does exclude itself.
+
 Either way the 5.x test project runs on JDK 25 and the 4.10 one on 21, so CI runs `testing/micronaut/5.x` with
 `-PtestsJdk=25`.
 
