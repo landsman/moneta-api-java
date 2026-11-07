@@ -14,6 +14,7 @@ break it unnoticed. `make build` runs them with the library's own tests, which s
 | `micronaut/4.10.14` | the Micronaut module on the Micronaut it is compiled against, with its BOM |
 | `micronaut/5.2.5` | the same jar, compiled for Micronaut 4, loads and binds on Micronaut 5; runs on JDK 25 whatever `-PtestsJdk` says |
 | `kotlin` | a `when` over `MonetaException` needs no `else`, and a nullable component is nullable in Kotlin |
+| `native` | the client's metadata is enough for a native image: built by `make native-test`, not `make build`, it prints the same as on the JVM |
 
 Each Spring Boot version is only a `build.gradle.kts` naming it; the test is in `spring-boot/shared`. A context
 with only the starter on it gets `MonetaClient` and `AccessToken` from its auto-configuration and reads transactions from a local server, which is where both failures a

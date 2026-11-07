@@ -19,7 +19,7 @@ Maven Central.
 | [Spring Boot starter](modules/moneta-api-spring-boot-starter/README.md) | `moneta.*` in application.yml, a `MonetaClient` bean |
 | [Play Framework module](modules/moneta-api-play/README.md) | `moneta.*` in application.conf, an injected `MonetaClient` |
 | [Micronaut module](modules/moneta-api-micronaut/README.md) | the same `moneta.*`, a `MonetaClient` bean |
-| [Kotlin and Spring Boot](.docs/compatibility.md) | what a Kotlin caller gets, and the one fix Spring Boot 3 before 3.5.13 needs |
+| [Kotlin and Spring Boot](.docs/compatibility.md) | what a Kotlin caller gets, the one fix Spring Boot 3 before 3.5.13 needs, and native images |
 | [How MONETA API behaves](.docs/moneta-api.md) | what to watch out for: pending and booked movements, dates, ids, errors |
 | [Roadmap](.docs/plan/roadmap.md) | the working plan: what is still unknown, what comes next, what is not covered |
 | [Development](.docs/development.md) | build, tests, `make dev` against a real account |
@@ -44,5 +44,6 @@ client implements:
 | Spring Boot auto-configuration | — | ✅ |
 | Play Framework module | — | ✅ |
 | Micronaut module | — | ✅ |
+| GraalVM native image | — | ✅ |
 
 Licence: [Apache 2.0](LICENSE)

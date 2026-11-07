@@ -129,11 +129,18 @@ spotless {
         palantirJavaFormat("2.103.0")
     }
     kotlin {
-        target("testing/**/src/**/*.kt")
+        target("testing/**/src/**/*.kt", "buildSrc/src/**/*.kt")
         ktlint()
     }
     kotlinGradle {
-        target("*.gradle.kts", "modules/*/*.gradle.kts", "testing/**/*.gradle.kts", "examples/*/*.gradle.kts", "tools/*/*.gradle.kts")
+        target(
+            "*.gradle.kts",
+            "buildSrc/*.gradle.kts",
+            "modules/*/*.gradle.kts",
+            "testing/**/*.gradle.kts",
+            "examples/*/*.gradle.kts",
+            "tools/*/*.gradle.kts",
+        )
         ktlint()
     }
 }

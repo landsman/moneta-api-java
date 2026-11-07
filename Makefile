@@ -7,12 +7,15 @@ help: ## show this help
 		/^[a-zA-Z0-9_.-]+:.*##/ { printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
 ##@ Build
-.PHONY: build test lock dev release publish publish-local format lint scripts-test
+.PHONY: build test native-test lock dev release publish publish-local format lint scripts-test
 build: ## check formatting, compile with error prone and nullaway, test, check declared dependencies and package the jar; TESTS_JDK=21 tests on that JDK
-	./gradlew build buildHealth $(if $(TESTS_JDK),-PtestsJdk=$(TESTS_JDK))
+	./gradlew build buildHealth :buildSrc:test $(if $(TESTS_JDK),-PtestsJdk=$(TESTS_JDK))
 
 test: ## run the tests
 	./gradlew test
+
+native-test: ## build a plain caller as a native image with Mandrel, in docker, and check it reads MONETA as the JVM does; minutes, so not in build
+	./bin/native-test.sh
 
 lock: ## rewrite modules/moneta-api/gradle.lockfile after a dependency changes, the vulnerability scan reads it
 	./gradlew :modules:moneta-api:dependencies --configuration runtimeClasspath --write-locks

@@ -44,6 +44,20 @@ jobs:
       - run: ./gradlew -q javaToolchains
       - run: make build TESTS_JDK=${{ matrix.jdk }}
 
+  # A record the native image was not told about binds on the JVM and fails only here. Its own job: a native
+  # build takes minutes, so it stays out of make build.
+  native:
+    name: native image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v6
+      - run: make native-test
+
   scripts:
     name: shell scripts
     if: ${{ !github.event.pull_request.draft }}
