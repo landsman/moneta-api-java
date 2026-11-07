@@ -3,6 +3,7 @@ package cz.insuit.moneta;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.System.Logger.Level;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -13,8 +14,10 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CancellationException;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.JsonNode;
@@ -46,7 +49,11 @@ public final class MonetaClient implements AutoCloseable {
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
             .build();
 
+    /** What every call is sent through: {@link #inner}, wrapped by any {@link Builder#decorateHttpClient}. */
     private final HttpClient http;
+    /** The client the library built or was given; the one {@link #close()} closes when the library built it. */
+    private final HttpClient inner;
+
     private final boolean ownsHttp;
     private final URI baseUri;
     private final Duration requestTimeout;
@@ -58,13 +65,38 @@ public final class MonetaClient implements AutoCloseable {
     }
 
     private MonetaClient(Builder builder) {
+        if (builder.http != null && builder.configured) {
+            throw new IllegalStateException("configureHttpClient changes the client the library builds;"
+                    + " with httpClient(…) there is none, so configure the given one instead");
+        }
         this.ownsHttp = builder.http == null;
-        this.http = builder.http != null
-                ? builder.http
-                : HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+        if (builder.http != null) {
+            this.inner = builder.http;
+        } else {
+            var http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10));
+            builder.configure.accept(http);
+            this.inner = http.build();
+        }
+        this.http = decorate(builder.decorator);
         this.baseUri = builder.baseUri;
         this.requestTimeout = builder.requestTimeout;
         this.partner = builder.partner;
+    }
+
+    /** A decorator that throws or returns null would otherwise leave the client built for it open until GC. */
+    private HttpClient decorate(UnaryOperator<HttpClient> decorator) {
+        @Nullable HttpClient decorated;
+        try {
+            decorated = decorator.apply(inner);
+        } catch (RuntimeException e) {
+            close();
+            throw e;
+        }
+        if (decorated == null) {
+            close();
+            throw new NullPointerException("decorateHttpClient returned null");
+        }
+        return decorated;
     }
 
     /** Starts a client for production; set only what differs. */
@@ -74,8 +106,9 @@ public final class MonetaClient implements AutoCloseable {
 
     @Override
     public void close() {
+        // The inner client, not the decorated one: a tracing or metrics wrapper does not pass close() on.
         if (ownsHttp) {
-            http.close();
+            inner.close();
         }
     }
 
@@ -211,7 +244,8 @@ public final class MonetaClient implements AutoCloseable {
         long started = System.nanoTime();
         try {
             response = http.send(request.build(), HttpResponse.BodyHandlers.ofString());
-        } catch (IOException e) {
+        } catch (IOException | UncheckedIOException e) {
+            // A decorated client may report a failed exchange unchecked; it is the same missing answer.
             log(new Call(what, null, millisSince(started), null, e.toString()));
             throw new MonetaException.NoAnswer(what + " did not get an answer", e);
         } catch (InterruptedException e) {
@@ -330,6 +364,9 @@ public final class MonetaClient implements AutoCloseable {
         private Duration requestTimeout = Duration.ofSeconds(30);
         private @Nullable Partner partner;
         private @Nullable HttpClient http;
+        private UnaryOperator<HttpClient> decorator = UnaryOperator.identity();
+        private Consumer<HttpClient.Builder> configure = http -> {};
+        private boolean configured;
 
         private Builder() {}
 
@@ -361,7 +398,42 @@ public final class MonetaClient implements AutoCloseable {
             return this;
         }
 
-        /** For a proxy, custom TLS or a test server. Its connect timeout is the caller's. */
+        /**
+         * Changes the HTTP client the library builds before it is built: a proxy, an {@code SSLContext} for mTLS
+         * or a trust store, an executor. It starts with the library's settings (a 10-second connect timeout, no
+         * redirects followed) and may override them; the library still owns and closes the client. Several apply
+         * in the order added. Refused at {@link #build()} together with {@link #httpClient}, which leaves nothing
+         * to build.
+         */
+        public Builder configureHttpClient(Consumer<HttpClient.Builder> configure) {
+            requireNonNull(configure, "configure");
+            this.configure = this.configure.andThen(configure);
+            this.configured = true;
+            return this;
+        }
+
+        /**
+         * Wraps the HTTP client every call is sent through, for tracing or metrics: the decorator gets the client
+         * the library built, or the one given to {@link #httpClient}, and returns one that delegates to it. It
+         * must wrap, not replace: the library closes the client it built, not what comes back, so a wrapper that
+         * does not pass {@code close()} on leaks nothing, and a different client returned instead would bypass
+         * both that and the library's settings. Whatever the decorator itself allocates is the caller's. Several
+         * apply once per {@link #build()}, the first added innermost. An unchecked {@code UncheckedIOException}
+         * from the wrapper becomes {@link MonetaException.NoAnswer}; any other exception passes through as it is.
+         */
+        public Builder decorateHttpClient(UnaryOperator<HttpClient> decorator) {
+            requireNonNull(decorator, "decorator");
+            var before = this.decorator;
+            this.decorator = client -> decorator.apply(before.apply(client));
+            return this;
+        }
+
+        /**
+         * For a proxy, custom TLS or a test server; the caller closes it. It replaces the client the library
+         * would build, and with it what that one guarantees: no redirects followed, no cookies kept across
+         * merchants' tokens, no {@code Authenticator}, a 10-second connect timeout. For tracing or metrics,
+         * {@link #decorateHttpClient} keeps those.
+         */
         public Builder httpClient(HttpClient http) {
             this.http = http;
             return this;
