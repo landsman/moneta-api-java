@@ -62,6 +62,7 @@ class BillRepositoryTest {
                 null,
                 null,
                 null,
+                null,
                 LocalDate.of(2026, 11, 6),
                 NOW,
                 billId,

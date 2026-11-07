@@ -33,6 +33,7 @@ class PaymentRecorderTest {
     }
 
     private static Payment pendingFrom(LocalDate madeOn) {
-        return new Payment(1L, "p", false, BigDecimal.ONE, "CZK", "1007", null, null, madeOn, Instant.EPOCH, 1007L, 0);
+        return new Payment(
+                1L, "p", false, BigDecimal.ONE, "CZK", "1007", null, null, null, madeOn, Instant.EPOCH, 1007L, 0);
     }
 }

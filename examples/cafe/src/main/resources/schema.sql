@@ -14,12 +14,15 @@ create table if not exists payment (
     currency               char(3)        not null,
     variable_symbol        varchar,
     counterparty_account   varchar,
+    counterparty_name      varchar,
     message                varchar,
     made_on                date,
     first_seen_at          timestamp with time zone not null,
     bill_id                bigint references bill (id),
     version                integer
 );
+
+alter table payment add column if not exists counterparty_name varchar;
 
 -- A bill table from before payments had their own: what it held about its payment now lives in payment.
 alter table bill drop column if exists moneta_entry_reference;
@@ -39,6 +42,7 @@ comment on column payment.moneta_entry_reference is 'MONETA''s id of the payment
 comment on column payment.booked is 'Whether MONETA has booked it, so moneta_entry_reference is final.';
 comment on column payment.variable_symbol is 'As MONETA sent it, leading zeros dropped.';
 comment on column payment.counterparty_account is 'The payer''s account as MONETA writes it.';
+comment on column payment.counterparty_name is 'The payer''s name, Surname, Name; MONETA sends it once the payment is booked.';
 comment on column payment.message is 'What the payer wrote; MONETA sends it once the payment is booked.';
 comment on column payment.made_on is 'The day the payment was made: the entered date while pending, the value date once booked.';
 comment on column payment.first_seen_at is 'When the café first saw it. MONETA gives a payment no time of day, so this is the closest.';

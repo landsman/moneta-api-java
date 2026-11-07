@@ -31,6 +31,7 @@ public class PaymentRecorder {
     static final int BOOKING_WAIT_DAYS = 14;
 
     private final PaymentRepository payments;
+    private final PaymentWrites writes;
     private final BillRepository bills;
     private final MonetaClient moneta;
     private final AccessToken token;
@@ -39,12 +40,14 @@ public class PaymentRecorder {
 
     PaymentRecorder(
             PaymentRepository payments,
+            PaymentWrites writes,
             BillRepository bills,
             MonetaClient moneta,
             AccessToken token,
             Clock clock,
             CafeProperties cafe) {
         this.payments = payments;
+        this.writes = writes;
         this.bills = bills;
         this.moneta = moneta;
         this.token = token;
@@ -73,6 +76,7 @@ public class PaymentRecorder {
         var from = readFrom(pending, today);
         var answered = moneta.incoming(token, account.get().id(), from, today);
         var references = answered.stream().map(t -> t.entryReference()).collect(Collectors.toSet());
+        // A shortcut that saves writing what is known; the writes below decide, should another round race this one.
         var recorded = payments.findByMonetaEntryReferenceIn(references).stream()
                 .map(Payment::monetaEntryReference)
                 .collect(Collectors.toSet());
@@ -82,8 +86,11 @@ public class PaymentRecorder {
         for (var step : PaymentRecording.steps(answered, recorded, pending)) {
             switch (step) {
                 case PaymentRecording.Step.Record(var payment) -> {
-                    var row = payments.save(
-                            Payment.of(payment, seenAt, billFor(PaymentRecording.variableSymbolOf(payment))));
+                    var row = Payment.of(payment, seenAt, billFor(PaymentRecording.variableSymbolOf(payment)));
+                    if (!writes.record(row)) {
+                        log.debug("Payment {} was recorded by another round", row.monetaEntryReference());
+                        continue;
+                    }
                     added++;
                     log.info(
                             "Recorded payment {} of {} {}, {}",
@@ -93,7 +100,10 @@ public class PaymentRecorder {
                             row.billId() != null ? "for bill " + row.billId() : "for no bill");
                 }
                 case PaymentRecording.Step.Book(var earlier, var payment) -> {
-                    payments.save(earlier.booked(payment));
+                    if (!writes.book(earlier, payment)) {
+                        log.debug("Payment {} was booked by another round", earlier.monetaEntryReference());
+                        continue;
+                    }
                     booked++;
                     log.info("Payment {} booked as {}", earlier.monetaEntryReference(), payment.entryReference());
                 }

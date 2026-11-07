@@ -39,6 +39,12 @@ Two tables in H2 (`build/cafe`, kept across restarts; `./gradlew clean` starts a
 - **The read covers yesterday and today**, so a payment just before midnight is not missed, and reaches back to
   the day a still pending payment was made, since booking came three days later over a weekend; never more than
   14 days back.
+- **A payment is written once, whatever races it.** The schedule and a `GET /bills/{variableSymbol}` can read
+  at the same moment. Recording is `insert … on conflict do nothing` and booking an `update … where booked =
+  false`, each one statement whose row count says whether this round won (`queries/`, run by `PaymentWrites`);
+  never a lookup first, which two rounds would both pass. H2 runs in PostgreSQL mode for it. A test races eight
+  threads on one payment and expects one row.
+- **Two payers on one symbol stay two rows**, each with the payer's account, and once booked their name.
 - **A reversal is not recorded.** The payer's message is kept only once booked: pending, MONETA sends
   "Okamžitá platba" there.
 - **`first_seen_at` is when the café first saw a payment.** MONETA gives a payment a date and no time, so this,

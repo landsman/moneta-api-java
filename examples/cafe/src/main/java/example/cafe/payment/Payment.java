@@ -16,6 +16,7 @@ import org.springframework.data.annotation.Version;
  *     after
  * @param variableSymbol as MONETA sent it, leading zeros dropped
  * @param counterpartyAccount the payer's account as MONETA writes it
+ * @param counterpartyName the payer's name; MONETA sends it once the payment is booked
  * @param message what the payer wrote; MONETA sends it once the payment is booked
  * @param madeOn the day the payment was made: the entered date while pending, the value date once booked
  * @param firstSeenAt when the café first saw it; MONETA gives a payment no time of day, so this is the closest
@@ -29,6 +30,7 @@ public record Payment(
         String currency,
         @Nullable String variableSymbol,
         @Nullable String counterpartyAccount,
+        @Nullable String counterpartyName,
         @Nullable String message,
         @Nullable LocalDate madeOn,
         Instant firstSeenAt,
@@ -45,30 +47,13 @@ public record Payment(
                 transaction.amount().currency().getCurrencyCode(),
                 PaymentRecording.variableSymbolOf(transaction),
                 transaction.counterpartyAccount(),
+                transaction.counterpartyName(),
                 // Pending, MONETA sends the kind of payment ("Okamžitá platba"), not what the payer wrote.
                 transaction.booked() ? transaction.message() : null,
                 PaymentRecording.madeOn(transaction),
                 seenAt,
                 billId,
                 null);
-    }
-
-    /** This pending payment, booked: MONETA's new id, the message it sends only now, the value date. */
-    Payment booked(Transaction booked) {
-        var day = PaymentRecording.madeOn(booked);
-        return new Payment(
-                id,
-                booked.entryReference(),
-                true,
-                amount,
-                currency,
-                variableSymbol,
-                counterpartyAccount,
-                booked.message(),
-                day != null ? day : madeOn,
-                firstSeenAt,
-                billId,
-                version);
     }
 
     Payment linkedTo(@Nullable Long billId) {
@@ -80,6 +65,7 @@ public record Payment(
                 currency,
                 variableSymbol,
                 counterpartyAccount,
+                counterpartyName,
                 message,
                 madeOn,
                 firstSeenAt,
