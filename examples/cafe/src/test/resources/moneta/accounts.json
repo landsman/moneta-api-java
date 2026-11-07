@@ -1,0 +1,12 @@
+{
+  "accounts": [
+    {
+      "id": "1337",
+      "currency": "CZK",
+      "identification": { "iban": "CZ0206000000000000001337" }
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 100,
+  "pageCount": 1
+}

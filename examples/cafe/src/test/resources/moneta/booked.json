@@ -1,0 +1,51 @@
+{
+  "transactions": [
+    {
+      "entryReference": "0000001337:20261109:00001:26110600000000001",
+      "status": "BOOK",
+      "creditDebitIndicator": "CRDT",
+      "amount": { "value": 65, "currency": "CZK" },
+      "enteredDate": { "date": null },
+      "bookingDate": { "date": "2026-11-09" },
+      "valueDate": { "date": "2026-11-06" },
+      "reversalIndicator": false,
+      "entryDetails": {
+        "transactionDetails": {
+          "relatedParties": {
+            "debtor": { "name": "Novak, Jan" },
+            "debtorAccount": { "identification": { "other": { "identification": "0 4040404040/0800" } } }
+          },
+          "remittanceInformation": {
+            "structured": { "creditorReferenceInformation": { "reference": "VS:1000" } },
+            "unstructured": "KAVARNA UCET 1000"
+          }
+        }
+      }
+    },
+    {
+      "entryReference": "0000001337:20261109:00002:26110600000000002",
+      "status": "BOOK",
+      "creditDebitIndicator": "CRDT",
+      "amount": { "value": 89, "currency": "CZK" },
+      "enteredDate": { "date": null },
+      "bookingDate": { "date": "2026-11-09" },
+      "valueDate": { "date": "2026-11-06" },
+      "reversalIndicator": false,
+      "entryDetails": {
+        "transactionDetails": {
+          "relatedParties": {
+            "debtor": { "name": "Novakova, Jana" },
+            "debtorAccount": { "identification": { "other": { "identification": "0 1010101010/0100" } } }
+          },
+          "remittanceInformation": {
+            "structured": { "creditorReferenceInformation": { "reference": "" } },
+            "unstructured": "Platba za kavu"
+          }
+        }
+      }
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 100,
+  "pageCount": 1
+}
