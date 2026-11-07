@@ -52,5 +52,5 @@ and in `~/.m2/settings.xml` a `<server>` with the same `id`, your GitHub user an
 
 ## Snapshots
 
-Every push to `main` publishes `0.1.0-SNAPSHOT`, for trying what is not released yet. Without a token,
-`make publish-local` in a checkout installs both jars into `~/.m2`, where `mavenLocal()` finds them.
+None are published: only a tagged release is. To try what is not released yet, `make publish-local` in a checkout
+installs both jars into `~/.m2` as `0.1.0-SNAPSHOT`, where `mavenLocal()` finds them.
