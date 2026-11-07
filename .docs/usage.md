@@ -30,6 +30,9 @@ for (var account : moneta.accounts(token)) {
   `examples/cafe` keeps it as `first_seen_at`.
 - **`balance(token, accountId)`** gives the booked and the available balance, signed, and `at()`, the instant
   MONETA computed it: unlike a movement, a balance has a time of day.
+- **`card()`** is true for a card payment: a debit whose `counterpartyName()` is the merchant descriptor (name,
+  city and country at fixed widths) and which has no `counterpartyAccount()`. Seen pending only so far, and a
+  pending card payment is a hold the booked one may not match.
 - **`reversed()`** marks a movement MONETA flags as a reversal; a shop should not count it as a payment.
 - **`incoming(…)`** is `transactions(…)` with only the money that came in, the call a shop checking payments
   makes. Debits are dropped by the client; MONETA has no such filter that is known.

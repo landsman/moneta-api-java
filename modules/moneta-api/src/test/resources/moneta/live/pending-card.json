@@ -1,0 +1,62 @@
+{
+  "transactions": [
+    {
+      "amount": {
+        "currency": "CZK",
+        "value": 30.0
+      },
+      "bankTransactionCode": {
+        "proprietary": {
+          "code": "30000301000",
+          "issuer": "CNB"
+        }
+      },
+      "bookingDate": {
+        "date": null
+      },
+      "creditDebitIndicator": "DBIT",
+      "enteredDate": {
+        "date": "2026-11-07"
+      },
+      "entryDetails": {
+        "transactionDetails": {
+          "references": {
+            "clearingSystemReference": "BLOCKED_PAYMENT_CARD",
+            "transactionDescription": ""
+          },
+          "relatedParties": {
+            "creditor": {
+              "name": "PAYFAC  *MICHAL LANDSMAN PRAHA        CZ"
+            },
+            "creditorAccount": {
+              "identification": {}
+            },
+            "debtorAccount": {
+              "identification": {
+                "other": {
+                  "identification": "1337/0600"
+                }
+              }
+            }
+          },
+          "remittanceInformation": {
+            "structured": {
+              "creditorReferenceInformation": {
+                "reference": ""
+              }
+            }
+          }
+        }
+      },
+      "entryReference": "2600000000000000001",
+      "reversalIndicator": false,
+      "status": "PDNG",
+      "valueDate": {
+        "date": null
+      }
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 100,
+  "pageCount": 1
+}

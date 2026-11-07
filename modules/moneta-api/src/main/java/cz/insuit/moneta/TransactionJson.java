@@ -58,6 +58,18 @@ record TransactionJson(
                 .orElse(null);
     }
 
+    /**
+     * Whether a card made the movement. Seen only pending so far, as {@code BLOCKED_PAYMENT_CARD}; the booked value
+     * is assumed to keep the {@code PAYMENT_CARD} ending, as a transfer's keeps {@code PAYMENT_ORDER_DOMESTIC}.
+     */
+    boolean card() {
+        return details()
+                .map(TransactionDetailsJson::references)
+                .map(ReferencesJson::clearingSystemReference)
+                .filter(reference -> reference.endsWith("PAYMENT_CARD"))
+                .isPresent();
+    }
+
     private Optional<TransactionDetailsJson> details() {
         return Optional.ofNullable(entryDetails).map(EntryDetailsJson::transactionDetails);
     }

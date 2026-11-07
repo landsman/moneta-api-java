@@ -113,6 +113,31 @@ An instant payment visible in Internet Banka at once stayed pending for at least
 three days later over a weekend. Internet Banka's CSV export matches the API field for field ("Bankovní
 reference" is `entryReference`), and shows the same "Okamžitá platba" while pending.
 
+### A card payment
+
+One card payment, read while pending on 2026-11-07
+([`live/pending-card.json`](../modules/moneta-api/src/test/resources/moneta/live/pending-card.json), the account,
+reference and merchant replaced). How it looks once booked is not seen yet.
+
+| Field | Pending card payment | Pending transfer, for comparison |
+|-------|----------------------|----------------------------------|
+| `clearingSystemReference` | `BLOCKED_PAYMENT_CARD` | `BLOCKED_PAYMENT_ORDER_DOMESTIC` |
+| `bankTransactionCode.proprietary.code` | `30000301000` | `10000301000` |
+| `creditor.name` | the merchant descriptor, 40 characters | missing |
+| `creditorAccount` | `{"identification": {}}` | the payee's account |
+| `unstructured` | missing | "Okamžitá platba" on an instant payment |
+| symbols (`reference`) | `""` | `"VS:"` |
+| `amount.value` | `30.0` | `1` |
+
+- **The merchant descriptor is fixed-width**: 25 characters of name, 13 of city, 2 of country, padded with
+  spaces, as card networks lay out the card acceptor's name and location. A payment facilitator puts its own
+  prefix before `*` in the name. Read from one payment, so the widths are an inference.
+- **No card number, no merchant category, no time.**
+- **What the code's digits mean is not published** by MONETA or found in a ČNB or ČBA document; only the first
+  digit has differed so far, 1 for a transfer and 3 for a card.
+- **A pending card payment is a hold.** The booked payment may differ in amount, or the hold may lapse without
+  one; not observed yet.
+
 ### The rest
 
 - **A debit is `DBIT` with a positive value**; the direction carries the sign.

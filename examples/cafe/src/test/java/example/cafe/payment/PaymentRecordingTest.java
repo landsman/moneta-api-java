@@ -87,6 +87,7 @@ class PaymentRecordingTest {
                 "Novak, Jan",
                 "0 4040404040/0800",
                 false,
+                false,
                 "{}");
 
         assertEquals(
@@ -109,6 +110,7 @@ class PaymentRecordingTest {
                 null,
                 "0 4040404040/0800",
                 true,
+                false,
                 "{}");
 
         assertEquals(List.of(), PaymentRecording.steps(List.of(reversal), Set.of(), List.of()));
@@ -135,6 +137,7 @@ class PaymentRecordingTest {
                 null,
                 account,
                 false,
+                false,
                 "{}");
     }
 
@@ -151,6 +154,7 @@ class PaymentRecordingTest {
                 "KAVARNA UCET 1007",
                 "Novak, Jan",
                 account,
+                false,
                 false,
                 "{}");
     }

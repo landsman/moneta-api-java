@@ -109,6 +109,7 @@ class PaymentWritesTest {
                 null,
                 "4040404040/0800",
                 false,
+                false,
                 "{}");
     }
 
@@ -125,6 +126,7 @@ class PaymentWritesTest {
                 "KAVARNA UCET 1007",
                 "Novak, Jan",
                 "0 4040404040/0800",
+                false,
                 false,
                 "{}");
     }

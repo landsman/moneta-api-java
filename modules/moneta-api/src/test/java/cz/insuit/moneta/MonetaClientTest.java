@@ -360,6 +360,28 @@ class MonetaClientTest {
         }
 
         @Test
+        void aPendingCardPaymentIsADebitToTheMerchantWithNoAccount() {
+            // Recorded from the live API, the account, the reference and the merchant replaced.
+            answer(TRANSACTIONS, 200, fixture("live/pending-card.json"));
+
+            var card = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
+
+            assertTrue(card.card());
+            assertEquals(Transaction.Status.PENDING, card.status());
+            assertEquals(new Money(new BigDecimal("-30.00"), CZK), card.amount());
+            assertEquals(LocalDate.of(2026, 11, 7), card.enteredDate());
+            assertEquals("PAYFAC  *MICHAL LANDSMAN PRAHA        CZ", card.counterpartyName());
+            assertNull(card.counterpartyAccount());
+            assertNull(card.message());
+        }
+
+        @Test
+        void aTransferIsNotACardPayment() {
+            answer(TRANSACTIONS, 200, fixture("live/booked.json"));
+            assertTrue(client.transactions(TOKEN, "acc-1", FROM, TO).stream().noneMatch(Transaction::card));
+        }
+
+        @Test
         void keepsTheCounterpartyInRawButOutOfToString() {
             answerBothPages();
 
