@@ -18,7 +18,7 @@ import org.jspecify.annotations.Nullable;
  * <ol>
  *   <li>a reversal is not recorded: money returned or a payment undone is no payment to the café;
  *   <li>one already recorded under its id is left alone;
- *   <li>a booked one that a recorded pending payment matches (same amount, symbol, payer's account and day) books
+ *   <li>a booked one that a recorded pending payment matches (same amount, symbol and payer's account) books
  *       that payment: MONETA gives a payment a new id once booked, and this is how the row learns it;
  *   <li>any other is recorded as new.
  * </ol>
@@ -98,8 +98,9 @@ final class PaymentRecording {
             boolean sameSymbol = Objects.equals(candidate.variableSymbol(), variableSymbolOf(booked));
             boolean samePayer = Objects.equals(
                     accountKey(candidate.counterpartyAccount()), accountKey(booked.counterpartyAccount()));
-            boolean sameDay = Objects.equals(candidate.madeOn(), madeOn(booked));
-            if (sameAmount && sameSymbol && samePayer && sameDay) {
+            // Not the day: pending it is the entered date, booked the value date, and those are shown equal only
+            // for Friday payments. Two payments alike in all three are interchangeable for every sum.
+            if (sameAmount && sameSymbol && samePayer) {
                 return candidate;
             }
         }

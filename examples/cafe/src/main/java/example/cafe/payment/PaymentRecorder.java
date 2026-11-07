@@ -114,7 +114,7 @@ public class PaymentRecorder {
 
     /**
      * Yesterday, so a payment made at 23:59:55 is not missed by the first round after midnight. Further back for a
-     * pending payment, to the day it was made: once booked, MONETA dates it by that day, and booking can come days
+     * pending payment, to the day before it was made: once booked, MONETA dates it by that day, and booking can come days
      * later. Never more than {@link #BOOKING_WAIT_DAYS} back, or a payment never booked would widen every read.
      */
     static LocalDate readFrom(List<Payment> pending, LocalDate today) {
@@ -122,8 +122,14 @@ public class PaymentRecorder {
         var limit = today.minusDays(BOOKING_WAIT_DAYS);
         for (var payment : pending) {
             var madeOn = payment.madeOn();
-            if (madeOn != null && madeOn.isBefore(from)) {
-                from = madeOn.isBefore(limit) ? limit : madeOn;
+            if (madeOn == null) {
+                continue;
+            }
+            // A day before the entered date: MONETA filters the booked payment by its value date, which is not
+            // shown to equal the entered date for every kind of payment.
+            var earliest = madeOn.minusDays(1);
+            if (earliest.isBefore(from)) {
+                from = earliest.isBefore(limit) ? limit : earliest;
             }
         }
         return from;
