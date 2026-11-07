@@ -22,6 +22,6 @@ validator and belong to nobody.
 A balance's amounts are replaced with `1337`. A movement's `entryReference` is replaced with `2600000000000000001`, counting up for more than one; a name,
 when one appears, with `Jan Novak`.
 
-Recording one: `make record-fixture N=<number from make peek> NAME=<file>` applies these rules and refuses a party
+Recording one: `make record-fixture N=<number from make peek> NAME=<file> FROM=… TO=…` applies these rules and refuses a party
 value it has no rule for ([development](../../../../../../.docs/development.md#trying-the-live-api)). By hand: save the body, then run it through `jq` setting every `identification`, `iban`, name and
 `entryReference` to the values above, and read the whole file before committing it. The repository is public.

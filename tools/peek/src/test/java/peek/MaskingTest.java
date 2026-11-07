@@ -20,13 +20,28 @@ class MaskingTest {
 
     @Test
     void masksEverythingUnderThePartiesTheMessageAndTheReference() {
-        var printed = Masking.mask(Peek.tree(MOVEMENT), false).toString();
+        var printed = Masking.mask(Peek.JSON.readTree(MOVEMENT), false).toString();
 
         for (var live : new String[] {"Svoboda", "Brno", "7777777777", "5555555555", "za obed"}) {
             assertFalse(printed.contains(live), live + " is still in " + printed);
         }
         assertTrue(printed.contains("\"value\":30.0"), printed);
         assertTrue(printed.contains("<13 chars>"), printed);
+    }
+
+    @Test
+    void masksAStringInAnArrayAndThePaymentSymbols() {
+        var movement = MOVEMENT.replace("{\"townName\": \"Brno\"}", "{\"addressLine\": [\"Dlouha 1\", \"Brno\"]}")
+                .replace(
+                        "\"remittanceInformation\": {",
+                        "\"remittanceInformation\": {\"structured\": {\"creditorReferenceInformation\":"
+                                + " {\"reference\": \"VS:8001011234\"}}, ");
+
+        var printed = Masking.mask(Peek.JSON.readTree(movement), false).toString();
+
+        for (var live : new String[] {"Dlouha", "Brno", "8001011234"}) {
+            assertFalse(printed.contains(live), live + " is still in " + printed);
+        }
     }
 
     @Test
@@ -37,6 +52,6 @@ class MaskingTest {
     @Test
     void leavesMonetasPendingPlaceholderReadable() {
         var pending = MOVEMENT.replace("za obed u Petra", Masking.INSTANT_PLACEHOLDER);
-        assertTrue(Masking.mask(Peek.tree(pending), false).toString().contains(Masking.INSTANT_PLACEHOLDER));
+        assertTrue(Masking.mask(Peek.JSON.readTree(pending), false).toString().contains(Masking.INSTANT_PLACEHOLDER));
     }
 }

@@ -11,7 +11,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -32,7 +31,7 @@ public final class Peek {
         var command = arguments.isEmpty() ? "transactions" : arguments.removeFirst();
         var token = System.getenv("MONETA_TOKEN");
         if (token == null || token.isBlank()) {
-            fail("MONETA_TOKEN is empty: run it through make, which reads it from 1Password by .env");
+            fail("MONETA_TOKEN is empty: run it through make, which reads it from 1Password through op run");
         }
         try (var moneta = new MonetaClient()) {
             var access = new AccessToken(token.strip());
@@ -69,8 +68,10 @@ public final class Peek {
      * people replaced, as live/<name>.json. By number, since the reference is masked in what peek prints.
      */
     private static void record(MonetaClient moneta, AccessToken access, List<String> arguments) throws IOException {
-        if (arguments.size() < 2) {
-            fail("usage: record <number from peek> <fixture name> [from] [to]");
+        if (arguments.size() != 4) {
+            // Both dates, the ones make peek numbered with: a payment arriving or midnight passing in between would
+            // renumber a range that ends today, and the masked output would not show it was another movement.
+            fail("usage: record <number from peek> <fixture name> <from> <to>, the dates make peek used");
         }
         int wanted = Integer.parseInt(arguments.get(0));
         var file = Path.of(FIXTURES + arguments.get(1) + ".json");
@@ -95,20 +96,20 @@ public final class Peek {
 
     private record Range(LocalDate from, LocalDate to) {}
 
-    /** The two dates at {@code at}, or the last week up to today. */
+    /** The two dates at {@code at}, or the last week up to today when neither is given. */
     private static Range range(List<String> arguments, int at) {
-        var to = arguments.size() > at + 1 ? LocalDate.parse(arguments.get(at + 1)) : LocalDate.now();
-        var from = arguments.size() > at ? LocalDate.parse(arguments.get(at)) : to.minusDays(7);
+        int given = arguments.size() - at;
+        if (given == 1) {
+            fail("give both dates or neither: one alone is ambiguous");
+        }
+        var to = given >= 2 ? LocalDate.parse(arguments.get(at + 1)) : LocalDate.now();
+        var from = given >= 2 ? LocalDate.parse(arguments.get(at)) : to.minusDays(7);
         return new Range(from, to);
     }
 
     private static void fail(String message) {
         System.err.println("peek: " + message);
         System.exit(1);
-    }
-
-    static JsonNode tree(String json) {
-        return JSON.readTree(json);
     }
 
     private Peek() {}

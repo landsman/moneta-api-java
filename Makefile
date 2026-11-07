@@ -38,6 +38,7 @@ PEEK = ./gradlew -q :tools:peek:installDist && MONETA_TOKEN="$(MONETA_OP)" op ru
 
 .PHONY: peek peek-accounts peek-balance record-fixture
 peek: ## print the account's movements as MONETA sends them, people masked; FROM=2026-11-01 TO=2026-11-07, SHAPE=1
+	@[ -n "$(FROM)" ] || [ -z "$(TO)" ] || { echo 'FROM and TO go together; neither is the last week' >&2; exit 1; }
 	$(PEEK) transactions $(FROM) $(TO) $(if $(SHAPE),--shape)
 
 peek-accounts: ## print the accounts the token opens
@@ -46,8 +47,8 @@ peek-accounts: ## print the accounts the token opens
 peek-balance: ## print each account's booked and available balance
 	$(PEEK) balance
 
-record-fixture: ## save movement N of make peek, same FROM and TO, as …/moneta/live/NAME.json, people replaced
-	@test -n "$(N)" -a -n "$(NAME)" || { echo 'N and NAME: make record-fixture N=3 NAME=booked-card, N as make peek numbered it' >&2; exit 1; }
+record-fixture: ## save movement N of make peek FROM= TO=, the same dates, as …/moneta/live/NAME.json, people replaced
+	@[ -n "$(N)" ] && [ -n "$(NAME)" ] && [ -n "$(FROM)" ] && [ -n "$(TO)" ] || { echo 'make record-fixture N=3 NAME=booked-card FROM=… TO=…, as make peek FROM=… TO=… numbered it' >&2; exit 1; }
 	$(PEEK) record "$(N)" "$(NAME)" $(FROM) $(TO)
 
 ##@ Code style

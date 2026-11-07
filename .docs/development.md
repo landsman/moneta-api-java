@@ -24,7 +24,7 @@ before the client maps it. `tools/peek` is internal and never published.
     make peek FROM=2026-11-01 TO=2026-11-07   # a range; SHAPE=1 shows masked text as x and 9 instead of a length
     make peek-accounts
     make peek-balance
-    make record-fixture N=3 NAME=booked-card  # movement 3 of the same make peek, as a test fixture
+    make record-fixture N=3 NAME=booked-card FROM=2026-11-01 TO=2026-11-07  # movement 3 of that make peek
 
 The token is read from 1Password for each run: `op run` resolves `MONETA_OP`, a secret reference that defaults to
 the maintainer's item, hands the value to that one process and masks it in the output. No file holds it, and
@@ -33,7 +33,8 @@ your own.
 
 `record-fixture` replaces people by the rules in
 [the fixtures' README](../modules/moneta-api/src/test/resources/moneta/README.md) and refuses a value under the
-parties it has no rule for. It never overwrites a fixture. Read the file whole before committing it: the
+parties it has no rule for, or any value `make peek` would mask that is not a fixed one. It needs the dates `make
+peek` numbered with, since a range ending today renumbers when a payment arrives. It never overwrites a fixture. Read the file whole before committing it: the
 repository is public.
 
 ## Releasing

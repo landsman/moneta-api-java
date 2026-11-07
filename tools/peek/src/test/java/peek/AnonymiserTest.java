@@ -41,7 +41,8 @@ class AnonymiserTest {
         }
         assertTrue(written.contains("\"Novak, Jan\""), written);
         assertTrue(written.contains(Anonymiser.OTHER_ACCOUNT), written);
-        assertTrue(written.contains(Anonymiser.OWN_ACCOUNT), written);
+        // The own account came without a bank code, as MONETA writes it on a credit, and keeps that shape.
+        assertTrue(written.contains("\"identification\":\"1337\""), written);
         assertTrue(written.contains("0000001337:20261109:00001:26110600000000001"), written);
         assertTrue(written.contains(Anonymiser.MESSAGE), written);
     }
@@ -76,7 +77,54 @@ class AnonymiserTest {
         assertThrows(IllegalStateException.class, () -> fixture(withAddress));
     }
 
+    @Test
+    void replacesTheSymbolsAndTheIdsThatRepeatThemKeepingTheirLayout() {
+        var withSymbols = BOOKED_CREDIT
+                .replace(
+                        "\"references\": {\"clearingSystemReference\": \"PAYMENT_ORDER_DOMESTIC\"}",
+                        "\"references\": {\"clearingSystemReference\": \"PAYMENT_ORDER_DOMESTIC\","
+                                + " \"endToEndIdentification\": \"8001011234\","
+                                + " \"paymentInformationIdentification\": \"777123456\"}")
+                .replace(
+                        "\"remittanceInformation\": {",
+                        "\"remittanceInformation\": {\"structured\": {\"creditorReferenceInformation\":"
+                                + " {\"reference\": \"VS:8001011234  SS:777123456\"}}, ");
+
+        var written = fixture(withSymbols).toString();
+
+        assertFalse(written.contains("8001011234"), written);
+        assertFalse(written.contains("777123456"), written);
+        assertTrue(written.contains("\"VS:1337  SS:76789\""), written);
+        assertTrue(written.contains("\"endToEndIdentification\":\"1337\""), written);
+    }
+
+    @Test
+    void refusesAnArrayUnderTheParties() {
+        var withAddress = BOOKED_CREDIT.replace(
+                "\"debtor\": {\"name\": \"Svoboda, Petr\"}",
+                "\"debtor\": {\"name\": \"Svoboda, Petr\", \"postalAddress\": {\"addressLine\": [\"Dlouha 1\"]}}");
+        assertThrows(IllegalStateException.class, () -> fixture(withAddress));
+    }
+
+    @Test
+    void keepsTheOwnAccountWithoutABankCodeAsMonetaWroteIt() {
+        var bare = PENDING_CARD.replace("555555555/0600", "555555555");
+        var movement = fixture(bare).get("transactions").get(0);
+        assertEquals(
+                "1337",
+                movement.at(
+                                "/entryDetails/transactionDetails/relatedParties/debtorAccount/identification/other/identification")
+                        .asString());
+    }
+
+    @Test
+    void stopsAValueOutsideThePartiesThatPeekWouldMask() {
+        var withHolder =
+                BOOKED_CREDIT.replace("\"references\": {", "\"cardholderName\": \"Petr Svoboda\", \"references\": {");
+        assertThrows(IllegalStateException.class, () -> fixture(withHolder));
+    }
+
     private static ObjectNode fixture(String movement) {
-        return Anonymiser.fixture((ObjectNode) Peek.tree(movement), OWN);
+        return Anonymiser.fixture((ObjectNode) Peek.JSON.readTree(movement), OWN);
     }
 }
