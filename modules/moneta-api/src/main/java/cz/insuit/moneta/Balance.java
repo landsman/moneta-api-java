@@ -1,5 +1,9 @@
 package cz.insuit.moneta;
 
+import cz.insuit.moneta.internal.json.BalanceCode;
+import cz.insuit.moneta.internal.json.BalanceJson;
+import cz.insuit.moneta.internal.json.BalancesJson;
+import cz.insuit.moneta.internal.json.CreditDebit;
 import java.time.Instant;
 import java.util.List;
 
@@ -12,17 +16,16 @@ import java.util.List;
  */
 public record Balance(Money booked, Money available, Instant at) {
 
-    static Balance from(String what, MonetaJson.BalancesJson json) {
-        var booked = ofType(what, json.balances(), MonetaJson.BalanceCode.CLBD);
-        var available = ofType(what, json.balances(), MonetaJson.BalanceCode.CLAV);
+    static Balance from(String what, BalancesJson json) {
+        var booked = ofType(what, json.balances(), BalanceCode.CLBD);
+        var available = ofType(what, json.balances(), BalanceCode.CLAV);
         return new Balance(
-                MonetaJson.CreditDebit.of(booked.creditDebitIndicator()).signed(booked.amount()),
-                MonetaJson.CreditDebit.of(available.creditDebitIndicator()).signed(available.amount()),
+                CreditDebit.of(booked.creditDebitIndicator()).signed(booked.amount()),
+                CreditDebit.of(available.creditDebitIndicator()).signed(available.amount()),
                 available.date().dateTime());
     }
 
-    private static MonetaJson.BalanceJson ofType(
-            String what, List<MonetaJson.BalanceJson> balances, MonetaJson.BalanceCode code) {
+    private static BalanceJson ofType(String what, List<BalanceJson> balances, BalanceCode code) {
         return balances.stream()
                 .filter(balance ->
                         code.name().equals(balance.type().codeOrProprietary().code()))

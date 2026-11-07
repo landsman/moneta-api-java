@@ -2,6 +2,12 @@ package cz.insuit.moneta;
 
 import static java.util.Objects.requireNonNull;
 
+import cz.insuit.moneta.internal.json.AccountJson;
+import cz.insuit.moneta.internal.json.AccountsPage;
+import cz.insuit.moneta.internal.json.BalancesJson;
+import cz.insuit.moneta.internal.json.Page;
+import cz.insuit.moneta.internal.json.TransactionJson;
+import cz.insuit.moneta.internal.json.TransactionsPage;
 import java.io.IOException;
 import java.lang.System.Logger.Level;
 import java.net.URI;
@@ -90,8 +96,8 @@ public final class MonetaClient implements AutoCloseable {
                 token,
                 MonetaPaths.ACCOUNTS,
                 Query.NONE,
-                MonetaJson.AccountsPage.class,
-                node -> Account.from(bind(node, MonetaJson.AccountJson.class)));
+                AccountsPage.class,
+                node -> Account.from(bind(node, AccountJson.class)));
     }
 
     /**
@@ -104,7 +110,7 @@ public final class MonetaClient implements AutoCloseable {
     public Balance balance(AccessToken token, String accountId) {
         var path = MonetaPaths.balance(accountId);
         var what = "GET /" + path;
-        return Balance.from(what, get(token, what, path, MonetaJson.BalancesJson.class));
+        return Balance.from(what, get(token, what, path, BalancesJson.class));
     }
 
     /**
@@ -144,8 +150,8 @@ public final class MonetaClient implements AutoCloseable {
                 token,
                 MonetaPaths.transactions(accountId),
                 query,
-                MonetaJson.TransactionsPage.class,
-                node -> Transaction.from(bind(node, MonetaJson.TransactionJson.class), node.toString()));
+                TransactionsPage.class,
+                node -> Transaction.from(bind(node, TransactionJson.class), node.toString()));
     }
 
     /**
@@ -155,11 +161,7 @@ public final class MonetaClient implements AutoCloseable {
      * the read. A short page does not end it, so a server that caps {@code size} loses nothing.
      */
     private <T> List<T> readAll(
-            AccessToken token,
-            String path,
-            Query query,
-            Class<? extends MonetaJson.Page> pageType,
-            Function<JsonNode, T> map) {
+            AccessToken token, String path, Query query, Class<? extends Page> pageType, Function<JsonNode, T> map) {
         var all = new ArrayList<T>();
         var sized = query.with("size", PAGE_SIZE);
         List<JsonNode> previous = List.of();
