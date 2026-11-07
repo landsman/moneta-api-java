@@ -36,9 +36,6 @@ record Bill(
         @Nullable Instant paidSeenAt,
         @Version @Nullable Integer version) {
 
-    /** The column's size; MONETA's own limit on a message is not documented. */
-    static final int MESSAGE_LENGTH = 255;
-
     static Bill issue(BigDecimal amount, Instant now) {
         return new Bill(null, amount, "CZK", now, null, null, false, null, null);
     }
@@ -56,10 +53,8 @@ record Bill(
      * was seen: it is the same money, under the new id MONETA gives it once booked.
      */
     Bill paidWith(Transaction payment, Instant seenAt) {
-        var message = payment.message();
-        if (message != null && message.length() > MESSAGE_LENGTH) {
-            message = message.substring(0, MESSAGE_LENGTH);
-        }
+        // Pending, MONETA sends the kind of payment ("Okamžitá platba"), not what the payer wrote.
+        var message = payment.booked() ? payment.message() : null;
         return new Bill(
                 id,
                 amount,

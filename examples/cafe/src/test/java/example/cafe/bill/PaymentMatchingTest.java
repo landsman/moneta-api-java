@@ -1,6 +1,7 @@
 package example.cafe.bill;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import cz.insuit.moneta.Money;
 import cz.insuit.moneta.PaymentSymbols;
@@ -112,10 +113,10 @@ class PaymentMatchingTest {
     }
 
     @Test
-    void aMessageLongerThanTheColumnIsCut() {
-        var paid = COFFEE.paidWith(booked("r", "1000", "65", "x".repeat(300)), SEEN);
+    void aPendingPaymentLeavesTheMessageEmptyRatherThanCallItThePayers() {
+        var paid = COFFEE.paidWith(pending("t1", "1000", "65"), SEEN);
 
-        assertEquals(Bill.MESSAGE_LENGTH, String.valueOf(paid.paymentMessage()).length());
+        assertNull(paid.paymentMessage());
     }
 
     private static Bill bill(long id, String amount) {
