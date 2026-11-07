@@ -3,6 +3,9 @@
 `make build` compiles, tests and packages; `make` lists the targets. A JDK 21 or newer is enough, and
 `mise.toml` pins the one used here.
 
+It also fails when a module under `modules/` declares a dependency it does not use, or uses one it only gets
+transitively. What to change is in `build/reports/dependency-analysis/build-health-report.txt`.
+
 What ships is in [modules/](../modules): the client, `moneta-api`, and its
 [Spring Boot starter](../modules/moneta-api-spring-boot-starter/README.md), each with its own tests. Projects
 that use them the way a caller's build would, on several Spring Boot versions and from Kotlin, are in

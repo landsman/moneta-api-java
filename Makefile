@@ -8,8 +8,8 @@ help: ## show this help
 
 ##@ Build
 .PHONY: build test lock dev release publish publish-local format lint scripts-test
-build: ## check formatting, compile with error prone and nullaway, test and package the jar; TESTS_JDK=21 tests on that JDK
-	./gradlew build $(if $(TESTS_JDK),-PtestsJdk=$(TESTS_JDK))
+build: ## check formatting, compile with error prone and nullaway, test, check declared dependencies and package the jar; TESTS_JDK=21 tests on that JDK
+	./gradlew build buildHealth $(if $(TESTS_JDK),-PtestsJdk=$(TESTS_JDK))
 
 test: ## run the tests
 	./gradlew test

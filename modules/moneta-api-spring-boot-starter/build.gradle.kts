@@ -10,6 +10,8 @@ val springBoot = dependencies.platform("org.springframework.boot:spring-boot-dep
 
 dependencies {
     api(project(":modules:moneta-api"))
+    // MonetaProperties carries its nullability too; declared, not borrowed from the client.
+    api("org.jspecify:jspecify:1.0.1")
     compileOnly(springBoot)
     compileOnly("org.springframework.boot:spring-boot-autoconfigure")
     // Writes the metadata IntelliJ reads to complete moneta.* in application.yml.
@@ -19,10 +21,16 @@ dependencies {
     testImplementation(springBoot)
     testImplementation("org.springframework.boot:spring-boot-autoconfigure")
     testImplementation("org.springframework.boot:spring-boot-test")
+    testImplementation("org.springframework:spring-beans")
     // ApplicationContextRunner hands the test an AssertJ type, so it has to be on the classpath.
     testImplementation("org.assertj:assertj-core")
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+dependencyAnalysis {
+    // Never imported, but AssertableApplicationContext extends its AssertProvider, so javac needs it.
+    issues { onUnusedDependencies { exclude("org.assertj:assertj-core") } }
 }
 
 java {
