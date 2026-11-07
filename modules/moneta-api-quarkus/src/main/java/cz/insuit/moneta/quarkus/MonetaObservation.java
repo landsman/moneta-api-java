@@ -24,7 +24,8 @@ public class MonetaObservation {
     @Priority(Integer.MAX_VALUE)
     HttpClientDecorator monetaHttpClientObservation(MeterRegistry meters) {
         // The OpenTelemetry Java agent instruments the JDK client already; a second wrapper would count each call
-        // twice. It attaches when the application starts, so this is decided then, not at build time.
+        // twice. It attaches when the application starts, so this is decided then, not at build time, and the
+        // bean stays: a pass-through in every @All list, since a bean cannot go missing after the build.
         if (underOpenTelemetryAgent()) {
             return http -> http;
         }
