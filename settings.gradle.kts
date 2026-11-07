@@ -1,11 +1,13 @@
 rootProject.name = "moneta-api-java"
 
-// What ships: the client, and the Spring Boot starter, Play and Micronaut modules around it.
+// What ships: the client, and the Spring Boot starter, Play, Micronaut and Quarkus modules around it.
 include(
     ":modules:moneta-api",
     ":modules:moneta-api-spring-boot-starter",
     ":modules:moneta-api-play",
     ":modules:moneta-api-micronaut",
+    ":modules:moneta-api-quarkus",
+    ":modules:moneta-api-quarkus-deployment",
 )
 
 // Callers the library promises to work for, each on its own classpath; see testing/README.md.
@@ -16,6 +18,8 @@ include(
     ":testing:spring-boot:4.1.2",
     ":testing:micronaut:4.10.14",
     ":testing:micronaut:5.2.5",
+    ":testing:quarkus:3.33.4",
+    ":testing:quarkus:3.40.1",
     ":testing:kotlin",
     ":testing:play:3.0-scala-2.13",
     ":testing:play:3.0-scala-3",

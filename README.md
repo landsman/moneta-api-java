@@ -5,7 +5,7 @@ The Czech bank MONETA Money Bank lets its business clients, sole traders include
 transactions, and can enter payments, with a token they issue in Internet Banka. No PSD2 licence is needed.
 
 This is a client for that API, **MONETA API**, for Java 21+ and Kotlin projects, with a Spring Boot starter, a
-Play Framework module and a Micronaut module. It reads accounts and transactions so far; payments are not covered
+Play Framework module, a Micronaut module and a Quarkus extension. It reads accounts and transactions so far; payments are not covered
 yet. Its only dependencies are Jackson and JSpecify.
 
 Checked against the live API, see [how it behaves](.docs/moneta-api.md). Published on GitHub Packages, not
@@ -13,12 +13,13 @@ Maven Central.
 
 | Read | For |
 |---|---|
-| [Installing](.docs/install.md) | the four artifacts on GitHub Packages, for Gradle and Maven |
+| [Installing](.docs/install.md) | the artifacts on GitHub Packages, for Gradle and Maven |
 | [Getting access](.docs/access.md) | who can use MONETA API, the merchant's token, the developer portal |
 | [Using the client](.docs/usage.md) | accounts, transactions, money, symbols, failures |
 | [Spring Boot starter](modules/moneta-api-spring-boot-starter/README.md) | `moneta.*` in application.yml, a `MonetaClient` bean |
 | [Play Framework module](modules/moneta-api-play/README.md) | `moneta.*` in application.conf, an injected `MonetaClient` |
 | [Micronaut module](modules/moneta-api-micronaut/README.md) | the same `moneta.*`, a `MonetaClient` bean |
+| [Quarkus extension](modules/moneta-api-quarkus/README.md) | `quarkus.moneta.*`, a `MonetaClient` bean, JVM and native |
 | [Kotlin and Spring Boot](.docs/compatibility.md) | what a Kotlin caller gets, the one fix Spring Boot 3 before 3.5.13 needs, and native images |
 | [How MONETA API behaves](.docs/moneta-api.md) | what to watch out for: pending and booked movements, dates, ids, errors |
 | [Roadmap](.docs/plan/roadmap.md) | the working plan: what is still unknown, what comes next, what is not covered |
@@ -44,6 +45,7 @@ client implements:
 | Spring Boot auto-configuration | — | ✅ |
 | Play Framework module | — | ✅ |
 | Micronaut module | — | ✅ |
+| Quarkus extension | — | ✅ |
 | GraalVM native image | — | ✅ |
 
 Licence: [Apache 2.0](LICENSE)
