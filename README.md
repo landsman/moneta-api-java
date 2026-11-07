@@ -30,7 +30,7 @@ client implements:
 | Feature | MONETA API | This client |
 |---|:---:|:---:|
 | Accounts the token sees | ✅ | ✅ |
-| Transactions | ✅ | ✅ pending checked live, booked not yet ([#10](https://github.com/landsman/moneta-api-java/issues/10)) |
+| Transactions, pending and booked | ✅ | ✅ checked live |
 | Card transactions | ✅ | ⬜ not checked |
 | Balances | ✅ | ⬜ |
 | Pending card transactions | ✅ | ⬜ |

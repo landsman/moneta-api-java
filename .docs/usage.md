@@ -16,6 +16,12 @@ for (var account : moneta.accounts(token)) {
 - **One client for many merchants.** The token goes with each call as an `AccessToken` and is never stored,
   logged or put in an exception message. Its own type keeps it from being swapped with the account id, and it
   refuses a value with a space or a control character, without repeating it.
+- **A movement's `entryReference` changes when it is booked.** Pending and booked, the same payment carries two
+  different ids, so deduplicating by it counts the payment twice. Act on booked movements only, or match the
+  booked one to the pending one by symbol, amount and counterparty account, as `examples/cafe` does.
+- **Once booked a movement carries `message()`** (what the payer wrote) **and `counterpartyName()`**; pending, the
+  message is "Okamžitá platba" on an instant payment and the name is missing. `counterpartyAccount()` is there
+  in both. All three stay out of `toString()`.
 - **`incoming(…)`** is `transactions(…)` with only the money that came in, the call a shop checking payments
   makes. Debits are dropped by the client; MONETA has no such filter that is known.
 - **Amounts are `Money`**, a `BigDecimal` with a `Currency`, parsed without a detour through `double`. MONETA

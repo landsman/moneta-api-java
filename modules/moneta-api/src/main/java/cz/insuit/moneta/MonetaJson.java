@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
+import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
@@ -80,6 +81,7 @@ final class MonetaJson {
             @Nullable DateValue enteredDate,
             @Nullable DateValue bookingDate,
             @Nullable DateValue valueDate,
+            @Nullable Boolean reversalIndicator,
             @Nullable EntryDetails entryDetails) {
         TransactionJson {
             requireNonNull(entryReference, "entryReference");
@@ -88,17 +90,52 @@ final class MonetaJson {
             requireNonNull(amount, "amount");
         }
 
-        /** The string the payment symbols are in. A nested record pattern matches only if no level is null. */
+        /** The string the payment symbols are in. */
         @Nullable
         String reference() {
-            return entryDetails
-                            instanceof
-                            EntryDetails(
-                                    TransactionDetails(
-                                            RemittanceInformation(
-                                                    Structured(CreditorReferenceInformation(var reference)))))
-                    ? reference
-                    : null;
+            return remittance()
+                    .map(RemittanceInformation::structured)
+                    .map(Structured::creditorReferenceInformation)
+                    .map(CreditorReferenceInformation::reference)
+                    .orElse(null);
+        }
+
+        /** The payer's message; "Okamžitá platba" while an instant payment is pending (live, 2026-11-06). */
+        @Nullable
+        String message() {
+            return remittance().map(RemittanceInformation::unstructured).orElse(null);
+        }
+
+        /** The other side's name: the debtor of a credit, the creditor of a debit. Sent once booked. */
+        @Nullable
+        String counterpartyName(boolean credit) {
+            return parties()
+                    .map(parties -> credit ? parties.debtor() : parties.creditor())
+                    .map(Party::name)
+                    .orElse(null);
+        }
+
+        /** The other side's account as MONETA writes it, {@code number/bank}, sometimes with a space after a prefix. */
+        @Nullable
+        String counterpartyAccount(boolean credit) {
+            return parties()
+                    .map(parties -> credit ? parties.debtorAccount() : parties.creditorAccount())
+                    .map(PartyAccount::identification)
+                    .map(AccountIdentification::other)
+                    .map(OtherIdentification::identification)
+                    .orElse(null);
+        }
+
+        private Optional<TransactionDetails> details() {
+            return Optional.ofNullable(entryDetails).map(EntryDetails::transactionDetails);
+        }
+
+        private Optional<RemittanceInformation> remittance() {
+            return details().map(TransactionDetails::remittanceInformation);
+        }
+
+        private Optional<RelatedParties> parties() {
+            return details().map(TransactionDetails::relatedParties);
         }
     }
 
@@ -114,13 +151,30 @@ final class MonetaJson {
 
     record EntryDetails(@Nullable TransactionDetails transactionDetails) {}
 
-    record TransactionDetails(@Nullable RemittanceInformation remittanceInformation) {}
+    record TransactionDetails(
+            @Nullable RemittanceInformation remittanceInformation,
+            @Nullable RelatedParties relatedParties) {}
 
-    record RemittanceInformation(@Nullable Structured structured) {}
+    record RemittanceInformation(
+            @Nullable Structured structured, @Nullable String unstructured) {}
 
     record Structured(@Nullable CreditorReferenceInformation creditorReferenceInformation) {}
 
     record CreditorReferenceInformation(@Nullable String reference) {}
+
+    record RelatedParties(
+            @Nullable Party debtor,
+            @Nullable Party creditor,
+            @Nullable PartyAccount debtorAccount,
+            @Nullable PartyAccount creditorAccount) {}
+
+    record Party(@Nullable String name) {}
+
+    record PartyAccount(@Nullable AccountIdentification identification) {}
+
+    record AccountIdentification(@Nullable OtherIdentification other) {}
+
+    record OtherIdentification(@Nullable String identification) {}
 
     private MonetaJson() {}
 }
