@@ -29,8 +29,16 @@ HttpClientCustomizer monetaMtls(SSLContext moneta) {
 ```
 
 With `micrometer-java11` on the classpath and a `MeterRegistry` bean, every call is timed as
-`http.client.requests`, tagged by `MonetaClient::uriTemplate`, as under the starter; a bean that `@Replaces` the
-one named `monetaHttpClientObservation` changes it.
+`http.client.requests`, tagged by `MonetaClient::uriTemplate`, as under the starter. A decorator replacing it
+changes that, and one returning its argument turns it off:
+
+```java
+@Singleton
+@Replaces(bean = HttpClientDecorator.class, named = "monetaHttpClientObservation")
+HttpClientDecorator noMonetaObservation() {
+    return http -> http;
+}
+```
 
 Not in a GraalVM native image yet: the client binds MONETA's JSON by reflection and ships no reachability
 metadata ([#19](https://github.com/landsman/moneta-api-java/issues/19)).

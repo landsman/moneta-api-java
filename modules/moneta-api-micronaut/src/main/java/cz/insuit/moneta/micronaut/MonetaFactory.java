@@ -55,7 +55,8 @@ public class MonetaFactory {
         return builder.build();
     }
 
-    /** Only with {@code moneta.token} set; a blank one or one ending in a newline stops the application. */
+    /** Only with {@code moneta.token} set; one with a space or a control character anywhere, such as the newline an
+     * environment variable often ends in, stops the application. */
     @Context
     @Requires(property = "moneta.token")
     @Requires(missingBeans = AccessToken.class)
@@ -66,8 +67,9 @@ public class MonetaFactory {
     /**
      * Metrics, and traces when an {@code ObservationRegistry} exists, for every call, tagged by {@link
      * MonetaClient#uriTemplate}: on when {@code micrometer-java11} is on the classpath and a {@code MeterRegistry}
-     * exists. Off under the OpenTelemetry Java agent, which instruments the JDK client already. A bean named
-     * {@code monetaHttpClientObservation} that {@code @Replaces} it changes it.
+     * exists. Off under the OpenTelemetry Java agent, which instruments the JDK client already. A decorator with
+     * {@code @Replaces(bean = HttpClientDecorator.class, named = "monetaHttpClientObservation")} replaces it, and
+     * one returning its argument turns it off.
      */
     @Singleton
     @Named("monetaHttpClientObservation")

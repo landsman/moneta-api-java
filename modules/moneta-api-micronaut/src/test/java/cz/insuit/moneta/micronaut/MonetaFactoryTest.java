@@ -2,6 +2,7 @@ package cz.insuit.moneta.micronaut;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -17,6 +18,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.context.annotation.Factory;
+import io.micronaut.context.annotation.Replaces;
 import io.micronaut.context.annotation.Requires;
 import io.micronaut.core.annotation.Order;
 import jakarta.inject.Singleton;
@@ -54,7 +56,9 @@ class MonetaFactoryTest {
 
     @Test
     void aTokenWithAStrayNewlineStopsTheApplication() {
-        assertThrows(RuntimeException.class, () -> ApplicationContext.run(Map.of("moneta.token", "secret token")));
+        var failure = assertThrows(
+                RuntimeException.class, () -> ApplicationContext.run(Map.of("moneta.token", "secret-token\n")));
+        assertRefused("The token is empty or holds a space or a control character", failure);
     }
 
     @Test
@@ -74,12 +78,23 @@ class MonetaFactoryTest {
 
     @Test
     void partnerHeadersWithDiacriticsStopTheApplication() {
-        assertThrows(
+        var failure = assertThrows(
                 RuntimeException.class,
                 () -> ApplicationContext.run(Map.of(
                         "moneta.partner.identification-number", "12345678",
                         "moneta.partner.business-name", "Kavárna",
                         "moneta.partner.application-name", "Cafe")));
+        assertRefused("businessName must be printable ASCII; transliterate diacritics", failure);
+    }
+
+    /** The client refused the value, not something else that broke the start, such as a property not read. */
+    private static void assertRefused(String message, Throwable failure) {
+        var cause = failure;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        assertInstanceOf(IllegalArgumentException.class, cause);
+        assertEquals(message, cause.getMessage());
     }
 
     @Test
@@ -110,15 +125,7 @@ class MonetaFactoryTest {
 
     @Test
     void tagsEachCallWithItsTemplateWhenAMeterRegistryExists() throws IOException {
-        var server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
-        server.createContext("/", exchange -> {
-            var body = "{\"accounts\": []}".getBytes(StandardCharsets.UTF_8);
-            exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(200, body.length);
-            exchange.getResponseBody().write(body);
-            exchange.close();
-        });
-        server.start();
+        var server = accountsServer();
         try (var app = ApplicationContext.run(Map.of(
                 "spec",
                 "meters",
@@ -137,10 +144,43 @@ class MonetaFactoryTest {
     }
 
     @Test
+    void aDecoratorReplacingTheObservationOneTurnsItOff() throws IOException {
+        var server = accountsServer();
+        try (var app = ApplicationContext.run(Map.of(
+                "spec",
+                "meters",
+                "observation",
+                "off",
+                "moneta.base-uri",
+                "http://localhost:" + server.getAddress().getPort()))) {
+            app.getBean(MonetaClient.class).accounts(new AccessToken("secret-token"));
+            assertNull(app.getBean(MeterRegistry.class)
+                    .find("http.client.requests")
+                    .timer());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     void noObservationWithoutAMeterRegistry() {
         try (var app = ApplicationContext.run()) {
             assertFalse(app.containsBean(HttpClientDecorator.class));
         }
+    }
+
+    /** Answers every call with no accounts. */
+    private static HttpServer accountsServer() throws IOException {
+        var server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+        server.createContext("/", exchange -> {
+            var body = "{\"accounts\": []}".getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        return server;
     }
 
     @Factory
@@ -161,9 +201,16 @@ class MonetaFactoryTest {
         MeterRegistry meters() {
             return new SimpleMeterRegistry();
         }
+
+        /** What the README shows: one returning its argument turns the observation off. */
+        @Singleton
+        @Requires(property = "observation", value = "off")
+        @Replaces(bean = HttpClientDecorator.class, named = "monetaHttpClientObservation")
+        HttpClientDecorator noObservation() {
+            return http -> http;
+        }
     }
 
-    /** Declared out of order, so only @Order can put them right. */
     @Singleton
     @Requires(property = "spec", value = "http-hooks")
     static class HttpHooks {
@@ -171,6 +218,7 @@ class MonetaFactoryTest {
         final List<HttpClient> decorated = new ArrayList<>();
     }
 
+    /** Declared out of order, so only @Order can put them right. */
     @Factory
     @Requires(property = "spec", value = "http-hooks")
     static class HttpHookBeans {
