@@ -6,7 +6,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.java11.instrument.binder.jdk.MicrometerHttpClient;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.inject.Produces;
-import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 
 /**
@@ -22,7 +21,6 @@ public class MonetaObservation {
 
     @Produces
     @Singleton
-    @Named("monetaHttpClientObservation")
     @Priority(Integer.MAX_VALUE)
     HttpClientDecorator monetaHttpClientObservation(MeterRegistry meters) {
         // The OpenTelemetry Java agent instruments the JDK client already; a second wrapper would count each call
