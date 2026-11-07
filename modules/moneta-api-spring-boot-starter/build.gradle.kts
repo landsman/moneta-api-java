@@ -14,6 +14,8 @@ dependencies {
     api("org.jspecify:jspecify:1.0.1")
     compileOnly(springBoot)
     compileOnly("org.springframework.boot:spring-boot-autoconfigure")
+    // SslBundles, for moneta.ssl.bundle.
+    compileOnly("org.springframework.boot:spring-boot")
     // ObjectProvider, to take every customizer and decorator bean in order.
     compileOnly("org.springframework:spring-beans")
     compileOnly("org.springframework:spring-core")
@@ -26,6 +28,7 @@ dependencies {
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
     testImplementation(springBoot)
+    testImplementation("org.springframework.boot:spring-boot")
     testImplementation("org.springframework.boot:spring-boot-autoconfigure")
     testImplementation("org.springframework.boot:spring-boot-test")
     testImplementation("org.springframework:spring-beans")

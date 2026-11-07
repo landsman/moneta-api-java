@@ -7,6 +7,7 @@ import cz.insuit.moneta.MonetaClient;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.java11.instrument.binder.jdk.MicrometerHttpClient;
 import io.micrometer.observation.ObservationRegistry;
+import javax.net.ssl.SSLParameters;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -14,6 +15,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.ssl.SslBundles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -32,6 +34,7 @@ public class MonetaAutoConfiguration {
     @ConditionalOnMissingBean
     public MonetaClient monetaClient(
             MonetaProperties properties,
+            ObjectProvider<SslBundles> sslBundles,
             ObjectProvider<MonetaHttpClientCustomizer> customizers,
             ObjectProvider<MonetaHttpClientDecorator> decorators) {
         // Only what the application set is passed on, so each default lives in one place: the client.
@@ -49,6 +52,22 @@ public class MonetaAutoConfiguration {
             builder.partner(new MonetaClient.Partner(
                     partner.identificationNumber(), partner.businessName(), partner.applicationName()));
         }
+        var ssl = properties.ssl();
+        var bundleName = ssl == null ? null : ssl.bundle();
+        if (bundleName != null) {
+            // Resolved now, so an unknown name stops the application rather than the first call.
+            var bundle = sslBundles.getObject().getBundle(bundleName);
+            var context = bundle.createSslContext();
+            var options = bundle.getOptions();
+            builder.configureHttpClient(http -> {
+                http.sslContext(context);
+                if (options.isSpecified()) {
+                    var parameters = new SSLParameters(options.getCiphers(), options.getEnabledProtocols());
+                    http.sslParameters(parameters);
+                }
+            });
+        }
+        // After the bundle, so a customizer can still change what it set.
         customizers.orderedStream().forEach(customizer -> builder.configureHttpClient(customizer::customize));
         decorators.orderedStream().forEach(decorator -> builder.decorateHttpClient(decorator::decorate));
         return builder.build();
