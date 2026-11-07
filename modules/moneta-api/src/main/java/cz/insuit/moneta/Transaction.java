@@ -98,7 +98,7 @@ public record Transaction(
                 raw);
     }
 
-    private static @Nullable LocalDate date(@Nullable DateValue value) {
-        return value instanceof DateValue(var date) ? date : null;
+    private static @Nullable LocalDate date(@Nullable DateValueJson value) {
+        return value instanceof DateValueJson(var date) ? date : null;
     }
 }

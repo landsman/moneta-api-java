@@ -24,7 +24,7 @@ enum CreditDebit {
     }
 
     /** The amount with this direction as its sign. A negative one would be signed twice, so it is refused. */
-    Money signed(Amount amount) {
+    Money signed(AmountJson amount) {
         if (amount.value().signum() < 0) {
             throw new MonetaException.InvalidResponse("a negative amount beside creditDebitIndicator", null);
         }

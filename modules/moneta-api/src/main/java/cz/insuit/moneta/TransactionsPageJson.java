@@ -6,11 +6,11 @@ import java.util.List;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
-record TransactionsPage(
+record TransactionsPageJson(
         List<JsonNode> transactions,
         @Nullable Integer pageNumber,
-        @Nullable Integer pageCount) implements Page {
-    TransactionsPage {
+        @Nullable Integer pageCount) implements PageJson {
+    TransactionsPageJson {
         requireNonNull(transactions, "transactions");
     }
 

@@ -4,8 +4,8 @@ import static java.util.Objects.requireNonNull;
 
 import java.time.Instant;
 
-record DateTimeValue(Instant dateTime) {
-    DateTimeValue {
+record DateTimeValueJson(Instant dateTime) {
+    DateTimeValueJson {
         requireNonNull(dateTime, "dateTime");
     }
 }

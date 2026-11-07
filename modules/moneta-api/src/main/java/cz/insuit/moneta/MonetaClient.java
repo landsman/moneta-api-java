@@ -90,7 +90,7 @@ public final class MonetaClient implements AutoCloseable {
                 token,
                 MonetaPaths.ACCOUNTS,
                 Query.NONE,
-                AccountsPage.class,
+                AccountsPageJson.class,
                 node -> Account.from(bind(node, AccountJson.class)));
     }
 
@@ -144,7 +144,7 @@ public final class MonetaClient implements AutoCloseable {
                 token,
                 MonetaPaths.transactions(accountId),
                 query,
-                TransactionsPage.class,
+                TransactionsPageJson.class,
                 node -> Transaction.from(bind(node, TransactionJson.class), node.toString()));
     }
 
@@ -155,7 +155,11 @@ public final class MonetaClient implements AutoCloseable {
      * the read. A short page does not end it, so a server that caps {@code size} loses nothing.
      */
     private <T> List<T> readAll(
-            AccessToken token, String path, Query query, Class<? extends Page> pageType, Function<JsonNode, T> map) {
+            AccessToken token,
+            String path,
+            Query query,
+            Class<? extends PageJson> pageType,
+            Function<JsonNode, T> map) {
         var all = new ArrayList<T>();
         var sized = query.with("size", PAGE_SIZE);
         List<JsonNode> previous = List.of();

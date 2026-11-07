@@ -9,7 +9,7 @@ record AccountJson(
         String id,
         Currency currency,
         @Nullable String nameI18N,
-        @Nullable Identification identification) {
+        @Nullable IdentificationJson identification) {
     AccountJson {
         requireNonNull(id, "id");
         requireNonNull(currency, "currency");

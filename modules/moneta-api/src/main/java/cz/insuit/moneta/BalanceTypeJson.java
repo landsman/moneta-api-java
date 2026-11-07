@@ -2,8 +2,8 @@ package cz.insuit.moneta;
 
 import static java.util.Objects.requireNonNull;
 
-record BalanceType(CodeOrProprietary codeOrProprietary) {
-    BalanceType {
+record BalanceTypeJson(CodeOrProprietaryJson codeOrProprietary) {
+    BalanceTypeJson {
         requireNonNull(codeOrProprietary, "codeOrProprietary");
     }
 }

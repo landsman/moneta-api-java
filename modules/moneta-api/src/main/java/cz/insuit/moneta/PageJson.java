@@ -10,10 +10,10 @@ import tools.jackson.databind.JsonNode;
  * ignored. A key the library relies on is checked in the compact constructor, so a missing one fails at
  * binding, as {@link MonetaException.InvalidResponse}, and not as a null three calls later.
  *
- * <p>{@code Page} itself is one page of a list. Its items stay JSON trees, so each one can be kept verbatim
+ * <p>{@code PageJson} itself is one page of a list. Its items stay JSON trees, so each one can be kept verbatim
  * besides being bound.
  */
-sealed interface Page permits AccountsPage, TransactionsPage {
+sealed interface PageJson permits AccountsPageJson, TransactionsPageJson {
     List<JsonNode> items();
 
     /** The page MONETA says it returned; null when it did not say. */
