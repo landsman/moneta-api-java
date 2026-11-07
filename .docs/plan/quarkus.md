@@ -32,7 +32,7 @@ does, and says itself that not every step applies to every extension. Going thro
 | Health check | **no** | a readiness check that calls MONETA spends the merchant's rate limit on every probe |
 | Tracing | **through Micrometer only** | `quarkus-opentelemetry` does not instrument the JDK `HttpClient`; Micrometer's observation gives spans where Micrometer Tracing is set up, as in Spring |
 | Rich Dev UI, codestart, Mutiny API | **no** | nothing to show, and nobody has asked; a `-reactive` sibling only if someone does |
-| `META-INF/quarkus-skill.md` | **later** | a few lines, once the API has settled |
+| `META-INF/quarkus-skill.md` | **later** | only once it is known to reach an agent; see below |
 
 ## Decisions
 
@@ -94,7 +94,9 @@ does, and says itself that not every step applies to every extension. Going thro
    native by `make native-test` and run on Linux; the README and the compatibility section.
 3. **Metrics.** A decorator wrapping the client in `MicrometerHttpClient` with
    `uriMapper(MonetaClient::uriTemplate)` when `quarkus-micrometer` and `micrometer-java11` are present, off
-   under the OpenTelemetry Java agent, replaceable, as in the starter. Its own pull request.
+   under the OpenTelemetry Java agent, as in the starter. Done in its own pull request; turned off with the
+   build-time `quarkus.moneta.metrics.enabled=false` rather than by replacing a named bean, since a CDI
+   `@DefaultBean` would step aside for any decorator of the application's.
 
 What the native build found, which the JVM never showed: the TLS registry has to be a real dependency of the
 runtime module, since an image links every class it refers to; and `jackson-annotations` 2.21, which the
@@ -107,6 +109,13 @@ build; [compatibility](../compatibility.md#quarkus) says how.
   repository under `io.quarkiverse.moneta`, Maven Central, an extension proposal issue in `quarkusio/quarkus`
   and the Quarkiverse build, which is Maven. It moves the code out of this repository, so it waits for users
   who ask.
+- **`META-INF/quarkus-skill.md`**, to verify first. It is Markdown for AI coding agents in the deployment module:
+  key patterns, testing, pitfalls (here: `AccessToken` only for one account, transactions month by month, the
+  native Jackson fix). The Quarkus Agent MCP server serves it, from a `quarkus-extension-skills` jar that the
+  Quarkus build assembles from its own extensions' files, per the
+  [Agent MCP guide](https://quarkus.io/version/3.40/guides/agent-mcp/), which is experimental. Whether it ever
+  picks up the file of an extension built outside the Quarkus repository, from Quarkiverse or the application's
+  classpath, is the open question; until it does, nobody reads the file.
 - **A fake MONETA in dev mode**, as a Dev Service: dev mode then needs no token. Step 1's fake server is most
   of it.
 - **Quarkus 4**, once released: a testing project, and a check whether its Jackson moves to 3, which would turn

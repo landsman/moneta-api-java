@@ -8,6 +8,9 @@ dependencies {
     implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.40.1"))
     implementation(project(":modules:moneta-api-quarkus"))
     implementation("io.quarkus:quarkus-arc")
+    // Micrometer without micrometer-java11, the setup most applications have: the extension must not register its
+    // observation, which needs the binder. 3.33.4 has no Micrometer at all.
+    implementation("io.quarkus:quarkus-micrometer")
     testImplementation("io.quarkus:quarkus-junit")
     testImplementation("org.junit.jupiter:junit-jupiter")
 }
@@ -36,4 +39,9 @@ tasks.check { dependsOn(tasks.named("quarkusIntTest")) }
 // build, so the JVM tests keep proving that a JVM caller needs nothing.
 if (providers.systemProperty("quarkus.native.enabled").orNull == "true") {
     configurations.all { resolutionStrategy.force("com.fasterxml.jackson.core:jackson-annotations:2.22") }
+}
+
+tasks.named<Test>("quarkusIntTest") {
+    // The whole failure, with the application's output, in the CI log; no report is kept there.
+    testLogging { exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL }
 }

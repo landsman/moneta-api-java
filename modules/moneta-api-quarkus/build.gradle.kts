@@ -31,6 +31,10 @@ dependencies {
     runtimeOnly("io.quarkus:quarkus-tls-registry:3.33.4")
     compileOnly("io.quarkus:quarkus-tls-registry-spi")
     compileOnly("io.vertx:vertx-core") // the protocols and ciphers come as Vert.x SSLOptions
+    // Optional: an application with quarkus-micrometer and micrometer-java11 gets every call timed.
+    compileOnly("io.micrometer:micrometer-java11")
+    compileOnly("io.micrometer:micrometer-core")
+    compileOnly("jakarta.annotation:jakarta.annotation-api")
     annotationProcessor(quarkus)
     annotationProcessor("io.quarkus:quarkus-extension-processor")
 }

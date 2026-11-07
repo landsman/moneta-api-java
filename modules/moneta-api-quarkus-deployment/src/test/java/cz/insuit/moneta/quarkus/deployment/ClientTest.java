@@ -35,6 +35,9 @@ class ClientTest {
             .overrideConfigKey("quarkus.moneta.partner.identification-number", "12345678")
             .overrideConfigKey("quarkus.moneta.partner.business-name", "Example s.r.o.")
             .overrideConfigKey("quarkus.moneta.partner.application-name", "Cafe")
+            // Off, so the decorators see the JDK client itself, whose isTerminated() the check below reads;
+            // Micrometer's wrapper does not pass it on.
+            .overrideConfigKey("quarkus.moneta.metrics.enabled", "false")
             .setAfterAllCustomizer(() -> assertTrue(
                     ((HttpClient) System.getProperties().remove(HTTP)).isTerminated(), "the HTTP client is closed"));
 

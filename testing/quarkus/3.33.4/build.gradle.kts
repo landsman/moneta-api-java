@@ -30,3 +30,8 @@ sourceSets.named("integrationTest") {
 
 // The packaged application too, in make build; a few seconds on the JVM.
 tasks.check { dependsOn(tasks.named("quarkusIntTest")) }
+
+tasks.named<Test>("quarkusIntTest") {
+    // The whole failure, with the application's output, in the CI log; no report is kept there.
+    testLogging { exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL }
+}
