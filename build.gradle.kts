@@ -3,6 +3,7 @@ import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
     id("com.diffplug.spotless") version "8.11.0"
+    id("com.autonomousapps.dependency-analysis") version "3.20.1"
     id("net.ltgt.errorprone") version "5.2.0" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
     id("org.springframework.boot") version "4.1.2" apply false
@@ -43,6 +44,7 @@ allprojects {
 subprojects {
     if (path.startsWith(":modules:")) {
         apply(plugin = "net.ltgt.errorprone")
+        apply(plugin = "com.autonomousapps.dependency-analysis")
         dependencies {
             "errorprone"("com.google.errorprone:error_prone_core:2.52.0")
             "errorprone"("com.uber.nullaway:nullaway:0.14.3")
@@ -108,6 +110,17 @@ subprojects {
             }
         }
     }
+}
+
+// make build fails on a dependency a module declares and does not use, or uses without declaring: the first ships
+// in the POM to every caller for nothing, the second breaks the day the dependency that brought it drops it.
+dependencyAnalysis {
+    structure {
+        // junit-jupiter is the aggregate that brings the engine; the advice to declare -api instead would leave the
+        // tests compiling and none of them running.
+        bundle("junit-jupiter") { includeGroup("org.junit.jupiter") }
+    }
+    issues { all { onAny { severity("fail") } } }
 }
 
 spotless {
