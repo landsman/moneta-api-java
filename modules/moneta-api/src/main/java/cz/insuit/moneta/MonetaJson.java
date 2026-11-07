@@ -212,7 +212,16 @@ final class MonetaJson {
         }
     }
 
+    /** A code MONETA sends may be one the library does not read, so it stays a string there. */
     record CodeOrProprietary(@Nullable String code) {}
+
+    /** The balance types the library reads, by MONETA's codes. */
+    enum BalanceCode {
+        /** Closing booked. */
+        CLBD,
+        /** Closing available. */
+        CLAV
+    }
 
     /** A pending movement sends {@code {"date": null}} for its booking and value dates (live, 2026-11-06). */
     record DateValue(@Nullable LocalDate date) {}
