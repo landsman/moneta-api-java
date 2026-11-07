@@ -8,7 +8,9 @@ import org.jspecify.annotations.Nullable;
  * A bill as {@code GET /bills} lists it.
  *
  * @param monetaEntryReference MONETA's id of the payment that paid it, as Internet Banka shows it under
- *     "Bankovní reference"
+ *     "Bankovní reference"; it changes once the payment is booked
+ * @param paymentMessage what the payer wrote, once the payment is booked
+ * @param paymentBooked whether the payment is booked, so its reference final
  */
 record BillView(
         String variableSymbol,
@@ -17,6 +19,8 @@ record BillView(
         Instant issuedAt,
         boolean paid,
         @Nullable String monetaEntryReference,
+        @Nullable String paymentMessage,
+        boolean paymentBooked,
         @Nullable Instant paidSeenAt) {
 
     static BillView of(Bill bill) {
@@ -27,6 +31,8 @@ record BillView(
                 bill.createdAt(),
                 bill.paid(),
                 bill.monetaEntryReference(),
+                bill.paymentMessage(),
+                bill.paymentBooked(),
                 bill.paidSeenAt());
     }
 }

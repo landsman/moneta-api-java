@@ -3,7 +3,9 @@ create table if not exists bill (
     amount                 decimal(12, 2) not null check (amount > 0),
     currency               char(3)        not null,
     created_at             timestamp with time zone not null,
-    moneta_entry_reference varchar(40) unique,
+    moneta_entry_reference varchar(255) unique,
+    payment_message        varchar(255),
+    payment_booked         boolean not null default false,
     paid_seen_at           timestamp with time zone,
     version                integer
 );
@@ -13,6 +15,8 @@ comment on column bill.id is 'The bill''s variable symbol: ascending from 1000, 
 comment on column bill.amount is 'What the customer pays, exactly; a different amount does not pay it.';
 comment on column bill.currency is 'ISO 4217, CZK.';
 comment on column bill.created_at is 'When the bill was issued.';
-comment on column bill.moneta_entry_reference is 'MONETA''s id of the payment that paid it (entryReference, "Bankovní reference" in Internet Banka); null while unpaid. Unique: one payment pays one bill.';
+comment on column bill.moneta_entry_reference is 'MONETA''s id of the payment that paid it (entryReference, "Bankovní reference" in Internet Banka); null while unpaid. Unique: one payment pays one bill. MONETA gives a payment a new id once booked, so a pending one''s id is replaced then.';
+comment on column bill.payment_message is 'What the payer wrote; MONETA sends it once the payment is booked. Cut at 255 characters.';
+comment on column bill.payment_booked is 'Whether moneta_entry_reference is the booked payment''s, final, or still the pending one''s.';
 comment on column bill.paid_seen_at is 'When the café first saw that payment. MONETA dates a payment but gives no time, so this is the closest to when it was paid.';
 comment on column bill.version is 'Optimistic locking: of two checks marking one bill paid at once, the second fails rather than overwrite the first.';

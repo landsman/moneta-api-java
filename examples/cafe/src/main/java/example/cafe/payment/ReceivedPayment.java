@@ -8,13 +8,15 @@ import org.jspecify.annotations.Nullable;
 /**
  * What the till needs to match a payment: how much, which variable symbol, and whether it is booked yet.
  *
- * @param day the booking day, or the day MONETA took it in while it is pending
+ * @param message what the payer wrote, once booked
+ * @param day the day the payment was made: its value date once booked, the day MONETA took it in while pending
  */
 record ReceivedPayment(
         String reference,
         BigDecimal amount,
         String currency,
         @Nullable String variableSymbol,
+        @Nullable String message,
         boolean booked,
         @Nullable LocalDate day) {
 
@@ -24,7 +26,10 @@ record ReceivedPayment(
                 t.amount().amount(),
                 t.amount().currency().getCurrencyCode(),
                 t.symbols().variable(),
+                t.message(),
                 t.booked(),
-                t.bookingDate() != null ? t.bookingDate() : t.enteredDate());
+                // The day the payment was made: valueDate once booked (bookingDate can be a later business day),
+                // enteredDate while pending.
+                t.valueDate() != null ? t.valueDate() : t.enteredDate());
     }
 }

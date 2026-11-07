@@ -15,67 +15,120 @@ import org.junit.jupiter.api.Test;
 
 class PaymentMatchingTest {
 
+    private static final Instant SEEN = Instant.parse("2026-11-06T10:00:00Z");
     private static final Bill COFFEE = bill(1000, "65.00");
     private static final Bill CAKE = bill(1001, "89.00");
 
     @Test
     void aPaymentWithTheBillsSymbolAndAmountPaysIt() {
-        var matches = PaymentMatching.match(List.of(COFFEE, CAKE), List.of(payment("t1", "1001", "89")));
+        var payment = pending("t1", "1001", "89");
 
-        assertEquals(List.of(new PaymentMatching.Match(CAKE, payment("t1", "1001", "89"))), matches);
+        assertEquals(
+                List.of(new PaymentMatching.Match(CAKE, payment)),
+                PaymentMatching.match(List.of(COFFEE, CAKE), List.of(payment)));
     }
 
     @Test
     void leadingZerosInTheSymbolDoNotMatter() {
         assertEquals(
                 1,
-                PaymentMatching.match(List.of(COFFEE), List.of(payment("t1", "0001000", "65")))
+                PaymentMatching.match(List.of(COFFEE), List.of(pending("t1", "0001000", "65")))
                         .size());
     }
 
     @Test
     void aWrongAmountAMissingSymbolOrMoneyOutPaysNothing() {
-        var payments = List.of(
-                payment("short", "1000", "60"),
-                payment("no-symbol", null, "65"),
-                new Transaction(
-                        "out",
-                        Transaction.Status.BOOKED,
-                        Transaction.Direction.DEBIT,
-                        czk("-65"),
-                        null,
-                        null,
-                        null,
-                        new PaymentSymbols("1000", null, null),
-                        "{}"));
+        var out = new Transaction(
+                "out",
+                Transaction.Status.BOOKED,
+                Transaction.Direction.DEBIT,
+                czk("-65"),
+                null,
+                null,
+                null,
+                new PaymentSymbols("1000", null, null),
+                null,
+                null,
+                null,
+                false,
+                "{}");
 
-        assertEquals(List.of(), PaymentMatching.match(List.of(COFFEE), payments));
+        assertEquals(
+                List.of(),
+                PaymentMatching.match(
+                        List.of(COFFEE),
+                        List.of(pending("short", "1000", "60"), pending("no-symbol", null, "65"), out)));
     }
 
     @Test
     void aBillIsPaidOnceEvenIfItIsPaidTwice() {
         var matches = PaymentMatching.match(
-                List.of(COFFEE), List.of(payment("t1", "1000", "65"), payment("t2", "1000", "65")));
+                List.of(COFFEE), List.of(pending("t1", "1000", "65"), pending("t2", "1000", "65")));
 
         assertEquals(
                 List.of("t1"),
                 matches.stream().map(m -> m.payment().entryReference()).toList());
     }
 
-    private static Bill bill(long id, String amount) {
-        return new Bill(id, new BigDecimal(amount), "CZK", Instant.parse("2026-11-06T10:00:00Z"), null, null, 0);
+    @Test
+    void aBillPaidByAPendingPaymentIsNotPaidAgainByIt() {
+        var paid = COFFEE.paidWith(pending("t1", "1000", "65"), SEEN);
+
+        assertEquals(List.of(), PaymentMatching.match(List.of(paid), List.of(pending("t1", "1000", "65"))));
     }
 
-    private static Transaction payment(String reference, @Nullable String variableSymbol, String amount) {
+    @Test
+    void theBookedPaymentTakesOverFromThePendingOneKeepingWhenItWasSeen() {
+        var paid = COFFEE.paidWith(pending("t1", "1000", "65"), SEEN);
+        var booked = booked("1337:20261109:00001:1", "1000", "65", "KAVARNA UCET 1000");
+
+        var matches = PaymentMatching.match(List.of(paid), List.of(booked));
+        var updated = matches.getFirst().bill().paidWith(booked, SEEN.plusSeconds(86_400));
+
+        assertEquals("1337:20261109:00001:1", updated.monetaEntryReference());
+        assertEquals("KAVARNA UCET 1000", updated.paymentMessage());
+        assertEquals(true, updated.paymentBooked());
+        assertEquals(SEEN, updated.paidSeenAt());
+    }
+
+    @Test
+    void aMessageLongerThanTheColumnIsCut() {
+        var paid = COFFEE.paidWith(booked("r", "1000", "65", "x".repeat(300)), SEEN);
+
+        assertEquals(Bill.MESSAGE_LENGTH, String.valueOf(paid.paymentMessage()).length());
+    }
+
+    private static Bill bill(long id, String amount) {
+        return new Bill(id, new BigDecimal(amount), "CZK", SEEN, null, null, false, null, 0);
+    }
+
+    private static Transaction pending(String reference, @Nullable String variableSymbol, String amount) {
+        return payment(reference, Transaction.Status.PENDING, variableSymbol, amount, "Okamžitá platba");
+    }
+
+    private static Transaction booked(String reference, String variableSymbol, String amount, String message) {
+        return payment(reference, Transaction.Status.BOOKED, variableSymbol, amount, message);
+    }
+
+    private static Transaction payment(
+            String reference,
+            Transaction.Status status,
+            @Nullable String variableSymbol,
+            String amount,
+            @Nullable String message) {
         return new Transaction(
                 reference,
-                Transaction.Status.PENDING,
+                status,
                 Transaction.Direction.CREDIT,
                 czk(amount),
                 LocalDate.of(2026, 11, 6),
                 null,
                 null,
                 new PaymentSymbols(variableSymbol, null, null),
+                message,
+                null,
+                null,
+                false,
                 "{}");
     }
 

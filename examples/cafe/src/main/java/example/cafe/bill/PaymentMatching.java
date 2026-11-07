@@ -15,19 +15,21 @@ import java.util.Optional;
  * <ol>
  *   <li>it is money in, not money out;
  *   <li>it carries a variable symbol;
- *   <li>a bill with that symbol is still unpaid;
- *   <li>it pays the bill's amount exactly, in the bill's currency.
+ *   <li>a bill with that symbol is still looked for: unpaid, or paid by a payment not booked yet;
+ *   <li>it pays the bill's amount exactly, in the bill's currency;
+ *   <li>if the bill is already paid by a pending payment, this one is booked: MONETA gives a payment a new id once
+ *       booked, and this is how the bill learns it.
  * </ol>
  *
- * Each bill is paid once, by the first payment that does.
+ * Each bill takes the first payment that does.
  */
 final class PaymentMatching {
 
     record Match(Bill bill, Transaction payment) {}
 
     // ponytail: exact amount only; an underpayment or a tip stays unmatched, a person sorts those out.
-    static List<Match> match(List<Bill> unpaid, List<Transaction> payments) {
-        Map<String, Bill> unpaidBySymbol = bySymbol(unpaid);
+    static List<Match> match(List<Bill> lookedFor, List<Transaction> payments) {
+        Map<String, Bill> billsBySymbol = bySymbol(lookedFor);
         List<Match> matches = new ArrayList<>();
 
         for (Transaction payment : payments) {
@@ -40,9 +42,9 @@ final class PaymentMatching {
                 continue;
             }
 
-            Bill bill = unpaidBySymbol.get(symbol.get());
+            Bill bill = billsBySymbol.get(symbol.get());
             if (bill == null) {
-                // No bill has this symbol, or an earlier payment already paid it.
+                // No bill has this symbol, or an earlier payment in this round already took it.
                 continue;
             }
 
@@ -50,8 +52,13 @@ final class PaymentMatching {
                 continue;
             }
 
+            if (bill.paid() && !payment.booked()) {
+                // Paid already by this pending payment, or another; only its booked version moves it on.
+                continue;
+            }
+
             matches.add(new Match(bill, payment));
-            unpaidBySymbol.remove(symbol.get());
+            billsBySymbol.remove(symbol.get());
         }
 
         return matches;

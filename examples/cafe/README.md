@@ -25,7 +25,12 @@ Then try it by hand at http://localhost:8080/scalar, an API reference built from
   account (yesterday, so a payment made just before midnight is not missed), pending ones included, and a payment
   pays a bill when the variable symbol, amount and currency are the bill's exactly (leading zeros in the symbol do
   not count). `PaymentMatching` is that rule, tested on its own.
-- **One payment pays one bill**: the table holds a unique `moneta_entry_reference`, MONETA's id of the payment, so the database refuses a second.
+- **One payment pays one bill**: the table holds a unique `moneta_entry_reference`, MONETA's id of the payment,
+  so the database refuses a second.
+- **A bill paid by a pending payment waits for its booked version.** MONETA gives the payment a new id once
+  booked, so the check keeps looking for that bill, and when a booked payment with its symbol and amount
+  arrives, the bill takes its id and the payer's message, which MONETA only sends then. The read reaches back
+  to the day the pending payment was seen, since booking can come days later.
 - **`paidSeenAt` is when the café first saw the payment.** MONETA gives a payment a date and no time, so this,
   to the polling interval, is the closest there is to when it was paid.
 - **The QR code** is drawn by [spayd-qr-java](https://github.com/janhalasa/spayd-qr-java), with instant payment
