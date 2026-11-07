@@ -22,6 +22,9 @@ java {
     withJavadocJar()
 }
 
+// The JSON binding is public only so the client's package can reach it; it is not API, so it is not documented.
+tasks.javadoc { exclude("cz/insuit/moneta/internal/**") }
+
 tasks.jar {
     // Pinned, so a JPMS caller's `requires` does not change with the jar's file name.
     manifest { attributes("Automatic-Module-Name" to "cz.insuit.moneta") }
