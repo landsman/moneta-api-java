@@ -1,6 +1,6 @@
-package cz.insuit.moneta.internal.json;
+package cz.insuit.moneta;
 
 import org.jspecify.annotations.Nullable;
 
 /** A code MONETA sends may be one the library does not read, so it stays a string there. */
-public record CodeOrProprietary(@Nullable String code) {}
+record CodeOrProprietary(@Nullable String code) {}

@@ -121,9 +121,6 @@ dependencyAnalysis {
         bundle("junit-jupiter") { includeGroup("org.junit.jupiter") }
     }
     issues { all { onAny { severity("fail") } } }
-    // cz.insuit.moneta.internal.* is public only so the client's package reaches it; what its signatures name is not
-    // the library's API, so Jackson there does not make it an api dependency of every caller.
-    abi { exclusions { ignoreInternalPackages() } }
 }
 
 spotless {

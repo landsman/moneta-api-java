@@ -1,9 +1,5 @@
 package cz.insuit.moneta;
 
-import cz.insuit.moneta.internal.json.BalanceCode;
-import cz.insuit.moneta.internal.json.BalanceJson;
-import cz.insuit.moneta.internal.json.BalancesJson;
-import cz.insuit.moneta.internal.json.CreditDebit;
 import java.time.Instant;
 import java.util.List;
 

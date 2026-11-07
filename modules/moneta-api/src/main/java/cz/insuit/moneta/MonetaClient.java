@@ -2,12 +2,6 @@ package cz.insuit.moneta;
 
 import static java.util.Objects.requireNonNull;
 
-import cz.insuit.moneta.internal.json.AccountJson;
-import cz.insuit.moneta.internal.json.AccountsPage;
-import cz.insuit.moneta.internal.json.BalancesJson;
-import cz.insuit.moneta.internal.json.Page;
-import cz.insuit.moneta.internal.json.TransactionJson;
-import cz.insuit.moneta.internal.json.TransactionsPage;
 import java.io.IOException;
 import java.lang.System.Logger.Level;
 import java.net.URI;

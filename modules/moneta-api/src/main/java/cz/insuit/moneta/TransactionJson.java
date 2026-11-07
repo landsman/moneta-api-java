@@ -1,11 +1,11 @@
-package cz.insuit.moneta.internal.json;
+package cz.insuit.moneta;
 
 import static java.util.Objects.requireNonNull;
 
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
-public record TransactionJson(
+record TransactionJson(
         String entryReference,
         String status,
         String creditDebitIndicator,
@@ -15,7 +15,7 @@ public record TransactionJson(
         @Nullable DateValue valueDate,
         @Nullable Boolean reversalIndicator,
         @Nullable EntryDetails entryDetails) {
-    public TransactionJson {
+    TransactionJson {
         requireNonNull(entryReference, "entryReference");
         requireNonNull(status, "status");
         requireNonNull(creditDebitIndicator, "creditDebitIndicator");
@@ -24,7 +24,7 @@ public record TransactionJson(
 
     /** The string the payment symbols are in. */
     @Nullable
-    public String reference() {
+    String reference() {
         return remittance()
                 .map(RemittanceInformation::structured)
                 .map(Structured::creditorReferenceInformation)
@@ -34,13 +34,13 @@ public record TransactionJson(
 
     /** The payer's message; "Okamžitá platba" while an instant payment is pending (live, 2026-11-06). */
     @Nullable
-    public String message() {
+    String message() {
         return remittance().map(RemittanceInformation::unstructured).orElse(null);
     }
 
     /** The other side's name: the debtor of a credit, the creditor of a debit. Sent once booked. */
     @Nullable
-    public String counterpartyName(boolean credit) {
+    String counterpartyName(boolean credit) {
         return parties()
                 .map(parties -> credit ? parties.debtor() : parties.creditor())
                 .map(Party::name)
@@ -49,7 +49,7 @@ public record TransactionJson(
 
     /** The other side's account as MONETA writes it, {@code number/bank}, sometimes with a space after a prefix. */
     @Nullable
-    public String counterpartyAccount(boolean credit) {
+    String counterpartyAccount(boolean credit) {
         return parties()
                 .map(parties -> credit ? parties.debtorAccount() : parties.creditorAccount())
                 .map(PartyAccount::identification)

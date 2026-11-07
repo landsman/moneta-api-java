@@ -1,11 +1,11 @@
-package cz.insuit.moneta.internal.json;
+package cz.insuit.moneta;
 
 import static java.util.Objects.requireNonNull;
 
 import java.time.Instant;
 
-public record DateTimeValue(Instant dateTime) {
-    public DateTimeValue {
+record DateTimeValue(Instant dateTime) {
+    DateTimeValue {
         requireNonNull(dateTime, "dateTime");
     }
 }

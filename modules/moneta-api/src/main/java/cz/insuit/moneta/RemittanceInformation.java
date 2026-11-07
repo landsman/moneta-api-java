@@ -1,6 +1,6 @@
-package cz.insuit.moneta.internal.json;
+package cz.insuit.moneta;
 
 import org.jspecify.annotations.Nullable;
 
-public record RemittanceInformation(
+record RemittanceInformation(
         @Nullable Structured structured, @Nullable String unstructured) {}

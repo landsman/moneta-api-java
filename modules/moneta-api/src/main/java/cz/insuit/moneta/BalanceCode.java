@@ -1,7 +1,7 @@
-package cz.insuit.moneta.internal.json;
+package cz.insuit.moneta;
 
 /** The balance types the library reads, by MONETA's codes. */
-public enum BalanceCode {
+enum BalanceCode {
     /** Closing booked. */
     CLBD,
     /** Closing available. */

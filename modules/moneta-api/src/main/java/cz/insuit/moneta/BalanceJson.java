@@ -1,9 +1,9 @@
-package cz.insuit.moneta.internal.json;
+package cz.insuit.moneta;
 
 import static java.util.Objects.requireNonNull;
 
-public record BalanceJson(Amount amount, String creditDebitIndicator, DateTimeValue date, BalanceType type) {
-    public BalanceJson {
+record BalanceJson(Amount amount, String creditDebitIndicator, DateTimeValue date, BalanceType type) {
+    BalanceJson {
         requireNonNull(amount, "amount");
         requireNonNull(creditDebitIndicator, "creditDebitIndicator");
         requireNonNull(date, "date");

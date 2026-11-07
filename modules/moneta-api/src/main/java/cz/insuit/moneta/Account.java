@@ -1,7 +1,5 @@
 package cz.insuit.moneta;
 
-import cz.insuit.moneta.internal.json.AccountJson;
-import cz.insuit.moneta.internal.json.Identification;
 import java.util.Currency;
 import org.jspecify.annotations.Nullable;
 

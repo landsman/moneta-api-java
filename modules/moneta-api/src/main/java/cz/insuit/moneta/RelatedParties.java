@@ -1,8 +1,8 @@
-package cz.insuit.moneta.internal.json;
+package cz.insuit.moneta;
 
 import org.jspecify.annotations.Nullable;
 
-public record RelatedParties(
+record RelatedParties(
         @Nullable Party debtor,
         @Nullable Party creditor,
         @Nullable PartyAccount debtorAccount,

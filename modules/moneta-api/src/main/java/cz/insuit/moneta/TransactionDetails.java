@@ -1,7 +1,7 @@
-package cz.insuit.moneta.internal.json;
+package cz.insuit.moneta;
 
 import org.jspecify.annotations.Nullable;
 
-public record TransactionDetails(
+record TransactionDetails(
         @Nullable RemittanceInformation remittanceInformation,
         @Nullable RelatedParties relatedParties) {}
