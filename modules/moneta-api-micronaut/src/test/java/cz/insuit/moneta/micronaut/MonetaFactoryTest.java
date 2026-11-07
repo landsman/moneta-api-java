@@ -56,8 +56,7 @@ class MonetaFactoryTest {
 
     @Test
     void aTokenWithAStrayNewlineStopsTheApplication() {
-        var failure = assertThrows(
-                RuntimeException.class, () -> ApplicationContext.run(Map.of("moneta.token", "secret-token\n")));
+        var failure = assertThrows(RuntimeException.class, () -> eager(Map.of("moneta.token", "secret-token\n")));
         assertRefused("The token is empty or holds a space or a control character", failure);
     }
 
@@ -80,11 +79,30 @@ class MonetaFactoryTest {
     void partnerHeadersWithDiacriticsStopTheApplication() {
         var failure = assertThrows(
                 RuntimeException.class,
-                () -> ApplicationContext.run(Map.of(
+                () -> eager(Map.of(
                         "moneta.partner.identification-number", "12345678",
                         "moneta.partner.business-name", "Kavárna",
                         "moneta.partner.application-name", "Cafe")));
         assertRefused("businessName must be printable ASCII; transliterate diacritics", failure);
+    }
+
+    @Test
+    void buildsTheClientOnlyWhenItIsFirstUsed() {
+        try (var app = ApplicationContext.run(Map.of("spec.name", "http-hooks"))) {
+            var hooks = app.getBean(HttpHooks.class);
+            assertEquals(List.of(), hooks.calls);
+            app.getBean(MonetaClient.class);
+            assertEquals(4, hooks.calls.size());
+        }
+    }
+
+    /** What an application that wants bad configuration to stop its start opts into. */
+    private static void eager(Map<String, Object> properties) {
+        ApplicationContext.builder()
+                .properties(properties)
+                .eagerInitConfiguration(true)
+                .start()
+                .close();
     }
 
     /** The client refused the value, not something else that broke the start, such as a property not read. */
@@ -118,6 +136,7 @@ class MonetaFactoryTest {
     @Test
     void closesTheClientWithTheContext() {
         var app = ApplicationContext.run(Map.of("spec.name", "http-hooks"));
+        app.getBean(MonetaClient.class);
         var http = app.getBean(HttpHooks.class).decorated.getFirst();
         app.close();
         assertTrue(http.isTerminated());

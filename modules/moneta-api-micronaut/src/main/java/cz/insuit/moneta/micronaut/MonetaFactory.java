@@ -10,7 +10,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.java11.instrument.binder.jdk.MicrometerHttpClient;
 import io.micrometer.observation.ObservationRegistry;
 import io.micronaut.context.annotation.Bean;
-import io.micronaut.context.annotation.Context;
 import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Requires;
 import io.micronaut.core.annotation.Order;
@@ -28,8 +27,8 @@ import java.util.Optional;
 @Factory
 public class MonetaFactory {
 
-    /** Eager, so a value the client refuses stops startup, as it does under Spring Boot. */
-    @Context
+    // Lazy, as Micronaut beans are: MonetaProperties checks the values, so the HTTP client is built only when used.
+    @Singleton
     @Bean(preDestroy = "close")
     @Requires(missingBeans = MonetaClient.class)
     public MonetaClient monetaClient(
@@ -55,9 +54,8 @@ public class MonetaFactory {
         return builder.build();
     }
 
-    /** Only with {@code moneta.token} set; one with a space or a control character anywhere, such as the newline an
-     * environment variable often ends in, stops the application. */
-    @Context
+    /** Only with {@code moneta.token} set, which {@link MonetaProperties} has already checked. */
+    @Singleton
     @Requires(property = "moneta.token")
     @Requires(missingBeans = AccessToken.class)
     public AccessToken monetaAccessToken(MonetaProperties properties) {

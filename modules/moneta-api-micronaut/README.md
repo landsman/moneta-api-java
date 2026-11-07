@@ -12,8 +12,14 @@ That is the whole setup for an application reading one account: inject `MonetaCl
 serving many merchants leaves `moneta.token` unset and passes each one's token with the call. Keep the token in
 the environment, never in a committed file.
 
-A `MonetaClient` bean of the application's own replaces the one built here. A token or partner value the client
-would refuse stops the application at startup, not at the first call, and the client is closed with the context.
+A `MonetaClient` bean of the application's own replaces the one built here. Like every Micronaut bean, the client
+is built when first injected, not at startup, and closed with the context. A token or partner value it would refuse
+fails when `moneta.*` is bound; to have that stop the start, without building the client, opt in as Micronaut
+applications do:
+
+```java
+Micronaut.build(args).eagerInitConfiguration(true).mainClass(Application.class).start();
+```
 
 ## A proxy, mTLS or metrics
 
