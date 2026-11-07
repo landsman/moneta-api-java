@@ -27,6 +27,30 @@ tasks.jar {
     manifest { attributes("Automatic-Module-Name" to "cz.insuit.moneta") }
 }
 
+// Jackson binds every *Json record by reflection, and a native image keeps only what its metadata names. The file
+// is generated from the records, so a new one is covered without anyone editing it.
+val nativeImageMetadata =
+    tasks.register("nativeImageMetadata") {
+        description = "Writes the GraalVM reachability metadata for the *Json records."
+        val records = fileTree("src/main/java/cz/insuit/moneta") { include("*Json.java") }
+        val output = layout.buildDirectory.dir("generated/native-image")
+        inputs.files(records)
+        outputs.dir(output)
+        doLast {
+            val entries =
+                records.files.map { it.nameWithoutExtension }.sorted().joinToString(",\n") {
+                    """    {"type": "cz.insuit.moneta.$it", "allDeclaredConstructors": true, """ +
+                        """"allDeclaredMethods": true, "allDeclaredFields": true}"""
+                }
+            output.get().file("META-INF/native-image/cz.insuit/moneta-api/reachability-metadata.json").asFile.run {
+                parentFile.mkdirs()
+                writeText("{\n  \"reflection\": [\n$entries\n  ]\n}\n")
+            }
+        }
+    }
+
+sourceSets.main { resources.srcDir(nativeImageMetadata) }
+
 // The oldest Jackson a caller is likely to resolve this to: Spring Boot 4.0.0's. Running the same tests on it
 // catches a call to an API newer than that, which would compile here and fail there with NoSuchMethodError.
 val jacksonFloor =

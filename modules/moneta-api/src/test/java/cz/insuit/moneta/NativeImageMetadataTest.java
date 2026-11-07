@@ -18,7 +18,7 @@ class NativeImageMetadataTest {
 
     private static final String METADATA = "/META-INF/native-image/cz.insuit/moneta-api/reachability-metadata.json";
 
-    /** A *Json type missing from the file binds on the JVM and fails only inside a native image. */
+    /** The build generates the file from *Json sources; a record it misses binds on the JVM and fails only natively. */
     @Test
     void registersEveryJsonTypeForReflection() throws IOException, URISyntaxException {
         JsonNode metadata;
