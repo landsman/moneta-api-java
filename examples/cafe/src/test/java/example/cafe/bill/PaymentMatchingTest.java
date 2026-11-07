@@ -61,6 +61,26 @@ class PaymentMatchingTest {
     }
 
     @Test
+    void aReversalPaysNothing() {
+        var reversal = new Transaction(
+                "rev",
+                Transaction.Status.BOOKED,
+                Transaction.Direction.CREDIT,
+                czk("65"),
+                null,
+                null,
+                LocalDate.of(2026, 11, 6),
+                new PaymentSymbols("1000", null, null),
+                null,
+                null,
+                null,
+                true,
+                "{}");
+
+        assertEquals(List.of(), PaymentMatching.match(List.of(COFFEE), List.of(reversal)));
+    }
+
+    @Test
     void aBillIsPaidOnceEvenIfItIsPaidTwice() {
         var matches = PaymentMatching.match(
                 List.of(COFFEE), List.of(pending("t1", "1000", "65"), pending("t2", "1000", "65")));

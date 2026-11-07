@@ -13,7 +13,7 @@ import java.util.Optional;
  * <p>A payment pays a bill when all of these hold:
  *
  * <ol>
- *   <li>it is money in, not money out;
+ *   <li>it is money in, not money out, and not a reversal: money returned or a payment undone pays nothing;
  *   <li>it carries a variable symbol;
  *   <li>a bill with that symbol is still looked for: unpaid, or paid by a payment not booked yet;
  *   <li>it pays the bill's amount exactly, in the bill's currency;
@@ -33,7 +33,7 @@ final class PaymentMatching {
         List<Match> matches = new ArrayList<>();
 
         for (Transaction payment : payments) {
-            if (!isMoneyIn(payment)) {
+            if (!isMoneyIn(payment) || payment.reversed()) {
                 continue;
             }
 
