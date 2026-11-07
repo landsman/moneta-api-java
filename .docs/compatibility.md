@@ -57,6 +57,20 @@ MonetaHttpClientCustomizer monetaProxy() {
 }
 ```
 
+**mTLS with the starter** is a Spring Boot SSL bundle named in `moneta.ssl.bundle`; its certificate, trust store,
+protocols and ciphers go to the client, and a customizer still runs after it:
+
+```yaml
+spring.ssl.bundle.pem.moneta:
+  keystore:
+    certificate: file:/run/secrets/moneta.crt
+    private-key: file:/run/secrets/moneta.key
+moneta.ssl.bundle: moneta
+```
+
+A name with no bundle behind it stops the application. The bundle is read once, so a reloaded certificate takes a
+restart.
+
 **The starter instruments by itself**: with `io.micrometer:micrometer-java11` on the classpath and a
 `MeterRegistry` bean (Actuator brings one), every call is timed as `http.client.requests`, tagged by
 `MonetaClient::uriTemplate`, and traced when an `ObservationRegistry` is set up too. It stays off under the

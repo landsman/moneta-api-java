@@ -14,13 +14,15 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param baseUri MONETA's host; the client's own default, production, unless set
  * @param requestTimeout how long one call to MONETA may take; the client's own default unless set
  * @param partner the headers that name a registered application, sent only when set
+ * @param ssl the TLS the client presents and trusts; the JDK's own unless set
  */
 @ConfigurationProperties("moneta")
 public record MonetaProperties(
         @Nullable String token,
         @Nullable URI baseUri,
         @Nullable Duration requestTimeout,
-        @Nullable Partner partner) {
+        @Nullable Partner partner,
+        @Nullable Ssl ssl) {
 
     /**
      * {@code moneta.partner.*}, sent as the {@code identification_number}, {@code business_name} and {@code
@@ -31,4 +33,12 @@ public record MonetaProperties(
      * @param applicationName the application's name
      */
     public record Partner(String identificationNumber, String businessName, String applicationName) {}
+
+    /**
+     * {@code moneta.ssl.*}.
+     *
+     * @param bundle the name of a {@code spring.ssl.bundle.*} entry: a client certificate for mTLS, a trust store,
+     *     the protocols and ciphers. Read once, when the client is built; a reloaded certificate takes a restart.
+     */
+    public record Ssl(@Nullable String bundle) {}
 }

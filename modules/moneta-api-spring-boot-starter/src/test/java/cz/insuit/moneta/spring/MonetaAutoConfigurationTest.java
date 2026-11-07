@@ -2,6 +2,7 @@ package cz.insuit.moneta.spring;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -23,6 +24,12 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.ssl.DefaultSslBundleRegistry;
+import org.springframework.boot.ssl.NoSuchSslBundleException;
+import org.springframework.boot.ssl.SslBundle;
+import org.springframework.boot.ssl.SslBundles;
+import org.springframework.boot.ssl.SslOptions;
+import org.springframework.boot.ssl.SslStoreBundle;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -140,6 +147,43 @@ class MonetaAutoConfigurationTest {
             var http = HttpClient.newHttpClient();
             assertSame(http, decorator.decorate(http));
         });
+    }
+
+    @Test
+    void sendsThroughTheSslBundleItIsNamedAndLetsACustomizerChangeIt() {
+        var bundle = SslBundle.of(
+                SslStoreBundle.NONE,
+                null,
+                SslOptions.of(new String[] {"TLS_AES_128_GCM_SHA256"}, new String[] {"TLSv1.3"}));
+        context.withBean(SslBundles.class, () -> new DefaultSslBundleRegistry("moneta", bundle))
+                .withUserConfiguration(HttpHooks.class)
+                .withPropertyValues("moneta.ssl.bundle=moneta")
+                .run(app -> {
+                    app.getBean(MonetaClient.class);
+                    var http = app.getBean(HttpHooks.class).decorated.getFirst();
+                    assertEquals(
+                            List.of("TLSv1.3"), List.of(http.sslParameters().getProtocols()));
+                    assertEquals(
+                            List.of("TLS_AES_128_GCM_SHA256"),
+                            List.of(http.sslParameters().getCipherSuites()));
+                    // HttpHooks' first customizer runs after the bundle and changes redirects; it was not undone.
+                    assertEquals(HttpClient.Redirect.ALWAYS, http.followRedirects());
+                });
+    }
+
+    @Test
+    void anSslBundleThatDoesNotExistStopsTheApplication() {
+        context.withBean(SslBundles.class, DefaultSslBundleRegistry::new)
+                .withPropertyValues("moneta.ssl.bundle=missing")
+                .run(app -> assertInstanceOf(NoSuchSslBundleException.class, rootCause(app.getStartupFailure())));
+    }
+
+    private static Throwable rootCause(Throwable failure) {
+        var cause = failure;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        return cause;
     }
 
     @Test
