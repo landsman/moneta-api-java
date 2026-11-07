@@ -10,7 +10,8 @@ unknown, and what this library does next, is the working document [plan/roadmap.
 
 1. **A movement's `entryReference` changes when it is booked.** Deduplicate by it and every payment counts
    twice, once pending and once booked.
-2. **No movement carries a time of day**, only dates. "Payments in the last hour" cannot be asked of MONETA.
+2. **No movement carries a time of day**, only dates. "Payments in the last hour" cannot be asked of MONETA; a
+   poller records when it first saw each movement, which is as exact as its interval.
 3. **The date of a payment is a different field before and after booking**: `enteredDate` while pending,
    `valueDate` once booked. `bookingDate` can be a later business day than the payment.
 4. **The payer's message and name arrive only once booked.** A pending instant payment says "Okamžitá platba"
@@ -98,7 +99,8 @@ reference" is `entryReference`), and shows the same "Okamžitá platba" while pe
   (`"VS:1337  SS:76789"`). `endToEndIdentification` repeats the VS, `paymentInformationIdentification` the SS.
 - **The counterparty's account is free text**, `number/bank`, sometimes with a space after a prefix.
 - **An amount can come as `1`** rather than `1.00`.
-- **No time of day exists anywhere**: not in the body, the headers or the `entryReference`, which grows with
+- **No time of day exists anywhere**, pending or booked (checked again on booked movements, 2026-11-07): not in
+  the body, the headers or the `entryReference`, which grows with
   time but decodes to no timestamp. Internet Banka's export has none either.
 - **An account has no `nameI18N` unless one is set**; `productI18N` names the product ("Běžný účet").
 
