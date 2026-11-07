@@ -14,7 +14,9 @@ endpoint from the browser.
 ## Releasing
 
 A release is made by hand, and only a tag makes one: merging to `main` publishes nothing. A tag `vX.Y.Z` on
-`main` releases `X.Y.Z`:
+`main` releases `X.Y.Z`. `make release` does all of what follows: it asks for the tag, suggesting the next
+patch, refuses one that exists or a checkout that is not a clean `origin/main`, asks once more, then tags,
+waits for the publish and writes the release page, a pre-release while it is 0.x. By hand:
 
     git switch main && git pull --ff-only              # the commit to release, with CI green on it
     git tag -a v0.1.0 -m "v0.1.0"                      # annotated, so it records who tagged it and when
