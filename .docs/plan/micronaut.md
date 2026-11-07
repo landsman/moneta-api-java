@@ -1,8 +1,9 @@
 # Plan: a Micronaut integration
 
 **A third module, `moneta-api-micronaut`, gives a Micronaut application what the starter gives a Spring Boot
-one: set `moneta.*`, inject `MonetaClient`.** Same property names, same behaviour, so the starter's README and
-`make dev` habits carry over. A spike decides first which Micronaut major the module is compiled against.
+one: set `moneta.*`, inject `MonetaClient`.** The same property names and behaviour, except `moneta.ssl.bundle`,
+which names a Spring Boot SSL bundle and has no Micronaut counterpart. A spike decides first which Micronaut
+major the module is compiled against.
 
 Researched 2026-11-07; sources at the end.
 
@@ -10,10 +11,9 @@ Researched 2026-11-07; sources at the end.
 
 | | Micronaut 4.10 | Micronaut 5 |
 |---|---|---|
-| Released | 4.10.14 on 2026-05-12, still patched | 5.0.0 on 2026-05-20; docs "latest" points at 5.2.x |
+| Released | 4.10.14 on 2026-05-12, still patched | 5.0.0 on 2026-05-20; 5.2.5 is the latest on Maven Central |
 | JDK | 17 and 21 | **25 baseline**, its jars are Java 25 bytecode |
-| Jackson in `micronaut-jackson-databind` | 2 | **3**, the BOM managed 3.1.3 at 5.0.0 |
-| Kotlin | kapt or KSP | 2.3 baseline, KSP |
+| Jackson its BOM manages | 2.21.2, `jackson-annotations` 2.21 | 3.2.3, `jackson-annotations` 2.22 |
 
 No end-of-support date for 4.x was found; the Java 25 post says only that 4.x "will continue to support Java 17
 and Java 21".
@@ -30,11 +30,14 @@ module has to be compiled by Micronaut's processor and cannot be a hand-written 
 | `@ConfigurationProperties` record | the same annotation, `io.micronaut.context.annotation`, on a record; bound without reflection |
 | `@ConditionalOnProperty("moneta.token")` | `@Requires(property = "moneta.token")` |
 | `@ConditionalOnMissingBean` | `@Requires(missingBeans = MonetaClient.class)`, or the app's bean with `@Replaces` |
+| `@ConditionalOnClass`, `@ConditionalOnMissingClass` | `@Requires(classes = …)`, `@Requires(missingClasses = "…")` |
+| `ObjectProvider<…>.orderedStream()` | an injected `List<…>`, sorted by `@Order` from `io.micronaut.core.annotation` |
 | closed on shutdown because the bean is `AutoCloseable` | **not closed** unless `@Bean(preDestroy = "close")`; implementing `AutoCloseable` is not enough |
-| beans eager, a bad token stops startup | singletons lazy; `@Context` makes one eager |
+| beans eager, a bad token or partner header stops startup | singletons lazy; `@Context` makes one eager |
 | `spring-boot-configuration-processor` metadata | written by the same processor, defaults taken from `@Bindable(defaultValue)` |
 
-The shape, then — a sketch; how a nested record binds is the first thing the spike checks:
+The shape, then — a sketch; how a nested record binds, and whether `missingBeans` on the method that makes that
+same bean excludes itself, are the first things the spike checks:
 
 ```java
 @ConfigurationProperties("moneta")
@@ -46,20 +49,42 @@ public record MonetaConfiguration(
 
 @Factory
 class MonetaFactory {
-    @Singleton
+    // @Context on both, so what the client refuses stops startup, as it does under Spring Boot.
+    @Context
     @Bean(preDestroy = "close")
     @Requires(missingBeans = MonetaClient.class)
-    MonetaClient monetaClient(MonetaConfiguration configuration) { /* as MonetaAutoConfiguration */ }
+    MonetaClient monetaClient(
+            MonetaConfiguration configuration,
+            List<HttpClientCustomizer> customizers,
+            List<HttpClientDecorator> decorators) { /* as MonetaAutoConfiguration */ }
 
-    @Context // so a token the client refuses stops startup, as it does under Spring Boot
+    @Context
     @Requires(property = "moneta.token")
     AccessToken monetaAccessToken(MonetaConfiguration configuration) { ... }
+
+    // Same conditions as the starter's: micrometer-java11 present, no OpenTelemetry agent, a MeterRegistry bean.
+    @Singleton
+    @Named("monetaHttpClientObservation")
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    @Requires(classes = MicrometerHttpClient.class, beans = MeterRegistry.class)
+    @Requires(missingClasses = "io.opentelemetry.javaagent.bootstrap.AgentInitializer")
+    HttpClientDecorator monetaHttpClientObservation(MeterRegistry meters, Optional<ObservationRegistry> observations) { ... }
 }
 ```
 
 The official modules (micronaut-email's Postmark sender, for one) are mutable classes with setters and an
-`enabled` flag. A record is supported and matches the starter; an `enabled` flag is not needed while the client
-does nothing until called.
+`enabled` flag; a record works too and matches the starter.
+
+## Customizers and decorators belong to the client
+
+`MonetaHttpClientCustomizer` and `MonetaHttpClientDecorator` live in `cz.insuit.moneta.spring`, yet name nothing
+from Spring: one changes an `HttpClient.Builder`, the other wraps an `HttpClient`. Copying them into a
+`micronaut` package would give two pairs that drift. They move to `cz.insuit.moneta` as `HttpClientCustomizer`
+and `HttpClientDecorator`, in their own PR before this module; the starter's go in the same PR, which the
+pre-1.0 version allows and its release notes say.
+
+mTLS then needs no `moneta.ssl.*` under Micronaut: an application's `HttpClientCustomizer` bean sets the
+`SSLContext`, from its own key store or from Micronaut's SSL configuration.
 
 ## The decision the spike makes: which major to compile against
 
@@ -79,30 +104,32 @@ Spike: `testing/micronaut/5.x` running a module compiled against 4.10. Then:
 | it loads and binds on 5 | one module, compiled against 4.10, release 21, tested on 4.10 and 5.x |
 | it does not | `moneta-api-micronaut` for 5 (release 25); a `-micronaut4` twin only when someone asks for it |
 
+Either way the 5.x test project runs on JDK 25 and the 4.10 one on 21, so CI runs `testing/micronaut/5.x` with
+`-PtestsJdk=25`.
+
 ## Jackson
 
-The client uses Jackson 3 as an implementation dependency, which is where Micronaut 5 is too, so there is no
-second Jackson as under Spring Boot 3. The risk is the version: a Maven build importing Micronaut's BOM
-resolves `jackson-databind` to Micronaut's 3.1.x instead of the client's 3.2.4. The client already runs on
-3.0.4 (`jacksonFloorTest`), so that holds; what would break it is databind 3.2 beside `jackson-annotations`
-older than 2.21, the same failure `.docs/compatibility.md` describes for Spring Boot 3.5.12. The testing
-project imports the BOM to catch it.
+The client uses Jackson 3 as an implementation dependency, which is where Micronaut 5 is too. A build importing
+Micronaut 5.2.5's BOM resolves `jackson-databind` to 3.2.3 instead of the client's 3.2.4, which holds: the
+client runs on 3.0.4 (`jacksonFloorTest`).
 
-Micronaut 4 brings Jackson 2 or Micronaut Serialization, and the client's Jackson 3 sits beside either, as it
-does under Spring Boot 3.
+Micronaut 4 brings Jackson 2 or Micronaut Serialization, and the client's Jackson 3 sits beside either. The one
+jar they share is `jackson-annotations`, the failure `.docs/compatibility.md` describes for Spring Boot 3.5.12;
+4.10.14's BOM manages 2.21, which is enough. Both test projects import the BOM, so an older 4.10.x or a later BOM
+that pins it lower fails there first.
 
 ## GraalVM native image
 
-Micronaut 5 removed its Jackson bean introspection module, so Jackson databind needs reflection metadata for
-every type it binds. The client binds its own records with Jackson, so under native image it fails unless
-`moneta-api` ships `META-INF/native-image/cz.landsman/moneta-api/reachability-metadata.json` for them. That helps
-Spring Boot native too, so it belongs in the client, as its own PR, not in this module. Nothing in the docs read
-says more; the PR proves it with one `nativeTest` run.
+The client binds its `*Json` records by reflection through its own `ObjectMapper`, so under any native image —
+Spring Boot's, Micronaut's, plain — it fails unless `moneta-api` ships
+`META-INF/native-image/cz.insuit/moneta-api/reachability-metadata.json` for them. That is the client's gap, not
+this module's, and a PR of its own that proves it with one `nativeTest` run.
 
 ## Steps
 
-1. **Spike** — the test project above, module compiled against 4.10. Decides the table.
-2. **The module** — `modules/moneta-api-micronaut`, package `cz.landsman.moneta.micronaut`: the record, the
+1. **Move the customizer and decorator** to the client, as above. Its own PR.
+2. **Spike** — the test project above, module compiled against 4.10. Decides the table.
+3. **The module** — `modules/moneta-api-micronaut`, package `cz.insuit.moneta.micronaut`: the record, the
    factory, `package-info.java` with `@NullMarked`. Plain `java-library`, not the `io.micronaut.library` plugin:
    that one applies the GraalVM plugin and the platform BOM, and a library should not hand its BOM to the caller.
 
@@ -110,25 +137,35 @@ says more; the PR proves it with one `nativeTest` run.
    val micronaut = dependencies.platform("io.micronaut.platform:micronaut-platform:<version>")
    dependencies {
        api(project(":modules:moneta-api"))
+       api("org.jspecify:jspecify:1.0.1")
        compileOnly(micronaut)
        compileOnly("io.micronaut:micronaut-inject")
+       compileOnly("io.micronaut:micronaut-core")
+       compileOnly("jakarta.inject:jakarta.inject-api")
+       compileOnly("io.micrometer:micrometer-java11")
+       compileOnly("io.micrometer:micrometer-core")
+       compileOnly("io.micrometer:micrometer-observation")
        annotationProcessor(micronaut)
        annotationProcessor("io.micronaut:micronaut-inject-java")
    }
    ```
 
-   `-processing` is already off in `-Xlint`; Micronaut's processor may need more lint exceptions under
-   `-Werror`, and NullAway has to read its generated classes as not `@NullMarked`.
-3. **Its test** — `ApplicationContext.run(Map.of("moneta.token", ...))`: the client and token beans exist, the
-   app's own `MonetaClient` wins, a bad token fails `run`, the client is closed with the context.
-4. **`testing/micronaut/<version>`** — the counterpart of `testing/spring-boot/shared`: only the module on the
+   Every annotation it uses is declared, or the dependency analysis fails the build. `-processing` is already off
+   in `-Xlint`; Micronaut's processor may need more lint exceptions under `-Werror`, and NullAway has to read its
+   generated classes as not `@NullMarked`.
+4. **Its test** — `ApplicationContext.run(Map.of("moneta.token", ...))`: the client and token beans exist, the
+   app's own `MonetaClient` wins, a bad token and a bad partner header each fail `run`, customizers and
+   decorators apply in order, the observation decorator appears only with a `MeterRegistry`, the client is closed
+   with the context.
+5. **`testing/micronaut/<version>`** — the counterpart of `testing/spring-boot/shared`: only the module on the
    classpath, the BOM imported, transactions read from a local server. One folder per supported version.
-5. **Docs** — the module's README (the property table is the starter's), a row in the root README and in
-   `.docs/install.md`, Micronaut in `.docs/compatibility.md`.
-6. **Publishing** — the release workflow publishes every `:modules:*` jar already; check the third one appears.
+6. **Docs** — the module's README (the starter's property table without `moneta.ssl.*`), a row in the root README
+   and in `.docs/install.md`, Micronaut in `.docs/compatibility.md`.
+7. **Publishing** — the release workflow publishes every `:modules:*` jar already; check the third one appears.
 
 ## Not planned
 
+- **`moneta.ssl.*`.** It names a Spring Boot SSL bundle; a customizer covers mTLS, as above.
 - **A Micronaut café in `examples/`.** The testing project proves the wiring; a second example app doubles
   `make dev` for no new information.
 - **A health indicator.** It would spend a call with a merchant's token on every probe. Add it when an app asks.
@@ -137,7 +174,6 @@ says more; the PR proves it with one `nativeTest` run.
 
 ## Still open
 
-- The exact current 5.x and its BOM's Jackson version (5.2.x seen in the docs redirect, no release post read).
 - The name and location of the generated configuration metadata, and whether IntelliJ completes `moneta.*` from it.
 - Whether the 4.x line has an announced end.
 
@@ -153,5 +189,8 @@ says more; the PR proves it with one `nativeTest` run.
   [factories](https://github.com/micronaut-projects/micronaut-core/blob/5.2.x/src/main/docs/guide/ioc/factories.adoc),
   [life cycle](https://github.com/micronaut-projects/micronaut-core/blob/5.2.x/src/main/docs/guide/ioc/lifecycle.adoc),
   [replacing beans](https://github.com/micronaut-projects/micronaut-core/blob/5.2.x/src/main/docs/guide/ioc/replaces.adoc)
+- The platform BOMs on Maven Central:
+  [4.10.14](https://repo1.maven.org/maven2/io/micronaut/platform/micronaut-platform/4.10.14/micronaut-platform-4.10.14.pom),
+  [5.2.5](https://repo1.maven.org/maven2/io/micronaut/platform/micronaut-platform/5.2.5/micronaut-platform-5.2.5.pom)
 - [Micronaut Gradle plugin](https://micronaut-projects.github.io/micronaut-gradle-plugin/latest/)
 - [micronaut-email's Postmark module](https://github.com/micronaut-projects/micronaut-email/tree/3.3.x/email-postmark)
