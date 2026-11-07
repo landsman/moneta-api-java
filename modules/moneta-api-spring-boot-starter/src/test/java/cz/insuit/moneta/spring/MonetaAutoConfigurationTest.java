@@ -11,10 +11,16 @@ import cz.insuit.moneta.AccessToken;
 import cz.insuit.moneta.MonetaClient;
 import java.io.IOException;
 import java.net.URI;
+import java.net.http.HttpClient;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 
 class MonetaAutoConfigurationTest {
 
@@ -83,10 +89,62 @@ class MonetaAutoConfigurationTest {
     }
 
     @Test
+    void customizesThenDecoratesTheHttpClientByOrderNotByDefinition() {
+        context.withUserConfiguration(HttpHooks.class).run(app -> {
+            app.getBean(MonetaClient.class);
+            var hooks = app.getBean(HttpHooks.class);
+            assertEquals(List.of("customize 1", "customize 2", "decorate 1", "decorate 2"), hooks.calls);
+            assertEquals(HttpClient.Redirect.ALWAYS, hooks.decorated.getFirst().followRedirects());
+        });
+    }
+
+    @Test
     void writesMetadataForTheEditor() throws IOException {
         assertTrue(MonetaProperties.class
                 .getClassLoader()
                 .getResources("META-INF/spring-configuration-metadata.json")
                 .hasMoreElements());
+    }
+
+    /** Each hook declared with order 2 first, so the order seen can only come from {@code @Order}. */
+    @Configuration(proxyBeanMethods = false)
+    static class HttpHooks {
+
+        final List<String> calls = new ArrayList<>();
+        final List<HttpClient> decorated = new ArrayList<>();
+
+        @Bean
+        @Order(2)
+        MonetaHttpClientCustomizer secondCustomizer() {
+            return http -> calls.add("customize 2");
+        }
+
+        @Bean
+        @Order(1)
+        MonetaHttpClientCustomizer firstCustomizer() {
+            return http -> {
+                calls.add("customize 1");
+                http.followRedirects(HttpClient.Redirect.ALWAYS);
+            };
+        }
+
+        @Bean
+        @Order(2)
+        MonetaHttpClientDecorator outerDecorator() {
+            return http -> {
+                calls.add("decorate 2");
+                return http;
+            };
+        }
+
+        @Bean
+        @Order(1)
+        MonetaHttpClientDecorator innerDecorator() {
+            return http -> {
+                calls.add("decorate 1");
+                decorated.add(http);
+                return http;
+            };
+        }
     }
 }

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -12,11 +13,16 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.math.BigDecimal;
+import java.net.Authenticator;
+import java.net.CookieHandler;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ProxySelector;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -25,12 +31,19 @@ import java.util.ArrayList;
 import java.util.Currency;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.function.UnaryOperator;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -645,6 +658,207 @@ class MonetaClientTest {
             MonetaClient.builder().baseUri(base).httpClient(http).build().close();
             var reused = MonetaClient.builder().baseUri(base).httpClient(http).build();
             assertEquals(1, reused.accounts(TOKEN).size());
+        }
+
+        @Test
+        void sendsEveryCallThroughTheDecoratorsInTheOrderAdded() {
+            answer(ACCOUNTS, 200, fixture("accounts.json"));
+            var order = new ArrayList<String>();
+            var decorated = MonetaClient.builder()
+                    .baseUri(base)
+                    .decorateHttpClient(http -> new Wrapper(http, () -> order.add("inner")))
+                    .decorateHttpClient(http -> new Wrapper(http, () -> order.add("outer")))
+                    .build();
+
+            decorated.accounts(TOKEN);
+
+            assertEquals(List.of("outer", "inner"), order);
+        }
+
+        @Test
+        void closesTheClientItBuiltBehindAWrapperThatDoesNotPassCloseOn() {
+            answer(ACCOUNTS, 200, fixture("accounts.json"));
+            var decorated = MonetaClient.builder()
+                    .baseUri(base)
+                    .decorateHttpClient(http -> new Wrapper(http, () -> {}))
+                    .build();
+
+            decorated.close();
+
+            assertThrows(MonetaException.NoAnswer.class, () -> decorated.accounts(TOKEN));
+        }
+
+        @Test
+        void configuresTheClientItBuilds() {
+            server.createContext("/moved/", exchange -> {
+                exchange.getResponseHeaders()
+                        .add("Location", base.resolve(ACCOUNTS.substring(1)).toString());
+                respond(exchange, 302, "");
+            });
+            answer(ACCOUNTS, 200, fixture("accounts.json"));
+            var following = MonetaClient.builder()
+                    .baseUri(base.resolve("moved/"))
+                    .configureHttpClient(http -> http.followRedirects(HttpClient.Redirect.ALWAYS))
+                    .build();
+
+            assertEquals(1, following.accounts(TOKEN).size());
+        }
+
+        @Test
+        void refusesToConfigureAClientItDoesNotBuild() {
+            var builder = MonetaClient.builder()
+                    .httpClient(HttpClient.newHttpClient())
+                    .configureHttpClient(http -> {});
+            assertThrows(IllegalStateException.class, builder::build);
+        }
+
+        @Test
+        void closesTheClientItBuiltWhenADecoratorFails() {
+            var built = new ArrayList<HttpClient>();
+            UnaryOperator<HttpClient> throwing = http -> {
+                built.add(http);
+                throw new IllegalStateException("misconfigured");
+            };
+            UnaryOperator<HttpClient> returningNull = http -> {
+                built.add(http);
+                return nothing();
+            };
+
+            assertThrows(
+                    IllegalStateException.class,
+                    () -> MonetaClient.builder().decorateHttpClient(throwing).build());
+            assertThrows(
+                    NullPointerException.class,
+                    () -> MonetaClient.builder()
+                            .decorateHttpClient(returningNull)
+                            .build());
+
+            assertEquals(2, built.size());
+            assertTrue(built.stream().allMatch(HttpClient::isTerminated));
+        }
+
+        @Test
+        void anUncheckedIoFailureFromAWrapperIsNoAnswer() {
+            var failing = MonetaClient.builder()
+                    .baseUri(base)
+                    .decorateHttpClient(http -> new Wrapper(http, () -> {
+                        throw new UncheckedIOException(new IOException("reset"));
+                    }))
+                    .build();
+
+            assertThrows(MonetaException.NoAnswer.class, () -> failing.accounts(TOKEN));
+        }
+
+        @Test
+        void decoratesAGivenClientAndLeavesItOpen() {
+            answer(ACCOUNTS, 200, fixture("accounts.json"));
+            var given = HttpClient.newHttpClient();
+            var seen = new ArrayList<HttpClient>();
+            MonetaClient.builder()
+                    .baseUri(base)
+                    .httpClient(given)
+                    .decorateHttpClient(http -> {
+                        seen.add(http);
+                        return http;
+                    })
+                    .build()
+                    .close();
+
+            assertSame(given, seen.getFirst());
+            assertEquals(
+                    1,
+                    MonetaClient.builder()
+                            .baseUri(base)
+                            .httpClient(given)
+                            .build()
+                            .accounts(TOKEN)
+                            .size());
+        }
+    }
+
+    /** What a broken decorator returns, past the compiler's null checks. */
+    @SuppressWarnings("NullAway")
+    private static HttpClient nothing() {
+        return null;
+    }
+
+    /** What a tracing or metrics wrapper does: delegate, note the call, and not pass {@code close()} on. */
+    private static final class Wrapper extends HttpClient {
+
+        private final HttpClient inner;
+        private final Runnable onSend;
+
+        Wrapper(HttpClient inner, Runnable onSend) {
+            this.inner = inner;
+            this.onSend = onSend;
+        }
+
+        @Override
+        public <T> HttpResponse<T> send(HttpRequest request, HttpResponse.BodyHandler<T> handler)
+                throws IOException, InterruptedException {
+            onSend.run();
+            return inner.send(request, handler);
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(
+                HttpRequest request, HttpResponse.BodyHandler<T> handler) {
+            onSend.run();
+            return inner.sendAsync(request, handler);
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(
+                HttpRequest request,
+                HttpResponse.BodyHandler<T> handler,
+                HttpResponse.@Nullable PushPromiseHandler<T> push) {
+            onSend.run();
+            return inner.sendAsync(request, handler, push);
+        }
+
+        @Override
+        public Optional<CookieHandler> cookieHandler() {
+            return inner.cookieHandler();
+        }
+
+        @Override
+        public Optional<Duration> connectTimeout() {
+            return inner.connectTimeout();
+        }
+
+        @Override
+        public Redirect followRedirects() {
+            return inner.followRedirects();
+        }
+
+        @Override
+        public Optional<ProxySelector> proxy() {
+            return inner.proxy();
+        }
+
+        @Override
+        public SSLContext sslContext() {
+            return inner.sslContext();
+        }
+
+        @Override
+        public SSLParameters sslParameters() {
+            return inner.sslParameters();
+        }
+
+        @Override
+        public Optional<Authenticator> authenticator() {
+            return inner.authenticator();
+        }
+
+        @Override
+        public Version version() {
+            return inner.version();
+        }
+
+        @Override
+        public Optional<Executor> executor() {
+            return inner.executor();
         }
     }
 

@@ -46,6 +46,9 @@ for (var account : moneta.accounts(token)) {
   long range month by month.
 - **One client per application.** It is `AutoCloseable`; `close()` releases the HTTP client it made, not one
   you passed in.
+- **Your own HTTP stack**: `configureHttpClient(…)` for a proxy or mTLS, `decorateHttpClient(…)` for tracing or
+  metrics, both keeping the client's own settings and its `close()`. [Compatibility](compatibility.md#your-own-http-stack)
+  has the examples and the traps.
 - **Failures** are a sealed `MonetaException`, one subtype per thing to do about it, so a `switch` over them is
   exhaustive: `InvalidToken` (401, 403) needs a new token, `RateLimited` (429) carries `retryAfter()`,
   `HttpError` any other status, `NoAnswer` a timeout or a refused connection, `InvalidResponse` a body that is
