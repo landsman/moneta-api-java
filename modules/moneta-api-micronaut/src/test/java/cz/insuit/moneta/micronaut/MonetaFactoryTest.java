@@ -99,7 +99,7 @@ class MonetaFactoryTest {
 
     @Test
     void stepsBackForAClientTheApplicationDefines() {
-        try (var app = ApplicationContext.run(Map.of("spec", "own-client"))) {
+        try (var app = ApplicationContext.run(Map.of("spec.name", "own-client"))) {
             assertSame(OwnClient.CLIENT, app.getBean(MonetaClient.class));
             assertEquals(1, app.getBeansOfType(MonetaClient.class).size());
         }
@@ -107,7 +107,7 @@ class MonetaFactoryTest {
 
     @Test
     void customizesThenDecoratesTheHttpClientByOrderNotByDefinition() {
-        try (var app = ApplicationContext.run(Map.of("spec", "http-hooks"))) {
+        try (var app = ApplicationContext.run(Map.of("spec.name", "http-hooks"))) {
             app.getBean(MonetaClient.class);
             var hooks = app.getBean(HttpHooks.class);
             assertEquals(List.of("customize 1", "customize 2", "decorate 1", "decorate 2"), hooks.calls);
@@ -117,7 +117,7 @@ class MonetaFactoryTest {
 
     @Test
     void closesTheClientWithTheContext() {
-        var app = ApplicationContext.run(Map.of("spec", "http-hooks"));
+        var app = ApplicationContext.run(Map.of("spec.name", "http-hooks"));
         var http = app.getBean(HttpHooks.class).decorated.getFirst();
         app.close();
         assertTrue(http.isTerminated());
@@ -127,7 +127,7 @@ class MonetaFactoryTest {
     void tagsEachCallWithItsTemplateWhenAMeterRegistryExists() throws IOException {
         var server = accountsServer();
         try (var app = ApplicationContext.run(Map.of(
-                "spec",
+                "spec.name",
                 "meters",
                 "moneta.base-uri",
                 "http://localhost:" + server.getAddress().getPort()))) {
@@ -147,7 +147,7 @@ class MonetaFactoryTest {
     void aDecoratorReplacingTheObservationOneTurnsItOff() throws IOException {
         var server = accountsServer();
         try (var app = ApplicationContext.run(Map.of(
-                "spec",
+                "spec.name",
                 "meters",
                 "observation",
                 "off",
@@ -184,7 +184,7 @@ class MonetaFactoryTest {
     }
 
     @Factory
-    @Requires(property = "spec", value = "own-client")
+    @Requires(property = "spec.name", value = "own-client")
     static class OwnClient {
         static final MonetaClient CLIENT = MonetaClient.builder().build();
 
@@ -195,7 +195,7 @@ class MonetaFactoryTest {
     }
 
     @Factory
-    @Requires(property = "spec", value = "meters")
+    @Requires(property = "spec.name", value = "meters")
     static class Meters {
         @Singleton
         MeterRegistry meters() {
@@ -212,7 +212,7 @@ class MonetaFactoryTest {
     }
 
     @Singleton
-    @Requires(property = "spec", value = "http-hooks")
+    @Requires(property = "spec.name", value = "http-hooks")
     static class HttpHooks {
         final List<String> calls = new ArrayList<>();
         final List<HttpClient> decorated = new ArrayList<>();
@@ -220,7 +220,7 @@ class MonetaFactoryTest {
 
     /** Declared out of order, so only @Order can put them right. */
     @Factory
-    @Requires(property = "spec", value = "http-hooks")
+    @Requires(property = "spec.name", value = "http-hooks")
     static class HttpHookBeans {
         @Singleton
         @Order(2)
