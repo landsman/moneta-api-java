@@ -103,17 +103,10 @@ What to know before relying on it:
 
 ## Micronaut
 
-No module. A factory is all it takes:
+[`moneta-api-micronaut`](../modules/moneta-api-micronaut/README.md) is compiled against Micronaut 4.10 for
+Java 21 and runs on 5 too; Micronaut 5 itself needs Java 25. Its BOMs pull the client's Jackson to 3.2.3 (5.2.5),
+or leave Jackson 3 alone beside their Jackson 2 with `jackson-annotations` 2.21 (4.10.14), and both work.
+`make build` checks both in [testing/](../testing/README.md).
 
-```java
-@Factory
-class MonetaFactory {
-    @Singleton
-    MonetaClient monetaClient() {
-        return new MonetaClient();
-    }
-}
-```
-
-Whether a module with typed `moneta.*` is worth it, and what a GraalVM native image would need first, is
+A GraalVM native image is not supported yet: the client binds by reflection and ships no reachability metadata,
 [#19](https://github.com/landsman/moneta-api-java/issues/19).
