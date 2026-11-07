@@ -2,7 +2,7 @@ package example;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import cz.landsman.moneta.MonetaException;
+import cz.insuit.moneta.MonetaException;
 import java.io.IOException;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;

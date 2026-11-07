@@ -4,8 +4,8 @@ Both jars are on this repository's [GitHub Packages](https://github.com/landsman
 
 | Artifact | For |
 |----------|-----|
-| `cz.landsman:moneta-api` | the client, from plain Java or Kotlin |
-| `cz.landsman:moneta-api-spring-boot-starter` | the client and its Spring Boot auto-configuration; brings `moneta-api` with it |
+| `cz.insuit:moneta-api` | the client, from plain Java or Kotlin |
+| `cz.insuit:moneta-api-spring-boot-starter` | the client and its Spring Boot auto-configuration; brings `moneta-api` with it |
 
 **GitHub Packages asks for a token even for a public package.** A personal access token (classic) with the
 `read:packages` scope is enough; keep it out of the build file.
@@ -25,7 +25,7 @@ repositories {
 }
 
 dependencies {
-    implementation("cz.landsman:moneta-api-spring-boot-starter:0.0.1") // or moneta-api without Spring Boot
+    implementation("cz.insuit:moneta-api-spring-boot-starter:0.1.0") // or moneta-api without Spring Boot
 }
 ```
 
@@ -42,9 +42,9 @@ with `gpr.user` and `gpr.key` in `~/.gradle/gradle.properties`, not in the proje
 </repositories>
 
 <dependency>
-    <groupId>cz.landsman</groupId>
+    <groupId>cz.insuit</groupId>
     <artifactId>moneta-api-spring-boot-starter</artifactId>
-    <version>0.0.1</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 

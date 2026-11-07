@@ -3,6 +3,6 @@
  * with a token issued in Internet Banka.
  */
 @NullMarked
-package cz.landsman.moneta;
+package cz.insuit.moneta;
 
 import org.jspecify.annotations.NullMarked;

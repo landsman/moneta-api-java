@@ -1,4 +1,4 @@
-package cz.landsman.moneta;
+package cz.insuit.moneta;
 
 import java.time.Duration;
 import org.jspecify.annotations.Nullable;

@@ -23,7 +23,7 @@ cafe:
 logging:
   level:
     # Every call to MONETA with its status, time and X-Request-Id; never the token.
-    cz.landsman.moneta: debug
+    cz.insuit.moneta: debug
 
 scalar:
   # By summary, alphabetically: the summaries are worded so that it reads in the order a café works.

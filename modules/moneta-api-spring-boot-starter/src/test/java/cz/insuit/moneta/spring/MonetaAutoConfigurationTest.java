@@ -1,4 +1,4 @@
-package cz.landsman.moneta.spring;
+package cz.insuit.moneta.spring;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -7,8 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import cz.landsman.moneta.AccessToken;
-import cz.landsman.moneta.MonetaClient;
+import cz.insuit.moneta.AccessToken;
+import cz.insuit.moneta.MonetaClient;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;

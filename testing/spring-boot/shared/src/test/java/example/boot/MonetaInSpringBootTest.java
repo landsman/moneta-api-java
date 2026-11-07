@@ -3,9 +3,9 @@ package example.boot;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.sun.net.httpserver.HttpServer;
-import cz.landsman.moneta.AccessToken;
-import cz.landsman.moneta.MonetaClient;
-import cz.landsman.moneta.Money;
+import cz.insuit.moneta.AccessToken;
+import cz.insuit.moneta.MonetaClient;
+import cz.insuit.moneta.Money;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.InetAddress;

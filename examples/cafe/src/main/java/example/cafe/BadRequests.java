@@ -1,6 +1,6 @@
 package example.cafe;
 
-import cz.landsman.moneta.MonetaException;
+import cz.insuit.moneta.MonetaException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;

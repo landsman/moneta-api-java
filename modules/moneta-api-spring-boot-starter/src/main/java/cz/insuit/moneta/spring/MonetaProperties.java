@@ -1,4 +1,4 @@
-package cz.landsman.moneta.spring;
+package cz.insuit.moneta.spring;
 
 import java.net.URI;
 import java.time.Duration;

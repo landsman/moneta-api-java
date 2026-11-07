@@ -2,9 +2,9 @@ package example.cafe.bill;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import cz.landsman.moneta.Money;
-import cz.landsman.moneta.PaymentSymbols;
-import cz.landsman.moneta.Transaction;
+import cz.insuit.moneta.Money;
+import cz.insuit.moneta.PaymentSymbols;
+import cz.insuit.moneta.Transaction;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;

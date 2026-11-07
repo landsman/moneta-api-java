@@ -1,4 +1,4 @@
-package cz.landsman.moneta;
+package cz.insuit.moneta;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

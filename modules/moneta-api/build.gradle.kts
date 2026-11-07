@@ -24,7 +24,7 @@ java {
 
 tasks.jar {
     // Pinned, so a JPMS caller's `requires` does not change with the jar's file name.
-    manifest { attributes("Automatic-Module-Name" to "cz.landsman.moneta") }
+    manifest { attributes("Automatic-Module-Name" to "cz.insuit.moneta") }
 }
 
 // The oldest Jackson a caller is likely to resolve this to: Spring Boot 4.0.0's. Running the same tests on it

@@ -17,7 +17,7 @@ val testsJdk = providers.gradleProperty("testsJdk")
 val releaseVersion = providers.gradleProperty("releaseVersion").orElse("0.1.0-SNAPSHOT")
 
 allprojects {
-    group = "cz.landsman"
+    group = "cz.insuit"
     version = releaseVersion.get()
 
     repositories {
