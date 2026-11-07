@@ -7,11 +7,17 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.sun.net.httpserver.HttpServer;
 import cz.insuit.moneta.AccessToken;
 import cz.insuit.moneta.MonetaClient;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -95,6 +101,44 @@ class MonetaAutoConfigurationTest {
             var hooks = app.getBean(HttpHooks.class);
             assertEquals(List.of("customize 1", "customize 2", "decorate 1", "decorate 2"), hooks.calls);
             assertEquals(HttpClient.Redirect.ALWAYS, hooks.decorated.getFirst().followRedirects());
+        });
+    }
+
+    @Test
+    void tagsEachCallWithItsTemplateWhenAMeterRegistryExists() throws IOException {
+        var server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+        server.createContext("/", exchange -> {
+            var body = "{\"accounts\": []}".getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        try {
+            context.withBean(MeterRegistry.class, SimpleMeterRegistry::new)
+                    .withPropertyValues("moneta.base-uri=http://localhost:"
+                            + server.getAddress().getPort())
+                    .run(app -> {
+                        app.getBean(MonetaClient.class).accounts(new AccessToken("secret-token"));
+                        var timer = app.getBean(MeterRegistry.class)
+                                .find("http.client.requests")
+                                .tag("uri", "/api/v4/vip/aisp/my/accounts")
+                                .timer();
+                        assertNotNull(timer);
+                        assertEquals(1, timer.count());
+                    });
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void leavesTheClientUninstrumentedWithoutAMeterRegistry() {
+        context.run(app -> {
+            var decorator = app.getBean("monetaHttpClientObservation", MonetaHttpClientDecorator.class);
+            var http = HttpClient.newHttpClient();
+            assertSame(http, decorator.decorate(http));
         });
     }
 
