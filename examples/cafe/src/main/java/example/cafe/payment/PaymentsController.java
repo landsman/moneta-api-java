@@ -47,8 +47,9 @@ class PaymentsController {
         var account = moneta.accounts(token).stream()
                 .filter(a -> cafe.iban().equals(a.iban()))
                 .findFirst()
+                // 502, as for any MONETA failure: the request is right, MONETA's answer lacks the account.
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "the token does not open the café's account " + cafe.iban()));
+                        HttpStatus.BAD_GATEWAY, "the token does not open the café's account " + cafe.iban()));
         return moneta.balance(token, account.id());
     }
 
