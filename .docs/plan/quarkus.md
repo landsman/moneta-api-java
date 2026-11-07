@@ -19,16 +19,19 @@ does, and says itself that not every step applies to every extension. Going thro
 
 | Item | Here | Why |
 |------|------|-----|
-| Works in JVM and dev mode | **yes, step 1** | the minimum |
-| Works as a native application | **yes, step 2** | the main reason to write an extension rather than a CDI producer in the app |
-| Unified configuration (`@ConfigMapping`) | **yes, step 1** | validated at startup, documented, completed by the IDE |
-| CDI beans | **yes, step 1** | `MonetaClient`, and `AccessToken` when a token is set; the application's own bean wins |
+| Works in JVM and dev mode | **yes, step 2** | the minimum |
+| Works as a native application | **yes, step 1** | the main reason to write an extension rather than a CDI producer in the app, and the riskiest part, so first |
+| Unified configuration (`@ConfigMapping`) | **yes, step 2** | validated at startup, documented, completed by the IDE |
+| CDI beans | **yes, step 2** | `MonetaClient`, and `AccessToken` when a token is set; the application's own bean wins |
+| TLS from the TLS registry | **yes, step 2** | the starter takes a Spring SSL bundle for mTLS; Quarkus's counterpart is `quarkus.tls.<name>` |
+| Metrics | **yes, step 3** | the starter times every call when Micrometer is there; `quarkus-micrometer` is the same Micrometer |
 | Basic Dev UI tile | **yes, free** | generated from the extension metadata |
 | Logging | **nothing to do** | the client logs through `System.Logger`, which Quarkus routes into its own log |
 | Virtual threads | **nothing to do** | the client is blocking on the JDK `HttpClient` and holds no lock across I/O; to be checked, not built |
 | Dev Service | **no** | there is no MONETA container to start; a fake MONETA for dev mode is a later idea, see below |
 | Health check | **no** | a readiness check that calls MONETA spends the merchant's rate limit on every probe |
-| Rich Dev UI, codestart, Mutiny API, tracing | **no** | nothing to show, and nobody has asked; a `-reactive` sibling only if someone does |
+| Tracing | **through Micrometer only** | `quarkus-opentelemetry` does not instrument the JDK `HttpClient`; Micrometer's observation gives spans where Micrometer Tracing is set up, as in Spring |
+| Rich Dev UI, codestart, Mutiny API | **no** | nothing to show, and nobody has asked; a `-reactive` sibling only if someone does |
 | `META-INF/quarkus-skill.md` | **later** | a few lines, once the API has settled |
 
 ## Decisions
@@ -48,20 +51,35 @@ does, and says itself that not every step applies to every extension. Going thro
   only when the application starts. Quarkus's guide asks extensions to put their options under
   `quarkus.<extension>`, so the prefix differs from the starter's `moneta.*`; the names under it stay the same:
   `token`, `base-uri`, `request-timeout`, `partner.identification-number`, `.business-name`,
-  `.application-name`.
-- **Beans from a producer class in the runtime module**, registered with `AdditionalBeanBuildItem`:
-  `@Singleton @DefaultBean MonetaClient`, closed by a `@Disposes` method on shutdown, and an `AccessToken` only
-  when `quarkus.moneta.token` is set (`@LookupIfProperty`). A producer keeps injection of the config mapping,
-  which a `SyntheticBeanBuildItem` gives up, and `@DefaultBean` lets the application's own `MonetaClient`
-  replace it, as `@ConditionalOnMissingBean` does in Spring. Only what the application set reaches the
-  builder, so each default stays in the client.
-- **A bad token or partner value stops the application at startup**, as in Spring: the beans are created
-  eagerly (`@Startup`, or an observer of `StartupEvent`), not on first use.
-- **Native image: the deployment module registers the client's JSON records for reflection**
-  (`ReflectiveClassBuildItem`), `MonetaJson`'s nested records among them, with their constructors and
-  accessors. Records do need it: Jackson finds their canonical constructor by reflection, and the native
-  image keeps nothing it was not told about. What else Jackson 3 needs inside a native image is the open
-  question of step 2.
+  `.application-name`. The starter's `ssl.bundle` becomes `tls-configuration-name`, Quarkus's own name for it.
+- **`MonetaClient` from a producer class in the runtime module**, registered with `AdditionalBeanBuildItem`:
+  `@Singleton @DefaultBean`, closed by a `@Disposes` method on shutdown. `@DefaultBean` lets the application's
+  own `MonetaClient` replace it, as `@ConditionalOnMissingBean` does in Spring. Only what the application set
+  reaches the builder, so each default stays in the client.
+- **`AccessToken` as a synthetic bean that is inactive without a token**: `SyntheticBeanBuildItem` with a
+  recorder's `createWith` and `checkActive` returning inactive when `quarkus.moneta.token` is unset. A
+  producer cannot do it: the token is runtime config, so `@IfBuildProperty` does not apply, and
+  `@LookupIfProperty` only filters a programmatic `Instance` lookup, so `@Inject AccessToken` would still call
+  the producer with no token. An inactive bean fails at the injection point with a message naming the
+  property, and an application serving many merchants, which sets no token, starts.
+- **A bad token or partner value stops the application at startup**, as in Spring: the client is created
+  eagerly (`@Startup` on the producer), and an active `AccessToken` likewise.
+- **TLS: `quarkus.moneta.tls-configuration-name`**, the name Quarkus extensions use for this, resolved
+  through `TlsConfigurationRegistry` (in `quarkus-tls-registry-spi`, present in 3.33) into the client's
+  `configureHttpClient`: `createSSLContext()` and, when set, the protocols and ciphers. Resolved when the
+  client is built, so an unknown name stops the application, as an unknown Spring bundle does.
+- **Customizers and decorators of the HTTP client**: the runtime module has its own
+  `MonetaHttpClientCustomizer` and `MonetaHttpClientDecorator` in `cz.insuit.moneta.quarkus`, read through
+  `Instance<…>` in `@Priority` order, applied after the TLS configuration, as in the starter. The starter's
+  pair stays where it is: moving it into the client would break every Spring caller's import for two
+  one-method interfaces.
+- **Native image: the client jar carries its own reachability metadata**,
+  `META-INF/native-image/cz.insuit/moneta-api/reachability-metadata.json`, registering every `*Json` record
+  with its constructors and accessors. GraalVM reads it in any native build, so Spring Boot native gets it
+  too, and the Quarkus extension needs no `ReflectiveClassBuildItem` of its own. Records do need it: Jackson
+  finds their canonical constructor by reflection, and the native image keeps nothing it was not told about.
+  A test in the client compares the file with the `*Json` classes, so a new one cannot be forgotten. What else
+  Jackson 3 needs inside a native image is what step 1 finds out.
 - **Jackson needs nothing from the caller.** Quarkus is on Jackson 2, and the one jar the two share,
   `jackson-annotations`, is pinned to 2.21 by both supported BOMs (read from `quarkus-bom` 3.33.3 and 3.40.1),
   which is what Jackson 3.2 needs. Neither BOM manages `tools.jackson`, so the client's own Jackson 3 resolves.
@@ -71,19 +89,26 @@ does, and says itself that not every step applies to every extension. Going thro
 
 Each step is its own pull request.
 
-1. **JVM mode.** The two modules, the config mapping, the producer, `FeatureBuildItem("moneta")`. Tests in the
-   deployment module with `QuarkusUnitTest`: the bean appears; the token bean appears only with a token; an
-   application bean replaces the client; a bad token fails the start; the client is closed on shutdown. A
-   README for the extension with the property table, as the starter has.
-2. **Native image.** The reflection registration, and one `@QuarkusIntegrationTest` built native that reads
-   accounts and transactions from a fake MONETA (the JSON fixtures the client's tests already use, served by
-   the JDK's `HttpServer`, no new dependency). It runs in CI on Mandrel in a container, as its own job: native
-   builds take minutes, so not in `make build`. Settles what Jackson 3 needs in a native image, and whether a
-   `reflect-config.json` in the client jar would serve callers outside Quarkus too.
-3. **Testing projects.** `testing/quarkus/3.33` and `testing/quarkus/3.40`, each a caller's build with its own
+1. **Native image, in the client.** The reachability metadata in the client jar and its test, then a native
+   build of a plain caller, no Quarkus, that reads accounts, balances and transactions from a fake MONETA (the
+   JSON fixtures the client's tests already use, served by the JDK's `HttpServer`, no new dependency). It runs
+   in CI on Mandrel in a container, as its own job: native builds take minutes, so not in `make build`.
+   Settles what Jackson 3 needs in a native image before any Quarkus code exists; if it cannot be made to
+   work, the extension loses its main reason and this plan is revisited.
+2. **JVM mode.** The two modules, the config mapping, the producer, the `AccessToken` synthetic bean, the TLS
+   configuration name, the customizers and decorators, `FeatureBuildItem("moneta")`. Tests in the deployment
+   module with `QuarkusUnitTest`: the bean appears; `AccessToken` is active only with a token, and injecting
+   it without one fails naming the property; an application bean replaces the client; a bad token or an
+   unknown TLS configuration fails the start; a customizer and a decorator run in order; `close()` is called
+   on shutdown. One `@QuarkusIntegrationTest` built native, in the native CI job. A README for the extension
+   with the property table, as the starter has.
+3. **Metrics.** A decorator wrapping the client in `MicrometerHttpClient` with
+   `uriMapper(MonetaClient::uriTemplate)` when `quarkus-micrometer` and `micrometer-java11` are present, off
+   under the OpenTelemetry Java agent, replaceable, as in the starter.
+4. **Testing projects.** `testing/quarkus/3.33` and `testing/quarkus/3.40`, each a caller's build with its own
    BOM and a `@QuarkusTest`, wired into `make build` beside `testing/spring-boot`. A Kotlin caller only if the
    Kotlin project's checks do not already cover what Quarkus adds.
-4. **Docs.** `.docs/install.md` and the README name the extension; `.docs/compatibility.md` gets the Quarkus
+5. **Docs.** `.docs/install.md` and the README name the extension; `.docs/compatibility.md` gets the Quarkus
    versions.
 
 ## Later, when someone needs it
@@ -92,7 +117,7 @@ Each step is its own pull request.
   repository under `io.quarkiverse.moneta`, Maven Central, an extension proposal issue in `quarkusio/quarkus`
   and the Quarkiverse build, which is Maven. It moves the code out of this repository, so it waits for users
   who ask.
-- **A fake MONETA in dev mode**, as a Dev Service: dev mode then needs no token. Step 2's fake server is most
+- **A fake MONETA in dev mode**, as a Dev Service: dev mode then needs no token. Step 1's fake server is most
   of it.
 - **Quarkus 4**, once released: a testing project, and a check whether its Jackson moves to 3, which would turn
   the Jackson section above into a question again.
@@ -109,3 +134,6 @@ Each step is its own pull request.
   for 25 Nov 2026
 - [Quarkiverse checklist for new projects](https://hub.quarkiverse.io/checklistfornewprojects/)
 - `quarkus-bom` 3.33.3 and 3.40.1 on Maven Central: `jackson-annotations` 2.21, no `tools.jackson`
+- `quarkus-arc-deployment` and `quarkus-tls-registry-spi` 3.33.4 on Maven Central:
+  `SyntheticBeanBuildItem.ExtendedBeanConfigurator#checkActive`, `TlsConfigurationRegistry`,
+  `TlsConfiguration#createSSLContext`
