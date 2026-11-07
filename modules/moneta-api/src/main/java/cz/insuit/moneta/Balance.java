@@ -15,7 +15,10 @@ public record Balance(Money booked, Money available, Instant at) {
     static Balance from(String what, MonetaJson.BalancesJson json) {
         var booked = ofType(what, json.balances(), "CLBD");
         var available = ofType(what, json.balances(), "CLAV");
-        return new Balance(signed(booked), signed(available), available.date().dateTime());
+        return new Balance(
+                MonetaJson.CreditDebit.of(booked.creditDebitIndicator()).signed(booked.amount()),
+                MonetaJson.CreditDebit.of(available.creditDebitIndicator()).signed(available.amount()),
+                available.date().dateTime());
     }
 
     private static MonetaJson.BalanceJson ofType(String what, List<MonetaJson.BalanceJson> balances, String code) {
@@ -24,17 +27,5 @@ public record Balance(Money booked, Money available, Instant at) {
                         code.equals(balance.type().codeOrProprietary().code()))
                 .findFirst()
                 .orElseThrow(() -> new MonetaException.InvalidResponse(what + " sent no " + code + " balance", null));
-    }
-
-    /** Unsigned beside a direction, as a movement's amount; an unknown direction is refused, not guessed. */
-    private static Money signed(MonetaJson.BalanceJson balance) {
-        var amount = new Money(balance.amount().value(), balance.amount().currency());
-        return switch (balance.creditDebitIndicator()) {
-            case "CRDT" -> amount;
-            case "DBIT" -> amount.negate();
-            default ->
-                throw new MonetaException.InvalidResponse(
-                        "unknown creditDebitIndicator '" + balance.creditDebitIndicator() + "' on a balance", null);
-        };
     }
 }
