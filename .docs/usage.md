@@ -1,7 +1,7 @@
 # Using the client
 
 ```java
-var moneta = new MonetaClient(); // or MonetaClient.builder().baseUri(sandbox).partner(partner).build()
+var moneta = new MonetaClient(); // production, nothing to set
 
 for (var account : moneta.accounts(token)) {
     for (var t :
@@ -61,3 +61,12 @@ for (var account : moneta.accounts(token)) {
   Kotlin coroutine reads it as cancellation.
 - **Records may gain components in a minor version** before 1.0. Read them by accessor; a record pattern over
   `Transaction` or `Account` would break on the next field.
+
+---
+
+## Optional settings
+
+`MonetaClient.builder()` sets what differs from production: `baseUri(…)` for the sandbox, `requestTimeout(…)`, and
+`partner(…)`, the three headers that name a registered application. MONETA does not ask for the partner headers:
+every call so far went through without ([how it behaves](moneta-api.md)). Likely for an application approved on the
+developer portal; set them once the portal says so.

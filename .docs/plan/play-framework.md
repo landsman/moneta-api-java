@@ -22,18 +22,12 @@ or read the environment itself. `token = ${?MONETA_TOKEN}` belongs in the applic
 ## What the application writes
 
 ```hocon
-# application.conf
-moneta {
-  token = ${?MONETA_TOKEN}       # only for an application reading one account
-  base-uri = "https://…"         # the client's default, production, unless set
-  request-timeout = 20s
-  partner {
-    identification-number = "12345678"
-    business-name = "Kavarna"
-    application-name = "cafe"
-  }
-}
+# application.conf, all an application reading one account needs
+moneta.token = ${?MONETA_TOKEN}
 ```
+
+`base-uri`, `request-timeout` and the `partner` headers are optional, listed below a line in the module's README;
+MONETA does not ask for the partner headers.
 
 ```java
 public class PaymentsController extends Controller {
