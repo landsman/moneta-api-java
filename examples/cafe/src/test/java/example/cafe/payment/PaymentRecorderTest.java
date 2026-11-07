@@ -19,9 +19,9 @@ class PaymentRecorderTest {
     }
 
     @Test
-    void aPaymentPendingSinceFridayIsReadFromFriday() {
+    void aPaymentPendingSinceFridayIsReadFromTheDayBefore() {
         assertEquals(
-                LocalDate.of(2026, 11, 6),
+                LocalDate.of(2026, 11, 5),
                 PaymentRecorder.readFrom(List.of(pendingFrom(LocalDate.of(2026, 11, 6))), MONDAY));
     }
 

@@ -71,6 +71,30 @@ class PaymentRecordingTest {
     }
 
     @Test
+    void theBookedVersionBooksThePendingRowWhateverDayItCarries() {
+        // Pending is dated by enteredDate, booked by valueDate; for some payments they may differ.
+        var row = Payment.of(pending("p1", "1007", "4040404040/0800"), SEEN, 1007L);
+        var booked = new Transaction(
+                "b1",
+                Transaction.Status.BOOKED,
+                Transaction.Direction.CREDIT,
+                czk("1"),
+                null,
+                FRIDAY.plusDays(3),
+                FRIDAY.plusDays(1),
+                new PaymentSymbols("1007", null, null),
+                "KAVARNA UCET 1007",
+                "Novak, Jan",
+                "0 4040404040/0800",
+                false,
+                "{}");
+
+        assertEquals(
+                List.of(new PaymentRecording.Step.Book(row, booked)),
+                PaymentRecording.steps(List.of(booked), Set.of(), List.of(row)));
+    }
+
+    @Test
     void aReversalIsNotRecorded() {
         var reversal = new Transaction(
                 "rev",
