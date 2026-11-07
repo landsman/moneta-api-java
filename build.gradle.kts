@@ -125,7 +125,7 @@ dependencyAnalysis {
 
 spotless {
     java {
-        target("modules/*/src/**/*.java", "testing/**/src/**/*.java", "examples/*/src/**/*.java")
+        target("modules/*/src/**/*.java", "testing/**/src/**/*.java", "examples/*/src/**/*.java", "tools/*/src/**/*.java")
         palantirJavaFormat("2.103.0")
     }
     kotlin {
@@ -133,7 +133,7 @@ spotless {
         ktlint()
     }
     kotlinGradle {
-        target("*.gradle.kts", "modules/*/*.gradle.kts", "testing/**/*.gradle.kts", "examples/*/*.gradle.kts")
+        target("*.gradle.kts", "modules/*/*.gradle.kts", "testing/**/*.gradle.kts", "examples/*/*.gradle.kts", "tools/*/*.gradle.kts")
         ktlint()
     }
 }
