@@ -24,10 +24,10 @@ dev: ## run the example café app on :8080 against the account MONETA_TOKEN open
 release: ## tag origin/main, asking which version, wait for release.yml to publish it, write the release page; TAG=v0.1.0 answers
 	./bin/release.sh
 
-publish: ## build and publish both jars to GitHub Packages, as the release workflow does; RELEASE_VERSION=v0.1.0 releases
+publish: ## build and publish every jar to GitHub Packages, as the release workflow does; RELEASE_VERSION=v0.1.0 releases
 	./gradlew build publish $(if $(RELEASE_VERSION),-PreleaseVersion=$(RELEASE_VERSION:v%=%))
 
-publish-local: ## install both jars into ~/.m2, to try them in another project without a token
+publish-local: ## install every jar into ~/.m2, to try them in another project without a token
 	./gradlew publishToMavenLocal
 
 ##@ Trying the live API

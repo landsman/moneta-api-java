@@ -6,9 +6,10 @@
 It also fails when a module under `modules/` declares a dependency it does not use, or uses one it only gets
 transitively. What to change is in `build/reports/dependency-analysis/build-health-report.txt`.
 
-What ships is in [modules/](../modules): the client, `moneta-api`, and its
-[Spring Boot starter](../modules/moneta-api-spring-boot-starter/README.md), each with its own tests. Projects
-that use them the way a caller's build would, on several Spring Boot versions and from Kotlin, are in
+What ships is in [modules/](../modules): the client, `moneta-api`, its
+[Spring Boot starter](../modules/moneta-api-spring-boot-starter/README.md) and its
+[Play module](../modules/moneta-api-play/README.md), each with its own tests. Projects that use them the way a
+caller's build would, on several Spring Boot and Play versions and from Kotlin, are in
 [testing/](../testing/README.md).
 `make dev` runs [an example café app](../examples/cafe/README.md) against a real account: it issues bills as QR
 payments and finds them paid. Try it by hand at http://localhost:8080/scalar, an API reference to call each

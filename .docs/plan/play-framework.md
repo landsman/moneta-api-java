@@ -63,8 +63,10 @@ The keys are the Spring starter's, in kebab case, so the two read the same in do
   also keeps the jar from dragging `play_2.13` into an application built for Scala 3 (`play_3`): the Java API in
   `play.inject` is the same class in both, and only a test can say the bytecode agrees, so one does (below).
 - **`MonetaModule extends play.inject.Module`** binds `MonetaClient` to a provider that builds it from `moneta.*`
-  and registers `close()` as a stop hook, **as a singleton** (`.in(Singleton.class)`): without it every injection
-  builds another client with another stop hook, the leak the hook is there to prevent. It binds `AccessToken` only when `config.hasPath("moneta.token")`. A
+  and registers `close()` as a stop hook, **eagerly**, which is a singleton too (Play refuses a scope and eager
+  together): without it every injection builds another client with another stop hook, the leak the hook is there
+  to prevent. The hook goes on Play's Scala `ApplicationLifecycle`, which every application has; the Java one is
+  bound only with `play-java`, so a Scala application would not start. It binds `AccessToken` only when `config.hasPath("moneta.token")`. A
   blank token fails the start, as in the starter.
 - **`reference.conf` holds the `play.modules.enabled` line and nothing else.** Defaults stay in one place, the
   client's builder, as the starter already does.
@@ -76,7 +78,7 @@ the CPU; a MONETA read taking seconds there stalls every other request. Play's a
 `CustomExecutionContext` over a dispatcher of its own ([thread pools](https://playframework.com/documentation/latest/ThreadPools)).
 
 The integration does not ship one. `CustomExecutionContext` takes a Pekko `ActorSystem` in Play 3.0 and an Akka
-one in 2.9, so shipping it would split the jar in two. Instead `.docs/play.md` gives the five lines that define
+one in 2.9, so shipping it would split the jar in two. Instead the module's README gives the five lines that define
 it and the dispatcher block for `application.conf`; on Java 21 a virtual-thread executor is the shorter answer
 and the doc says so, with its own stop hook, or a dev-mode reload leaks it as it would the client. Ship it in the jar if a second application writes the same class.
 
@@ -84,7 +86,7 @@ and the doc says so, with its own stop hook, or a dev-mode reload leaks it as it
 
 | | Status | Plan |
 |---|---|---|
-| Play 3.1 | milestones only, 3.1.0-M9; brings Jackson 2.21.2 | a `testing/play/3.1` once it is final |
+| Play 3.1 | milestones only, 3.1.0-M9; brings Jackson 2.21.2 and moves to `jakarta.inject` | a `testing/play/3.1` once it is final; the provider's `javax.inject` may need a second jar there |
 | Play 3.0 (Pekko, `org.playframework`) | current, 3.0.12 from 2026-09-30 | compiled against, tested on Scala 2.13 and 3 |
 | Play 2.9 (Akka, `com.typesafe.play`) | maintained beside 3.0, same releases (2.9.12) | tested; supported if the same jar passes, dropped from the plan if not |
 | Play 2.8 and older | end of life, no Java 21 | no |
@@ -124,17 +126,18 @@ is found through `reference.conf` and not through the test's own bindings, then 
    `com.typesafe.play:*` ignored in `.github/dependabot.yml`, as `spring-boot-dependencies` is, or a bump stops
    testing the version a folder names.
 3. Play 2.9: keep or drop by its result.
-4. `.docs/play.md` with the execution context, a row in `.docs/install.md`, a line in the README.
+4. The module's README, as the starter has one, with the execution context; a row in `.docs/install.md`, a line in
+   the README.
 5. Publishing: the root build already publishes every `java-library` under `modules/`, so the release workflow
-   needs nothing. The module gets the `runtimeClasspath` lock and its check, as the other two, and `make
-   publish` / `publish-local` say three jars instead of both.
+   needs nothing. No lockfile: its runtime is only `moneta-api`, as the starter's is. `make publish` /
+   `publish-local` say every jar instead of both.
 
 ## Left out
 
 - **The starter's HTTP hooks** (customizer, decorator, Micrometer, mTLS from an SSL bundle): Play has no bundles,
   and binding hooks through Guice multibinders would tie the module to Guice. An application that needs a proxy,
   mTLS or metrics disables the module with `play.modules.disabled` and binds its own client, built with
-  `configureHttpClient` and `decorateHttpClient`; `.docs/play.md` shows it. Add the hooks when one asks.
+  `configureHttpClient` and `decorateHttpClient`; the module's README shows it. Add the hooks when one asks.
 - **Compile-time DI** (a `MonetaComponents` interface for an application without Guice): add when one asks.
 - **A client on Play's `WSClient`**, async: a second transport for one framework. `Builder.httpClient` already
   takes the application's `HttpClient`; an async API belongs in the client, for every caller.
