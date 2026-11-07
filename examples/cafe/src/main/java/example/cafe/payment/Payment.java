@@ -1,5 +1,6 @@
 package example.cafe.payment;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import cz.insuit.moneta.Transaction;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -35,7 +36,7 @@ public record Payment(
         @Nullable LocalDate madeOn,
         Instant firstSeenAt,
         @Nullable Long billId,
-        @Version @Nullable Integer version) {
+        @JsonIgnore @Version @Nullable Integer version) {
 
     /** A payment seen for the first time, linked to the bill its symbol names, if there is one. */
     static Payment of(Transaction transaction, Instant seenAt, @Nullable Long billId) {

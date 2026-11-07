@@ -53,8 +53,13 @@ Two tables in H2 (`build/cafe`, kept across restarts; `./gradlew clean` starts a
   asked for (`PT:IP`); a symbol over 10 digits or an amount over 9 999 999.99 is refused rather than cut by
   the reader.
 
-A database from an earlier version of the café is upgraded in place: its bill columns about payments are
-dropped, and the payments are read again from MONETA, as far back as the read reaches.
+**A database from an earlier version** is upgraded in place, but its bill columns about payments are dropped
+without being carried over: a bill paid before yesterday comes back unpaid, since the read only reaches yesterday.
+`./gradlew clean` is the honest start.
+
+**No sign-in.** `/bills` and `/payments/recorded` answer anyone who can reach the port, with each payer's account,
+name and message. That is an example's shortcut; an app behind a till puts its own sign-in in front, and keeps
+these out of any log the way the library keeps them out of `toString()`.
 
 ## Configuration
 

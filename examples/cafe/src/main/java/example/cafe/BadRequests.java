@@ -1,6 +1,7 @@
 package example.cafe;
 
 import cz.insuit.moneta.MonetaException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -15,6 +16,13 @@ class BadRequests {
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
     String monetaFailed(MonetaException e) {
         return "MONETA: " + e.getMessage();
+    }
+
+    /** Someone else changed the same row first, as linking a payment by hand while a round books it. */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    String changedMeanwhile(OptimisticLockingFailureException e) {
+        return "changed meanwhile; read it again and retry";
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

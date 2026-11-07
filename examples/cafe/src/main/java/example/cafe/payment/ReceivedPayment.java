@@ -26,7 +26,8 @@ record ReceivedPayment(
                 t.amount().amount(),
                 t.amount().currency().getCurrencyCode(),
                 t.symbols().variable(),
-                t.message(),
+                // Pending, MONETA sends the kind of payment ("Okamžitá platba"), not what the payer wrote.
+                t.booked() ? t.message() : null,
                 t.booked(),
                 // The day the payment was made: valueDate once booked (bookingDate can be a later business day),
                 // enteredDate while pending.
