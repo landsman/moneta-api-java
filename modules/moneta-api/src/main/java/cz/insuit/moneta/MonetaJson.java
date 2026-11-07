@@ -3,6 +3,7 @@ package cz.insuit.moneta;
 import static java.util.Objects.requireNonNull;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
@@ -139,11 +140,87 @@ final class MonetaJson {
         }
     }
 
+    /**
+     * {@code creditDebitIndicator}, which way the money moved. MONETA sends an amount unsigned beside it, on a
+     * movement and on a balance alike. Kept a string in the records, so a refused value can be named.
+     */
+    enum CreditDebit {
+        CRDT(Transaction.Direction.CREDIT),
+        DBIT(Transaction.Direction.DEBIT);
+
+        final Transaction.Direction direction;
+
+        CreditDebit(Transaction.Direction direction) {
+            this.direction = direction;
+        }
+
+        /** An unknown value is refused, not guessed: a wrong sign on money is worse than a failed read. */
+        static CreditDebit of(String code) {
+            return switch (code) {
+                case "CRDT" -> CRDT;
+                case "DBIT" -> DBIT;
+                default ->
+                    throw new MonetaException.InvalidResponse("unknown creditDebitIndicator '" + code + "'", null);
+            };
+        }
+
+        /** The amount with this direction as its sign. A negative one would be signed twice, so it is refused. */
+        Money signed(Amount amount) {
+            if (amount.value().signum() < 0) {
+                throw new MonetaException.InvalidResponse("a negative amount beside creditDebitIndicator", null);
+            }
+            var unsigned = new Money(amount.value(), amount.currency());
+            return switch (this) {
+                case CRDT -> unsigned;
+                case DBIT -> unsigned.negate();
+            };
+        }
+    }
+
     record Amount(BigDecimal value, Currency currency) {
         Amount {
             requireNonNull(value, "value");
             requireNonNull(currency, "currency");
         }
+    }
+
+    /** {@code GET …/accounts/{id}/balance}: one entry per type, {@code CLBD} and {@code CLAV} (live, 2026-11-07). */
+    record BalancesJson(List<BalanceJson> balances) {
+        BalancesJson {
+            requireNonNull(balances, "balances");
+        }
+    }
+
+    record BalanceJson(Amount amount, String creditDebitIndicator, DateTimeValue date, BalanceType type) {
+        BalanceJson {
+            requireNonNull(amount, "amount");
+            requireNonNull(creditDebitIndicator, "creditDebitIndicator");
+            requireNonNull(date, "date");
+            requireNonNull(type, "type");
+        }
+    }
+
+    record DateTimeValue(Instant dateTime) {
+        DateTimeValue {
+            requireNonNull(dateTime, "dateTime");
+        }
+    }
+
+    record BalanceType(CodeOrProprietary codeOrProprietary) {
+        BalanceType {
+            requireNonNull(codeOrProprietary, "codeOrProprietary");
+        }
+    }
+
+    /** A code MONETA sends may be one the library does not read, so it stays a string there. */
+    record CodeOrProprietary(@Nullable String code) {}
+
+    /** The balance types the library reads, by MONETA's codes. */
+    enum BalanceCode {
+        /** Closing booked. */
+        CLBD,
+        /** Closing available. */
+        CLAV
     }
 
     /** A pending movement sends {@code {"date": null}} for its booking and value dates (live, 2026-11-06). */

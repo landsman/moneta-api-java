@@ -1,7 +1,9 @@
 package example.cafe.payment;
 
 import cz.insuit.moneta.AccessToken;
+import cz.insuit.moneta.Balance;
 import cz.insuit.moneta.MonetaClient;
+import example.cafe.CafeAccount;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,7 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * {@code GET /payments?period=yesterday}, or {@code ?from=2026-11-01&to=2026-11-06} for a range of its own, which
- * wins over the period. Only money in; the counterparty's account and name stay out of the answer.
+ * wins over the period. Only money in; the counterparty's account and name stay out of the answer. {@code GET
+ * /balance} is the café account's balance.
  */
 @RestController
 @Tag(name = "Payments")
@@ -25,11 +28,21 @@ class PaymentsController {
     private final MonetaClient moneta;
     private final AccessToken token;
     private final Clock clock;
+    private final CafeAccount cafeAccount;
 
-    PaymentsController(MonetaClient moneta, AccessToken token, Clock clock) {
+    PaymentsController(MonetaClient moneta, AccessToken token, Clock clock, CafeAccount cafeAccount) {
         this.moneta = moneta;
         this.token = token;
         this.clock = clock;
+        this.cafeAccount = cafeAccount;
+    }
+
+    @GetMapping("/balance")
+    @Operation(
+            summary = "The café account's balance",
+            description = "Booked and available, with the instant MONETA computed it.")
+    Balance balance() {
+        return cafeAccount.balance();
     }
 
     @GetMapping("/payments")

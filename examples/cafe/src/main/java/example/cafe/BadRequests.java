@@ -18,6 +18,13 @@ class BadRequests {
         return "MONETA: " + e.getMessage();
     }
 
+    /** The token and {@code cafe.iban} do not match: the café's setup, not the request and not MONETA, so a 503. */
+    @ExceptionHandler(CafeAccount.NotOpened.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    String notOpened(CafeAccount.NotOpened e) {
+        return String.valueOf(e.getMessage());
+    }
+
     /** Someone else changed the same row first, as linking a payment by hand while a round books it. */
     @ExceptionHandler(OptimisticLockingFailureException.class)
     @ResponseStatus(HttpStatus.CONFLICT)

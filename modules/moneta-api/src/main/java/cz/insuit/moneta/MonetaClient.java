@@ -21,7 +21,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Reads accounts and their transactions. One instance serves any number of merchants: the token is passed
+ * Reads accounts, their balances and their transactions. One instance serves any number of merchants: the token is passed
  * with each call and never kept, so it cannot end up in a {@code toString()} or a heap dump of the client.
  *
  * <p>Thread-safe; one per application is enough. {@link #close()} releases the HTTP client it made itself, not
@@ -92,6 +92,19 @@ public final class MonetaClient implements AutoCloseable {
                 Query.NONE,
                 MonetaJson.AccountsPage.class,
                 node -> Account.from(bind(node, MonetaJson.AccountJson.class)));
+    }
+
+    /**
+     * The account's booked and available balance, as of the instant MONETA computed it.
+     *
+     * @throws IllegalArgumentException when the account id is blank or a dot segment
+     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
+     */
+    public Balance balance(AccessToken token, String accountId) {
+        var path = MonetaPaths.balance(accountId);
+        var what = "GET /" + path;
+        return Balance.from(what, get(token, what, path, MonetaJson.BalancesJson.class));
     }
 
     /**

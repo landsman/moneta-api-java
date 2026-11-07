@@ -78,24 +78,10 @@ public record Transaction(
             case "PDNG" -> Status.PENDING;
             default -> Status.OTHER;
         };
-        // Unlike the status, a direction is not guessed: a wrong sign on money is worse than a failed read.
-        var direction = switch (json.creditDebitIndicator()) {
-            case "CRDT" -> Direction.CREDIT;
-            case "DBIT" -> Direction.DEBIT;
-            default ->
-                throw new MonetaException.InvalidResponse(
-                        "unknown creditDebitIndicator '" + json.creditDebitIndicator() + "'", null);
-        };
-        // MONETA sends the amount unsigned beside the direction. A negative one would be signed twice, so it is
-        // refused for the same reason as an unknown direction.
-        if (json.amount().value().signum() < 0) {
-            throw new MonetaException.InvalidResponse("a negative amount beside creditDebitIndicator", null);
-        }
-        var unsigned = new Money(json.amount().value(), json.amount().currency());
-        var amount = switch (direction) {
-            case CREDIT -> unsigned;
-            case DEBIT -> unsigned.negate();
-        };
+        // Unlike the status, a direction is not guessed.
+        var indicator = MonetaJson.CreditDebit.of(json.creditDebitIndicator());
+        var direction = indicator.direction;
+        var amount = indicator.signed(json.amount());
         return new Transaction(
                 json.entryReference(),
                 status,

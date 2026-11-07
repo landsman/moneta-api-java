@@ -16,6 +16,7 @@ Then try it by hand at http://localhost:8080/scalar, an API reference built from
 | `GET /payments/recorded` | every payment the café recorded, newest first |
 | `GET /payments/recorded?unassigned=true` | the payments no bill claimed: a mistyped symbol, another day's, none |
 | `PUT /payments/recorded/{id}/bill` `{"variableSymbol": "1000"}` | links that payment to a bill by hand; `null` unlinks it |
+| `GET /balance` | the café account's booked and available balance, and when MONETA computed it |
 | `GET /payments` | today's incoming payments, straight from MONETA |
 | `GET /payments?period=yesterday` | `today`, `yesterday`, `this-week`, `last-week`, `last-7-days`, `this-month` |
 | `GET /payments?from=2026-11-01&to=2026-11-06` | a range of its own, both days included; wins over `period` |
