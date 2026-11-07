@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.sun.net.httpserver.HttpServer;
 import cz.insuit.moneta.AccessToken;
+import cz.insuit.moneta.HttpClientCustomizer;
+import cz.insuit.moneta.HttpClientDecorator;
 import cz.insuit.moneta.MonetaClient;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -143,7 +145,7 @@ class MonetaAutoConfigurationTest {
     @Test
     void leavesTheClientUninstrumentedWithoutAMeterRegistry() {
         context.run(app -> {
-            var decorator = app.getBean("monetaHttpClientObservation", MonetaHttpClientDecorator.class);
+            var decorator = app.getBean("monetaHttpClientObservation", HttpClientDecorator.class);
             var http = HttpClient.newHttpClient();
             assertSame(http, decorator.decorate(http));
         });
@@ -203,13 +205,13 @@ class MonetaAutoConfigurationTest {
 
         @Bean
         @Order(2)
-        MonetaHttpClientCustomizer secondCustomizer() {
+        HttpClientCustomizer secondCustomizer() {
             return http -> calls.add("customize 2");
         }
 
         @Bean
         @Order(1)
-        MonetaHttpClientCustomizer firstCustomizer() {
+        HttpClientCustomizer firstCustomizer() {
             return http -> {
                 calls.add("customize 1");
                 http.followRedirects(HttpClient.Redirect.ALWAYS);
@@ -218,7 +220,7 @@ class MonetaAutoConfigurationTest {
 
         @Bean
         @Order(2)
-        MonetaHttpClientDecorator outerDecorator() {
+        HttpClientDecorator outerDecorator() {
             return http -> {
                 calls.add("decorate 2");
                 return http;
@@ -227,7 +229,7 @@ class MonetaAutoConfigurationTest {
 
         @Bean
         @Order(1)
-        MonetaHttpClientDecorator innerDecorator() {
+        HttpClientDecorator innerDecorator() {
             return http -> {
                 calls.add("decorate 1");
                 decorated.add(http);

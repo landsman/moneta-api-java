@@ -52,7 +52,7 @@ With the starter, the same as beans, applied in their `@Order`:
 
 ```java
 @Bean
-MonetaHttpClientCustomizer monetaProxy() {
+HttpClientCustomizer monetaProxy() {
     return http -> http.proxy(ProxySelector.of(new InetSocketAddress("proxy.internal", 3128)));
 }
 ```
@@ -74,7 +74,7 @@ restart.
 **The starter instruments by itself**: with `io.micrometer:micrometer-java11` on the classpath and a
 `MeterRegistry` bean (Actuator brings one), every call is timed as `http.client.requests`, tagged by
 `MonetaClient::uriTemplate`, and traced when an `ObservationRegistry` is set up too. It stays off under the
-OpenTelemetry Java agent. To change it, define a `MonetaHttpClientDecorator` bean named
+OpenTelemetry Java agent. To change it, define a `HttpClientDecorator` bean named
 `monetaHttpClientObservation`; one that returns its argument turns it off.
 
 What to know before relying on it:
