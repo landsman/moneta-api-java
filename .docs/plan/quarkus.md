@@ -75,33 +75,31 @@ does, and says itself that not every step applies to every extension. Going thro
   [#48](https://github.com/landsman/moneta-api-java/pull/48), which every native build reads, so the
   extension needs no `ReflectiveClassBuildItem`. Jackson 3 needs nothing beyond it: `make native-test` checks
   that a native caller reads MONETA exactly as the JVM does.
-- **Jackson needs nothing from the caller.** Quarkus is on Jackson 2, and the one jar the two share,
-  `jackson-annotations`, is pinned to 2.21 by both supported BOMs (read from `quarkus-bom` 3.33.3 and 3.40.1),
-  which is what Jackson 3.2 needs. Neither BOM manages `tools.jackson`, so the client's own Jackson 3 resolves.
-  That is the case Spring Boot 3.5.12 and older get wrong; the testing projects keep it checked.
+- **Jackson needs nothing from a JVM caller, and one line from a native one.** Quarkus is on Jackson 2, and the
+  one jar the two share, `jackson-annotations`, is pinned to 2.21 by both supported BOMs. Neither manages
+  `tools.jackson`, so the client's own Jackson 3 resolves, and 2.21 is enough for everything it calls on the
+  JVM. A native build links all of Jackson 3.2, which refers to `JsonApplyView` from 2.22, so it needs 2.22.
+  The client stays on Jackson 3.2 rather than dropping to 3.1 for it, so it keeps getting 3.2's fixes.
 
 ## Steps
-
-Each step is its own pull request.
 
 1. **Native image, in the client.** Done in [#48](https://github.com/landsman/moneta-api-java/pull/48): the
    reachability metadata in the client jar, a test that it lists every `*Json` record, and `make native-test`,
    a plain caller built with Mandrel and compared with the JVM, in its own CI job.
-2. **JVM mode.** The two modules, the config mapping, the producer, the `AccessToken` synthetic bean, the TLS
-   configuration name, the customizers and decorators, `FeatureBuildItem("moneta")`. Tests in the deployment
-   module with `QuarkusUnitTest`: the bean appears; `AccessToken` is active only with a token, and injecting
-   it without one fails naming the property; an application bean replaces the client; a bad token or an
-   unknown TLS configuration fails the start; a customizer and a decorator run in order; `close()` is called
-   on shutdown. One `@QuarkusIntegrationTest` built native, in the native CI job. A README for the extension
-   with the property table, as the starter has.
+2. **The extension, its testing projects and docs.** Done in
+   [#24](https://github.com/landsman/moneta-api-java/pull/24), with this plan: the two modules, the config
+   mapping, the producer, the `AccessToken` synthetic bean, the TLS configuration name, the customizers and
+   decorators, `QuarkusUnitTest`s for each of them; `testing/quarkus/3.33.4` and `3.40.1`, each a caller's build
+   with the platform BOM, a `@QuarkusTest` and a command-mode `@QuarkusMainIntegrationTest`, the 3.40.1 one built
+   native by `make native-test` and run on Linux; the README and the compatibility section.
 3. **Metrics.** A decorator wrapping the client in `MicrometerHttpClient` with
    `uriMapper(MonetaClient::uriTemplate)` when `quarkus-micrometer` and `micrometer-java11` are present, off
-   under the OpenTelemetry Java agent, replaceable, as in the starter.
-4. **Testing projects.** `testing/quarkus/3.33` and `testing/quarkus/3.40`, each a caller's build with its own
-   BOM and a `@QuarkusTest`, wired into `make build` beside `testing/spring-boot`. A Kotlin caller only if the
-   Kotlin project's checks do not already cover what Quarkus adds.
-5. **Docs.** `.docs/install.md` and the README name the extension; `.docs/compatibility.md` gets the Quarkus
-   versions.
+   under the OpenTelemetry Java agent, replaceable, as in the starter. Its own pull request.
+
+What the native build found, which the JVM never showed: the TLS registry has to be a real dependency of the
+runtime module, since an image links every class it refers to; and `jackson-annotations` 2.21, which the
+Quarkus BOMs pin, lacks a type the client's Jackson 3.2 refers to. The caller raises it to 2.22 for a native
+build; [compatibility](../compatibility.md#quarkus) says how.
 
 ## Later, when someone needs it
 

@@ -1,6 +1,6 @@
 # Installing
 
-All four jars are on this repository's [GitHub Packages](https://github.com/landsman?tab=packages&repo_name=moneta-api-java):
+All six jars are on this repository's [GitHub Packages](https://github.com/landsman?tab=packages&repo_name=moneta-api-java):
 
 | Artifact | For |
 |----------|-----|
@@ -8,6 +8,7 @@ All four jars are on this repository's [GitHub Packages](https://github.com/land
 | `cz.insuit:moneta-api-spring-boot-starter` | the client and its Spring Boot auto-configuration; brings `moneta-api` with it |
 | `cz.insuit:moneta-api-play` | the client and its Play Framework module; brings `moneta-api` with it |
 | `cz.insuit:moneta-api-micronaut` | the client and its Micronaut wiring; brings `moneta-api` with it |
+| `cz.insuit:moneta-api-quarkus` | the client and its Quarkus extension; brings `moneta-api` with it, and Quarkus fetches `moneta-api-quarkus-deployment` from the same repository at build time |
 
 **GitHub Packages asks for a token even for a public package.** A personal access token (classic) with the
 `read:packages` scope is enough; keep it out of the build file.
@@ -27,7 +28,7 @@ repositories {
 }
 
 dependencies {
-    implementation("cz.insuit:moneta-api-spring-boot-starter:0.1.0") // or -play, -micronaut, or moneta-api alone
+    implementation("cz.insuit:moneta-api-spring-boot-starter:0.1.0") // or -play, -micronaut, -quarkus, or moneta-api alone
 }
 ```
 

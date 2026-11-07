@@ -115,3 +115,30 @@ balance and transactions exactly as the JVM does; CI runs it on every pull reque
 Java 21 and runs on 5 too; Micronaut 5 itself needs Java 25. Its BOMs pull the client's Jackson to 3.2.3 (5.2.5),
 or leave Jackson 3 alone beside their Jackson 2 with `jackson-annotations` 2.21 (4.10.14), and both work.
 `make build` checks both in [testing/](../testing/README.md).
+
+## Quarkus
+
+[`moneta-api-quarkus`](../modules/moneta-api-quarkus/README.md) is compiled against Quarkus 3.33 LTS and runs on
+3.40 LTS. Its BOMs leave Jackson 3 alone beside their Jackson 2, with `jackson-annotations` 2.21, which is enough
+on the JVM: `make build` checks both versions in [testing/](../testing/README.md).
+
+**A native image needs `jackson-annotations` 2.22.** The client's Jackson 3.2 refers to a type that 2.21 lacks,
+and a native build links every class when it builds the image, so it stops with `JsonApplyView` not found.
+Jackson 2.21 databind runs on the newer annotations.
+
+```kotlin
+// Gradle, beside enforcedPlatform("io.quarkus.platform:quarkus-bom:…"), which a version alone cannot beat
+configurations.all { resolutionStrategy.force("com.fasterxml.jackson.core:jackson-annotations:2.22") }
+```
+
+```xml
+<!-- Maven, in <dependencyManagement><dependencies>, above the Quarkus BOM's import -->
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-annotations</artifactId>
+    <version>2.22</version>
+</dependency>
+```
+
+`make native-test` builds `testing/quarkus/3.40.1` native with that fix and, on Linux, runs it against a local
+MONETA; CI does on every pull request.

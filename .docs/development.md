@@ -8,9 +8,10 @@ transitively. What to change is in `build/reports/dependency-analysis/build-heal
 
 What ships is in [modules/](../modules): the client, `moneta-api`, its
 [Spring Boot starter](../modules/moneta-api-spring-boot-starter/README.md), its
-[Play module](../modules/moneta-api-play/README.md) and its
-[Micronaut module](../modules/moneta-api-micronaut/README.md), each with its own tests. Projects that use them
-the way a caller's build would, on several Spring Boot, Play and Micronaut versions and from Kotlin, are in
+[Play module](../modules/moneta-api-play/README.md), its
+[Micronaut module](../modules/moneta-api-micronaut/README.md) and its
+[Quarkus extension](../modules/moneta-api-quarkus/README.md), each with its own tests. Projects that use them
+the way a caller's build would, on several Spring Boot, Play, Micronaut and Quarkus versions and from Kotlin, are in
 [testing/](../testing/README.md).
 `make dev` runs [an example café app](../examples/cafe/README.md) against a real account: it issues bills as QR
 payments and finds them paid. Try it by hand at http://localhost:8080/scalar, an API reference to call each
