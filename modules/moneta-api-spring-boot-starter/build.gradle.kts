@@ -16,6 +16,11 @@ dependencies {
     compileOnly("org.springframework.boot:spring-boot-autoconfigure")
     // ObjectProvider, to take every customizer and decorator bean in order.
     compileOnly("org.springframework:spring-beans")
+    compileOnly("org.springframework:spring-core")
+    // Optional: an application with micrometer-java11 and a MeterRegistry gets every call instrumented.
+    compileOnly("io.micrometer:micrometer-java11")
+    compileOnly("io.micrometer:micrometer-core")
+    compileOnly("io.micrometer:micrometer-observation")
     // Writes the metadata IntelliJ reads to complete moneta.* in application.yml.
     annotationProcessor(springBoot)
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
@@ -25,6 +30,9 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-test")
     testImplementation("org.springframework:spring-beans")
     testImplementation("org.springframework:spring-core")
+    // Only loaded: the auto-configuration wraps the client with it.
+    testRuntimeOnly("io.micrometer:micrometer-java11")
+    testImplementation("io.micrometer:micrometer-core")
     // ApplicationContextRunner hands the test an AssertJ type, so it has to be on the classpath.
     testImplementation("org.assertj:assertj-core")
     testImplementation("org.junit.jupiter:junit-jupiter")
