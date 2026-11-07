@@ -26,13 +26,6 @@ record BillView(
     static BillView of(Bill bill, List<Payment> payments) {
         var paid = payments.stream().map(Payment::amount).reduce(BigDecimal.ZERO, BigDecimal::add);
         var status = BillStatus.of(bill.amount(), paid);
-        var covered = status == BillStatus.PAID || status == BillStatus.OVERPAID;
-        var paidSeenAt = covered
-                ? payments.stream()
-                        .map(Payment::firstSeenAt)
-                        .max(Comparator.naturalOrder())
-                        .orElse(null)
-                : null;
         return new BillView(
                 bill.variableSymbol(),
                 bill.amount(),
@@ -40,7 +33,21 @@ record BillView(
                 bill.createdAt(),
                 paid,
                 status,
-                paidSeenAt,
+                coveredAt(bill.amount(), payments),
                 payments);
+    }
+
+    /** When the payment that brought the running sum to the bill's amount was seen; null until it does. */
+    static @Nullable Instant coveredAt(BigDecimal amount, List<Payment> payments) {
+        var sum = BigDecimal.ZERO;
+        for (var payment : payments.stream()
+                .sorted(Comparator.comparing(Payment::firstSeenAt))
+                .toList()) {
+            sum = sum.add(payment.amount());
+            if (sum.compareTo(amount) >= 0) {
+                return payment.firstSeenAt();
+            }
+        }
+        return null;
     }
 }

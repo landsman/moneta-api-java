@@ -4,7 +4,9 @@ import cz.insuit.moneta.AccessToken;
 import cz.insuit.moneta.Account;
 import cz.insuit.moneta.MonetaClient;
 import cz.insuit.moneta.MonetaException;
+import cz.insuit.moneta.Transaction;
 import example.cafe.CafeProperties;
+import example.cafe.bill.Bill;
 import example.cafe.bill.BillRepository;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -86,7 +88,7 @@ public class PaymentRecorder {
         for (var step : PaymentRecording.steps(answered, recorded, pending)) {
             switch (step) {
                 case PaymentRecording.Step.Record(var payment) -> {
-                    var row = Payment.of(payment, seenAt, billFor(PaymentRecording.variableSymbolOf(payment)));
+                    var row = Payment.of(payment, seenAt, billFor(payment));
                     if (!writes.record(row)) {
                         log.debug("Payment {} was recorded by another round", row.monetaEntryReference());
                         continue;
@@ -135,13 +137,20 @@ public class PaymentRecorder {
         return from;
     }
 
-    /** The bill a variable symbol names, if the café issued one under it. */
-    private @Nullable Long billFor(@Nullable String variableSymbol) {
-        if (variableSymbol == null || !variableSymbol.matches("\\d{1,18}")) {
+    /**
+     * The bill the payment's variable symbol names, if the café issued one under it in the payment's currency. A
+     * payment in another currency is left for a person: a bill's total adds amounts of one currency only.
+     */
+    private @Nullable Long billFor(Transaction payment) {
+        var symbol = PaymentRecording.variableSymbolOf(payment);
+        if (symbol == null || !symbol.matches("\\d{1,18}")) {
             return null;
         }
-        var id = Long.valueOf(variableSymbol);
-        return bills.existsById(id) ? id : null;
+        var currency = payment.amount().currency().getCurrencyCode();
+        return bills.findById(Long.valueOf(symbol))
+                .filter(bill -> bill.currency().equals(currency))
+                .map(Bill::id)
+                .orElse(null);
     }
 
     private Optional<Account> cafeAccount() {
