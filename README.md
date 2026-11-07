@@ -31,9 +31,9 @@ client implements:
 | Feature | MONETA API | This client |
 |---|:---:|:---:|
 | Accounts the token sees | ✅ | ✅ |
-| Transactions, pending and booked | ✅ | ✅ checked live |
-| Card transactions | ✅ | ⬜ not checked |
-| Balances | ✅ | ⬜ |
+| Transactions, pending and booked | ✅ | ✅ |
+| Card transactions | ✅ | ⬜ |
+| Balances | ✅ | ✅ |
 | Pending card transactions | ✅ | ⬜ |
 | Electronic statements | ✅ | ⬜ |
 | Overview of payment orders | ✅ | ⬜ |
