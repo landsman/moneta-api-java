@@ -3,7 +3,7 @@ plugins {
     // Writes META-INF/quarkus-extension.properties, which names the deployment jar Quarkus pulls in at build time.
     // Versioned here, not in the root: there it would share a class loader with testing/quarkus's io.quarkus
     // plugins, which come in other versions and clash with it.
-    id("io.quarkus.extension") version "3.33.4"
+    id("io.quarkus.extension") version "3.40.1.1"
 }
 
 description = "Quarkus extension for the MONETA API client"
