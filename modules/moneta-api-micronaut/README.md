@@ -46,8 +46,8 @@ HttpClientDecorator noMonetaObservation() {
 }
 ```
 
-Not in a GraalVM native image yet: the client binds MONETA's JSON by reflection and ships no reachability
-metadata ([#19](https://github.com/landsman/moneta-api-java/issues/19)).
+In a GraalVM native image the client's own reachability metadata covers its JSON
+([compatibility](../../.docs/compatibility.md#graalvm-native-image)); this module is not built natively in CI yet.
 
 ---
 

@@ -45,7 +45,3 @@ Mostly behind the portal, so expected once the registration is approved
 
 Payments (PISP), statements, standing orders, card transactions as their own endpoint, OAuth client credentials
 for the sandbox. Each waits for the specification.
-
-**GraalVM native image** is untested. The JSON records are bound by reflection and the jar carries no
-reachability metadata, so in a native image every call would likely fail as `InvalidResponse`. Supporting it
-means shipping `META-INF/native-image/…/reachability-metadata.json` and running the tests once natively.
