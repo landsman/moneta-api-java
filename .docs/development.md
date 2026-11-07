@@ -7,9 +7,10 @@ It also fails when a module under `modules/` declares a dependency it does not u
 transitively. What to change is in `build/reports/dependency-analysis/build-health-report.txt`.
 
 What ships is in [modules/](../modules): the client, `moneta-api`, its
-[Spring Boot starter](../modules/moneta-api-spring-boot-starter/README.md) and its
-[Play module](../modules/moneta-api-play/README.md), each with its own tests. Projects that use them the way a
-caller's build would, on several Spring Boot and Play versions and from Kotlin, are in
+[Spring Boot starter](../modules/moneta-api-spring-boot-starter/README.md), its
+[Play module](../modules/moneta-api-play/README.md) and its
+[Micronaut module](../modules/moneta-api-micronaut/README.md), each with its own tests. Projects that use them
+the way a caller's build would, on several Spring Boot, Play and Micronaut versions and from Kotlin, are in
 [testing/](../testing/README.md).
 `make dev` runs [an example café app](../examples/cafe/README.md) against a real account: it issues bills as QR
 payments and finds them paid. Try it by hand at http://localhost:8080/scalar, an API reference to call each
@@ -49,7 +50,7 @@ waits for the publish and writes the release page, a pre-release while it is 0.x
     git tag -a v0.1.0 -m "v0.1.0"                      # annotated, so it records who tagged it and when
     git push origin v0.1.0                             # this push starts the release
 
-[release.yml](../.github/workflows/release.yml) then builds, tests and publishes both jars to GitHub Packages
+[release.yml](../.github/workflows/release.yml) then builds, tests and publishes every jar to GitHub Packages
 (`gh run watch` follows it). Once it is green, write the release page for the tag, with what changed for a user:
 
     gh release create v0.1.0 --verify-tag --generate-notes     # --prerelease while it is 0.x

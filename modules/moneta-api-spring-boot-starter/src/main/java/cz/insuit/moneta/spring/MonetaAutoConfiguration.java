@@ -75,7 +75,8 @@ public class MonetaAutoConfiguration {
         return builder.build();
     }
 
-    /** Only with {@code moneta.token} set; a blank one or one ending in a newline stops the application. */
+    /** Only with {@code moneta.token} set; one with a space or a control character anywhere, such as the newline an
+     * environment variable often ends in, stops the application. */
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty("moneta.token")

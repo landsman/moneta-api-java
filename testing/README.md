@@ -11,10 +11,14 @@ break it unnoticed. `make build` runs them with the library's own tests, which s
 | `spring-boot/4.1.2` | the current Spring Boot 4 |
 | `play/3.0-scala-2.13`, `play/3.0-scala-3` | the Play module on Play 3.0 for both Scalas, with the Jackson 2.14 it pins |
 | `play/2.9` | the same jar on Play 2.9, the Akka line |
+| `micronaut/4.10.14` | the Micronaut module on the Micronaut it is compiled against, with its BOM |
+| `micronaut/5.2.5` | the same jar, compiled for Micronaut 4, loads and binds on Micronaut 5; runs on JDK 25 whatever `-PtestsJdk` says |
 | `kotlin` | a `when` over `MonetaException` needs no `else`, and a nullable component is nullable in Kotlin |
 
 Each Spring Boot version is only a `build.gradle.kts` naming it; the test is in `spring-boot/shared`. A context
 with only the starter on it gets `MonetaClient` and `AccessToken` from its auto-configuration and reads transactions from a local server, which is where both failures a
 wrong Jackson causes show up, at class loading and on the first call. Another version is another folder with a
-copy of that build file.
+copy of that build file. The Micronaut projects are laid out the same, around `micronaut/shared`,
+and keep Micrometer off their classpath: the module names its types in a method signature, and these projects
+are what proves it loads without them.
 
