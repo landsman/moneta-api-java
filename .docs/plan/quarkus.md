@@ -68,18 +68,13 @@ does, and says itself that not every step applies to every extension. Going thro
   through `TlsConfigurationRegistry` (in `quarkus-tls-registry-spi`, present in 3.33) into the client's
   `configureHttpClient`: `createSSLContext()` and, when set, the protocols and ciphers. Resolved when the
   client is built, so an unknown name stops the application, as an unknown Spring bundle does.
-- **Customizers and decorators of the HTTP client**: the runtime module has its own
-  `MonetaHttpClientCustomizer` and `MonetaHttpClientDecorator` in `cz.insuit.moneta.quarkus`, read through
-  `Instance<…>` in `@Priority` order, applied after the TLS configuration, as in the starter. The starter's
-  pair stays where it is: moving it into the client would break every Spring caller's import for two
-  one-method interfaces.
-- **Native image: the client jar carries its own reachability metadata**,
-  `META-INF/native-image/cz.insuit/moneta-api/reachability-metadata.json`, registering every `*Json` record
-  with its constructors and accessors. GraalVM reads it in any native build, so Spring Boot native gets it
-  too, and the Quarkus extension needs no `ReflectiveClassBuildItem` of its own. Records do need it: Jackson
-  finds their canonical constructor by reflection, and the native image keeps nothing it was not told about.
-  A test in the client compares the file with the `*Json` classes, so a new one cannot be forgotten. What else
-  Jackson 3 needs inside a native image is what step 1 finds out.
+- **Customizers and decorators of the HTTP client** are the client's own `HttpClientCustomizer` and
+  `HttpClientDecorator` beans, the pair the Spring and Micronaut modules read, through `Instance<…>` in
+  `@Priority` order, applied after the TLS configuration, as in the starter.
+- **Native image: nothing of its own.** The client jar carries its reachability metadata since
+  [#48](https://github.com/landsman/moneta-api-java/pull/48), which every native build reads, so the
+  extension needs no `ReflectiveClassBuildItem`. Jackson 3 needs nothing beyond it: `make native-test` checks
+  that a native caller reads MONETA exactly as the JVM does.
 - **Jackson needs nothing from the caller.** Quarkus is on Jackson 2, and the one jar the two share,
   `jackson-annotations`, is pinned to 2.21 by both supported BOMs (read from `quarkus-bom` 3.33.3 and 3.40.1),
   which is what Jackson 3.2 needs. Neither BOM manages `tools.jackson`, so the client's own Jackson 3 resolves.
@@ -89,12 +84,9 @@ does, and says itself that not every step applies to every extension. Going thro
 
 Each step is its own pull request.
 
-1. **Native image, in the client.** The reachability metadata in the client jar and its test, then a native
-   build of a plain caller, no Quarkus, that reads accounts, balances and transactions from a fake MONETA (the
-   JSON fixtures the client's tests already use, served by the JDK's `HttpServer`, no new dependency). It runs
-   in CI on Mandrel in a container, as its own job: native builds take minutes, so not in `make build`.
-   Settles what Jackson 3 needs in a native image before any Quarkus code exists; if it cannot be made to
-   work, the extension loses its main reason and this plan is revisited.
+1. **Native image, in the client.** Done in [#48](https://github.com/landsman/moneta-api-java/pull/48): the
+   reachability metadata in the client jar, a test that it lists every `*Json` record, and `make native-test`,
+   a plain caller built with Mandrel and compared with the JVM, in its own CI job.
 2. **JVM mode.** The two modules, the config mapping, the producer, the `AccessToken` synthetic bean, the TLS
    configuration name, the customizers and decorators, `FeatureBuildItem("moneta")`. Tests in the deployment
    module with `QuarkusUnitTest`: the bean appears; `AccessToken` is active only with a token, and injecting
