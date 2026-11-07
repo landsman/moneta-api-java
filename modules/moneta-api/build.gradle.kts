@@ -32,19 +32,14 @@ tasks.jar {
 val nativeImageMetadata =
     tasks.register("nativeImageMetadata") {
         description = "Writes the GraalVM reachability metadata for the *Json records."
-        val records = fileTree("src/main/java/cz/insuit/moneta") { include("*Json.java") }
+        val records = file("src/main/java/cz/insuit/moneta")
         val output = layout.buildDirectory.dir("generated/native-image")
-        inputs.files(records)
+        inputs.dir(records)
         outputs.dir(output)
         doLast {
-            val entries =
-                records.files.map { it.nameWithoutExtension }.sorted().joinToString(",\n") {
-                    """    {"type": "cz.insuit.moneta.$it", "allDeclaredConstructors": true, """ +
-                        """"allDeclaredMethods": true, "allDeclaredFields": true}"""
-                }
             output.get().file("META-INF/native-image/cz.insuit/moneta-api/reachability-metadata.json").asFile.run {
                 parentFile.mkdirs()
-                writeText("{\n  \"reflection\": [\n$entries\n  ]\n}\n")
+                writeText(reachabilityMetadata(jsonRecords(records, "cz.insuit.moneta")))
             }
         }
     }
