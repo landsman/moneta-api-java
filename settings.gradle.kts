@@ -14,3 +14,6 @@ include(
 
 // make dev
 include(":examples:cafe")
+
+// make peek: reads the live account, for finding out what MONETA does; never published
+include(":tools:peek")

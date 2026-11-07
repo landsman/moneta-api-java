@@ -14,6 +14,29 @@ that use them the way a caller's build would, on several Spring Boot versions an
 payments and finds them paid. Try it by hand at http://localhost:8080/scalar, an API reference to call each
 endpoint from the browser.
 
+## Trying the live API
+
+`make peek` prints the account's movements as MONETA sends them, every field included, with whatever names a
+person masked: the parties, the message, the reference. It is how a new field or a new kind of movement is found
+before the client maps it. `tools/peek` is internal and never published.
+
+    make peek                                 # the last week
+    make peek FROM=2026-11-01 TO=2026-11-07   # a range; SHAPE=1 shows masked text as x and 9 instead of a length
+    make peek-accounts
+    make peek-balance
+    make record-fixture N=3 NAME=booked-card FROM=2026-11-01 TO=2026-11-07  # movement 3 of that make peek
+
+The token is read from 1Password for each run: `op run` resolves `MONETA_OP`, a secret reference that defaults to
+the maintainer's item, hands the value to that one process and masks it in the output. No file holds it, and
+Gradle only builds the tool, so it does not stay in a daemon. Point `MONETA_OP=op://<vault>/<item>/<field>` at
+your own.
+
+`record-fixture` replaces people by the rules in
+[the fixtures' README](../modules/moneta-api/src/test/resources/moneta/README.md) and refuses a value under the
+parties it has no rule for, or any value `make peek` would mask that is not a fixed one. It needs the dates `make
+peek` numbered with, since a range ending today renumbers when a payment arrives. It never overwrites a fixture. Read the file whole before committing it: the
+repository is public.
+
 ## Releasing
 
 A release is made by hand, and only a tag makes one: merging to `main` publishes nothing. A tag `vX.Y.Z` on

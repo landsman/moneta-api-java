@@ -30,6 +30,27 @@ publish: ## build and publish both jars to GitHub Packages, as the release workf
 publish-local: ## install both jars into ~/.m2, to try them in another project without a token
 	./gradlew publishToMavenLocal
 
+##@ Trying the live API
+# The token is read from 1Password for one run by op run, which hands it to that process only and masks it in the
+# output. Nothing stores it: no file, and not Gradle, which only builds the tool. Point MONETA_OP at your own item.
+MONETA_OP ?= op://dev-homelab/moneta money bank - api token/credential
+PEEK = ./gradlew -q :tools:peek:installDist && MONETA_TOKEN="$(MONETA_OP)" op run -- tools/peek/build/install/peek/bin/peek
+
+.PHONY: peek peek-accounts peek-balance record-fixture
+peek: ## print the account's movements as MONETA sends them, people masked; FROM=2026-11-01 TO=2026-11-07, SHAPE=1
+	@[ -n "$(FROM)" ] || [ -z "$(TO)" ] || { echo 'FROM and TO go together; neither is the last week' >&2; exit 1; }
+	$(PEEK) transactions $(FROM) $(TO) $(if $(SHAPE),--shape)
+
+peek-accounts: ## print the accounts the token opens
+	$(PEEK) accounts
+
+peek-balance: ## print each account's booked and available balance
+	$(PEEK) balance
+
+record-fixture: ## save movement N of make peek FROM= TO=, the same dates, as …/moneta/live/NAME.json, people replaced
+	@[ -n "$(N)" ] && [ -n "$(NAME)" ] && [ -n "$(FROM)" ] && [ -n "$(TO)" ] || { echo 'make record-fixture N=3 NAME=booked-card FROM=… TO=…, as make peek FROM=… TO=… numbered it' >&2; exit 1; }
+	$(PEEK) record "$(N)" "$(NAME)" $(FROM) $(TO)
+
 ##@ Code style
 format: ## reformat java and gradle files in place
 	./gradlew spotlessApply
