@@ -20,6 +20,7 @@ include(
     ":testing:play:3.0-scala-2.13",
     ":testing:play:3.0-scala-3",
     ":testing:play:2.9",
+    ":testing:native",
 )
 
 // make dev

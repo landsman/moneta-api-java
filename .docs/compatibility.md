@@ -101,12 +101,17 @@ What to know before relying on it:
 - **`httpClient(…)`** still takes a client of your own, which you close, and which brings its own redirects,
   cookies and timeouts; `configureHttpClient` is refused beside it.
 
+## GraalVM native image
+
+Nothing to configure. The jar carries its own
+[reachability metadata](https://www.graalvm.org/latest/reference-manual/native-image/metadata/), which every
+native build reads: Jackson binds MONETA's JSON into records by reflection, and the image keeps only what it was
+told about. `make native-test` builds a plain caller with Mandrel for JDK 25 and checks it reads accounts, a
+balance and transactions exactly as the JVM does; CI runs it on every pull request.
+
 ## Micronaut
 
 [`moneta-api-micronaut`](../modules/moneta-api-micronaut/README.md) is compiled against Micronaut 4.10 for
 Java 21 and runs on 5 too; Micronaut 5 itself needs Java 25. Its BOMs pull the client's Jackson to 3.2.3 (5.2.5),
 or leave Jackson 3 alone beside their Jackson 2 with `jackson-annotations` 2.21 (4.10.14), and both work.
 `make build` checks both in [testing/](../testing/README.md).
-
-A GraalVM native image is not supported yet: the client binds by reflection and ships no reachability metadata,
-[#19](https://github.com/landsman/moneta-api-java/issues/19).
