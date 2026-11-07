@@ -7,6 +7,7 @@ import cz.insuit.moneta.MonetaException;
 import example.cafe.CafeProperties;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -55,7 +56,7 @@ class BillChecker {
             return;
         }
         var today = LocalDate.now(clock);
-        var from = from(lookedFor, today);
+        var from = readFrom(lookedFor, today, clock.getZone());
         var account = cafeAccount();
         if (account.isEmpty()) {
             log.error(
@@ -83,20 +84,27 @@ class BillChecker {
         }
     }
 
+    /** How long a bill paid by a pending payment waits for its booked version before the read stops reaching for it. */
+    static final int BOOKING_WAIT_DAYS = 14;
+
     /**
-     * Yesterday, for an unpaid bill: a payment made at 23:59:55 is dated yesterday, and the first check after
-     * midnight would miss it if it read today alone. Further back for a bill paid by a pending payment: once booked,
-     * MONETA dates that payment by the day it was made, and booking can come days later, over a weekend.
+     * Where the read starts. Yesterday, for an unpaid bill: a payment made at 23:59:55 is dated yesterday, and the
+     * first check after midnight would miss it if it read today alone. For a bill paid by a pending payment, the day
+     * before that payment was first seen: once booked, MONETA dates it by the day it was made, which can be the day
+     * before it was seen, and booking can come days later. Never further than {@link #BOOKING_WAIT_DAYS}: a pending
+     * payment that is never booked would otherwise widen every read, every round, for good.
      */
-    private LocalDate from(List<Bill> lookedFor, LocalDate today) {
+    static LocalDate readFrom(List<Bill> lookedFor, LocalDate today, ZoneId zone) {
         var from = today.minusDays(1);
+        var limit = today.minusDays(BOOKING_WAIT_DAYS);
         for (var bill : lookedFor) {
             var seenAt = bill.paidSeenAt();
-            if (seenAt != null) {
-                var seenOn = LocalDate.ofInstant(seenAt, clock.getZone());
-                if (seenOn.isBefore(from)) {
-                    from = seenOn;
-                }
+            if (seenAt == null) {
+                continue;
+            }
+            var madeAtTheEarliest = LocalDate.ofInstant(seenAt, zone).minusDays(1);
+            if (madeAtTheEarliest.isBefore(from)) {
+                from = madeAtTheEarliest.isBefore(limit) ? limit : madeAtTheEarliest;
             }
         }
         return from;
