@@ -11,32 +11,55 @@ Then try it by hand at http://localhost:8080/scalar, an API reference built from
 | Request | Answers |
 |---------|---------|
 | `POST /bills` `{"amount": 65.00}` | a new bill for 65.00 CZK, answered with its QR code as a PNG; its variable symbol is in `X-Variable-Symbol` |
-| `GET /bills` | every bill, newest first: paid or not, by which payment, seen when |
-| `GET /bills/{variableSymbol}` | whether that bill is paid; still unpaid, it is first looked for in MONETA |
-| `GET /payments` | today's incoming payments |
+| `GET /bills` | every bill, newest first, with its payments, what they add up to and its status |
+| `GET /bills/{variableSymbol}` | one bill the same way; not covered yet, the payments are read from MONETA first |
+| `GET /payments/recorded` | every payment the café recorded, newest first |
+| `GET /payments/recorded?unassigned=true` | the payments no bill claimed: a mistyped symbol, another day's, none |
+| `PUT /payments/recorded/{id}/bill` `{"variableSymbol": "1000"}` | links that payment to a bill by hand; `null` unlinks it |
+| `GET /payments` | today's incoming payments, straight from MONETA |
 | `GET /payments?period=yesterday` | `today`, `yesterday`, `this-week`, `last-week`, `last-7-days`, `this-month` |
 | `GET /payments?from=2026-11-01&to=2026-11-06` | a range of its own, both days included; wins over `period` |
 
 ## How a bill is found paid
 
-- **A bill's variable symbol is its id**, ascending from 1000 and never reused, so no two bills share one. The
-  bills live in H2 in `build/cafe`; `./gradlew clean` starts afresh.
-- **Every `cafe.check-moneta-every` (30 s)** the café reads yesterday's and today's incoming payments on its
-  account (yesterday, so a payment made just before midnight is not missed), pending ones included, and a payment
-  pays a bill when the variable symbol, amount and currency are the bill's exactly (leading zeros in the symbol do
-  not count). `PaymentMatching` is that rule, tested on its own.
-- **One payment pays one bill**: the table holds a unique `moneta_entry_reference`, MONETA's id of the payment, so the database refuses a second.
-- **`paidSeenAt` is when the café first saw the payment.** MONETA gives a payment a date and no time, so this,
+Two tables in H2 (`build/cafe`, kept across restarts; `./gradlew clean` starts afresh): `bill` and `payment`.
+
+- **A bill's variable symbol is its id**, ascending from 1000 and never reused, so no two bills share one. A
+  bill holds only its amount and when it was issued.
+- **Every payment into the café's account is a row in `payment`**, recorded every `cafe.check-moneta-every`
+  (30 s) by `PaymentRecorder`, pending ones included. A payment whose variable symbol names a bill is linked to
+  it; any other stays unlinked, for a person to link with `PUT /payments/recorded/{id}/bill`. A mistyped symbol
+  or a payment for another day's bill is that person's anyway.
+- **A bill's status is what its payments add up to**: `UNPAID`, `PARTLY_PAID`, `PAID` or `OVERPAID`. Paid twice
+  shows as overpaid, two halves as paid; nothing is dropped.
+- **One payment is one row, pending or booked.** MONETA gives a payment a new id once booked, so a booked payment
+  that matches a pending row (same amount, symbol and payer's account) books that row instead of adding
+  one. The payer's account is compared as one value however MONETA wrote it: pending `4040404040/0800`, booked
+  `0 4040404040/0800`. `PaymentRecording` is that rule, tested on its own.
+- **The read covers yesterday and today**, so a payment just before midnight is not missed, and reaches back to
+  the day a still pending payment was made, since booking came three days later over a weekend; never more than
+  14 days back.
+- **A payment is written once, whatever races it.** The schedule and a `GET /bills/{variableSymbol}` can read
+  at the same moment. Recording is `insert … on conflict do nothing` and booking an `update … where booked =
+  false`, each one statement whose row count says whether this round won (`queries/`, run by `PaymentWrites`);
+  never a lookup first, which two rounds would both pass. H2 runs in PostgreSQL mode for it. A test races eight
+  threads on one payment and expects one row.
+- **Two payers on one symbol stay two rows**, each with the payer's account, and once booked their name.
+- **A reversal is not recorded.** The payer's message is kept only once booked: pending, MONETA sends
+  "Okamžitá platba" there.
+- **`first_seen_at` is when the café first saw a payment.** MONETA gives a payment a date and no time, so this,
   to the polling interval, is the closest there is to when it was paid.
 - **The QR code** is drawn by [spayd-qr-java](https://github.com/janhalasa/spayd-qr-java), with instant payment
   asked for (`PT:IP`); a symbol over 10 digits or an amount over 9 999 999.99 is refused rather than cut by
   the reader.
 
-Each payment in `/payments` carries its reference, amount, currency, variable symbol, whether it is booked, and
-its day: the booking day, or while pending the day MONETA took it in. The counterparty's account stays out.
+**A database from an earlier version** is upgraded in place, but its bill columns about payments are dropped
+without being carried over: a bill paid before yesterday comes back unpaid, since the read only reaches yesterday.
+`./gradlew clean` is the honest start.
 
-**`/payments` covers whole days only.** MONETA dates a movement but gives it no time, so "the last hour" cannot
-be answered from its data; the bills show the way round it, recording when each payment was first seen.
+**No sign-in.** `/bills` and `/payments/recorded` answer anyone who can reach the port, with each payer's account,
+name and message. That is an example's shortcut; an app behind a till puts its own sign-in in front, and keeps
+these out of any log the way the library keeps them out of `toString()`.
 
 ## Configuration
 

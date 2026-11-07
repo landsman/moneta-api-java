@@ -3,7 +3,8 @@ spring:
     name: cafe
   # The bills, in a file under build/: they survive a restart, and `./gradlew clean` starts the café afresh.
   datasource:
-    url: jdbc:h2:file:./build/cafe
+    # PostgreSQL mode: the payment writes use ON CONFLICT DO NOTHING, the way they would on Postgres.
+    url: jdbc:h2:file:./build/cafe;MODE=PostgreSQL
   sql:
     init:
       mode: always

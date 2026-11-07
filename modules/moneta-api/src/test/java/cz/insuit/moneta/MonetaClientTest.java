@@ -270,6 +270,37 @@ class MonetaClientTest {
         }
 
         @Test
+        void aBookedMovementCarriesItsPayerAndMessageAndANewReference() {
+            // Recorded from the live API the day after, accounts, names and ids replaced.
+            answer(TRANSACTIONS, 200, fixture("live/booked.json"));
+
+            var transactions = client.transactions(TOKEN, "acc-1", FROM, TO);
+
+            var fromQr = transactions.get(0);
+            assertEquals(Transaction.Status.BOOKED, fromQr.status());
+            assertEquals("0000001337:20261109:00001:26110600000000001", fromQr.entryReference());
+            assertEquals(new Money(new BigDecimal("1.00"), CZK), fromQr.amount());
+            assertNull(fromQr.enteredDate());
+            assertEquals(LocalDate.of(2026, 11, 9), fromQr.bookingDate());
+            assertEquals(LocalDate.of(2026, 11, 6), fromQr.valueDate());
+            assertEquals(new PaymentSymbols("1007", null, null), fromQr.symbols());
+            assertEquals("KAVARNA UCET 1007", fromQr.message());
+            assertEquals("Novak, Jan", fromQr.counterpartyName());
+            assertEquals("4040404040/0800", fromQr.counterpartyAccount());
+            assertFalse(fromQr.reversed());
+
+            var noSymbols = transactions.get(1);
+            assertEquals(new PaymentSymbols(null, null, null), noSymbols.symbols());
+            assertEquals("Platba za kavu", noSymbols.message());
+
+            var outgoing = transactions.get(2);
+            assertEquals(Transaction.Direction.DEBIT, outgoing.direction());
+            assertEquals("1010101010/0100", outgoing.counterpartyAccount());
+            assertNull(outgoing.counterpartyName());
+            assertFalse(outgoing.toString().contains("1010101010"));
+        }
+
+        @Test
         void keepsTheCounterpartyInRawButOutOfToString() {
             answerBothPages();
 

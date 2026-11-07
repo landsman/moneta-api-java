@@ -1,0 +1,185 @@
+{
+  "pageCount": 1,
+  "pageNumber": 0,
+  "pageSize": 100,
+  "transactions": [
+    {
+      "amount": {
+        "currency": "CZK",
+        "value": 1
+      },
+      "bankTransactionCode": {
+        "proprietary": {
+          "code": "10000107000",
+          "issuer": "CNB"
+        }
+      },
+      "bookingDate": {
+        "date": "2026-11-09"
+      },
+      "creditDebitIndicator": "CRDT",
+      "enteredDate": {
+        "date": null
+      },
+      "entryDetails": {
+        "transactionDetails": {
+          "references": {
+            "clearingSystemReference": "PAYMENT_ORDER_DOMESTIC",
+            "endToEndIdentification": "1007",
+            "transactionDescription": "OKAMŽITÁ ÚHRADA "
+          },
+          "relatedParties": {
+            "creditorAccount": {
+              "identification": {
+                "other": {
+                  "identification": "1337/0600"
+                }
+              }
+            },
+            "debtor": {
+              "name": "Novak, Jan"
+            },
+            "debtorAccount": {
+              "identification": {
+                "other": {
+                  "identification": "4040404040/0800"
+                }
+              }
+            }
+          },
+          "remittanceInformation": {
+            "structured": {
+              "creditorReferenceInformation": {
+                "reference": "VS:1007"
+              }
+            },
+            "unstructured": "KAVARNA UCET 1007"
+          }
+        }
+      },
+      "entryReference": "0000001337:20261109:00001:26110600000000001",
+      "reversalIndicator": false,
+      "status": "BOOK",
+      "valueDate": {
+        "date": "2026-11-06"
+      }
+    },
+    {
+      "amount": {
+        "currency": "CZK",
+        "value": 1
+      },
+      "bankTransactionCode": {
+        "proprietary": {
+          "code": "10000107000",
+          "issuer": "CNB"
+        }
+      },
+      "bookingDate": {
+        "date": "2026-11-09"
+      },
+      "creditDebitIndicator": "CRDT",
+      "enteredDate": {
+        "date": null
+      },
+      "entryDetails": {
+        "transactionDetails": {
+          "references": {
+            "clearingSystemReference": "PAYMENT_ORDER_DOMESTIC",
+            "transactionDescription": "OKAMŽITÁ ÚHRADA "
+          },
+          "relatedParties": {
+            "creditorAccount": {
+              "identification": {
+                "other": {
+                  "identification": "1337/0600"
+                }
+              }
+            },
+            "debtor": {
+              "name": "Novak, Jan"
+            },
+            "debtorAccount": {
+              "identification": {
+                "other": {
+                  "identification": "4040404040/0800"
+                }
+              }
+            }
+          },
+          "remittanceInformation": {
+            "structured": {
+              "creditorReferenceInformation": {
+                "reference": ""
+              }
+            },
+            "unstructured": "Platba za kavu"
+          }
+        }
+      },
+      "entryReference": "0000001337:20261109:00002:26110600000000002",
+      "reversalIndicator": false,
+      "status": "BOOK",
+      "valueDate": {
+        "date": "2026-11-06"
+      }
+    },
+    {
+      "amount": {
+        "currency": "CZK",
+        "value": 1
+      },
+      "bankTransactionCode": {
+        "proprietary": {
+          "code": "10000101000",
+          "issuer": "CNB"
+        }
+      },
+      "bookingDate": {
+        "date": "2026-11-09"
+      },
+      "creditDebitIndicator": "DBIT",
+      "enteredDate": {
+        "date": "2026-11-06"
+      },
+      "entryDetails": {
+        "transactionDetails": {
+          "references": {
+            "clearingSystemReference": "PAYMENT_ORDER_DOMESTIC",
+            "endToEndIdentification": "1337",
+            "transactionDescription": "OKAMŽITÁ ÚHRADA "
+          },
+          "relatedParties": {
+            "creditorAccount": {
+              "identification": {
+                "other": {
+                  "identification": "1010101010/0100"
+                }
+              }
+            },
+            "debtorAccount": {
+              "identification": {
+                "other": {
+                  "identification": "1337/0600"
+                }
+              }
+            }
+          },
+          "remittanceInformation": {
+            "structured": {
+              "creditorReferenceInformation": {
+                "reference": "VS:1337"
+              }
+            }
+          }
+        }
+      },
+      "entryReference": "0000001337:20261109:00003:26110600000000003",
+      "reversalIndicator": false,
+      "status": "BOOK",
+      "valueDate": {
+        "date": "2026-11-06"
+      }
+    }
+  ]
+}

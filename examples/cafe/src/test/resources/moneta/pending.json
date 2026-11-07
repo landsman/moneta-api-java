@@ -1,0 +1,49 @@
+{
+  "transactions": [
+    {
+      "entryReference": "2600000000000000001",
+      "status": "PDNG",
+      "creditDebitIndicator": "CRDT",
+      "amount": { "value": 65.00, "currency": "CZK" },
+      "enteredDate": { "date": "2026-11-06" },
+      "bookingDate": { "date": null },
+      "valueDate": { "date": null },
+      "reversalIndicator": false,
+      "entryDetails": {
+        "transactionDetails": {
+          "relatedParties": {
+            "debtorAccount": { "identification": { "other": { "identification": "4040404040/0800" } } }
+          },
+          "remittanceInformation": {
+            "structured": { "creditorReferenceInformation": { "reference": "VS:1000" } },
+            "unstructured": "Okamžitá platba"
+          }
+        }
+      }
+    },
+    {
+      "entryReference": "2600000000000000002",
+      "status": "PDNG",
+      "creditDebitIndicator": "CRDT",
+      "amount": { "value": 89.00, "currency": "CZK" },
+      "enteredDate": { "date": "2026-11-06" },
+      "bookingDate": { "date": null },
+      "valueDate": { "date": null },
+      "reversalIndicator": false,
+      "entryDetails": {
+        "transactionDetails": {
+          "relatedParties": {
+            "debtorAccount": { "identification": { "other": { "identification": "1010101010/0100" } } }
+          },
+          "remittanceInformation": {
+            "structured": { "creditorReferenceInformation": { "reference": "VS:" } },
+            "unstructured": "Okamžitá platba"
+          }
+        }
+      }
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 100,
+  "pageCount": 1
+}

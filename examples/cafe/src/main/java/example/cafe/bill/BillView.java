@@ -1,32 +1,53 @@
 package example.cafe.bill;
 
+import example.cafe.payment.Payment;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Comparator;
+import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A bill as {@code GET /bills} lists it.
+ * A bill with the payments linked to it, as {@code GET /bills} lists it.
  *
- * @param monetaEntryReference MONETA's id of the payment that paid it, as Internet Banka shows it under
- *     "Bankovní reference"
+ * @param paid the sum of the linked payments, pending ones included
+ * @param paidSeenAt when the café first saw the payment that covered the bill; null until it is covered
  */
 record BillView(
         String variableSymbol,
         BigDecimal amount,
         String currency,
         Instant issuedAt,
-        boolean paid,
-        @Nullable String monetaEntryReference,
-        @Nullable Instant paidSeenAt) {
+        BigDecimal paid,
+        BillStatus status,
+        @Nullable Instant paidSeenAt,
+        List<Payment> payments) {
 
-    static BillView of(Bill bill) {
+    static BillView of(Bill bill, List<Payment> payments) {
+        var paid = payments.stream().map(Payment::amount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        var status = BillStatus.of(bill.amount(), paid);
         return new BillView(
                 bill.variableSymbol(),
                 bill.amount(),
                 bill.currency(),
                 bill.createdAt(),
-                bill.paid(),
-                bill.monetaEntryReference(),
-                bill.paidSeenAt());
+                paid,
+                status,
+                coveredAt(bill.amount(), payments),
+                payments);
+    }
+
+    /** When the payment that brought the running sum to the bill's amount was seen; null until it does. */
+    static @Nullable Instant coveredAt(BigDecimal amount, List<Payment> payments) {
+        var sum = BigDecimal.ZERO;
+        for (var payment : payments.stream()
+                .sorted(Comparator.comparing(Payment::firstSeenAt))
+                .toList()) {
+            sum = sum.add(payment.amount());
+            if (sum.compareTo(amount) >= 0) {
+                return payment.firstSeenAt();
+            }
+        }
+        return null;
     }
 }

@@ -7,14 +7,22 @@ import org.jspecify.annotations.Nullable;
  * One movement on an account. A new component may be added in a minor version, so construct these only in
  * tests and match on them by accessor rather than by record pattern.
  *
- * @param entryReference MONETA's id of the movement
  * @param amount signed: positive for money in, negative for money out, so amounts add up as they are
- * @param enteredDate the day the bank took the movement in; the only date a pending one has
- * @param bookingDate null while the movement is pending
- * @param valueDate null while the movement is pending
+ * @param entryReference MONETA's id of the movement. <b>It changes when a pending movement is booked</b>: 19 digits
+ *     while pending, {@code account:bookingDate:sequence:reference} once booked (live, 2026-11-07). Deduplicate by
+ *     it and a payment counts twice.
+ * @param enteredDate the day the bank took the movement in; the only date a pending one has, null on a booked
+ *     credit
+ * @param bookingDate null while the movement is pending; can be a later business day than the payment
+ * @param valueDate null while the movement is pending; once booked, the payment's day, and the one the date range
+ *     filters it by
+ * @param message the payer's message, sent once booked; while an instant payment is pending, "Okamžitá platba"
+ * @param counterpartyName the payer of a credit, the payee of a debit; sent once booked, for credits
+ * @param counterpartyAccount the other side's account as MONETA writes it, {@code number/bank}
+ * @param reversed whether MONETA marks the movement as a reversal
  * @param raw the movement as MONETA sent it, re-serialised as JSON (key order and number formatting may
- *     differ), for whatever this record does not map; left out of {@link #toString()}, since it names the
- *     counterparty
+ *     differ), for whatever this record does not map. It, the message and the counterparty are left out of
+ *     {@link #toString()}, so logging a transaction does not log who paid or what they wrote
  */
 public record Transaction(
         String entryReference,
@@ -25,6 +33,10 @@ public record Transaction(
         @Nullable LocalDate bookingDate,
         @Nullable LocalDate valueDate,
         PaymentSymbols symbols,
+        @Nullable String message,
+        @Nullable String counterpartyName,
+        @Nullable String counterpartyAccount,
+        boolean reversed,
         String raw) {
 
     /** Whether the movement is booked and will not change. */
@@ -34,8 +46,17 @@ public record Transaction(
 
     @Override
     public String toString() {
-        return "Transaction[entryReference=%s, status=%s, direction=%s, amount=%s, enteredDate=%s, bookingDate=%s, valueDate=%s, symbols=%s]"
-                .formatted(entryReference, status, direction, amount, enteredDate, bookingDate, valueDate, symbols);
+        return "Transaction[entryReference=%s, status=%s, direction=%s, amount=%s, enteredDate=%s, bookingDate=%s, valueDate=%s, symbols=%s, reversed=%s]"
+                .formatted(
+                        entryReference,
+                        status,
+                        direction,
+                        amount,
+                        enteredDate,
+                        bookingDate,
+                        valueDate,
+                        symbols,
+                        reversed);
     }
 
     /** Which way the money moved; {@link #amount()} already carries it as the sign. */
@@ -84,6 +105,10 @@ public record Transaction(
                 date(json.bookingDate()),
                 date(json.valueDate()),
                 PaymentSymbols.parse(json.reference()),
+                json.message(),
+                json.counterpartyName(direction == Direction.CREDIT),
+                json.counterpartyAccount(direction == Direction.CREDIT),
+                Boolean.TRUE.equals(json.reversalIndicator()),
                 raw);
     }
 
