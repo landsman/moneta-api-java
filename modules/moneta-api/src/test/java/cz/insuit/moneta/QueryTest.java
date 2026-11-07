@@ -28,4 +28,18 @@ class QueryTest {
     void encodesAnAccountIdAsOnePathSegment() {
         assertEquals("api/v4/vip/aisp/my/accounts/a%2Fb%20c/transactions", MonetaPaths.transactions("a/b c"));
     }
+
+    @Test
+    void mapsABuiltPathBackToItsTemplateWhateverTheIdOrThePrefix() {
+        assertEquals(
+                "/api/v4/vip/aisp/my/accounts/{accountId}/transactions",
+                MonetaPaths.template("/gateway/" + MonetaPaths.transactions("a/b c")));
+        assertEquals("/api/v4/vip/aisp/my/accounts", MonetaPaths.template("/" + MonetaPaths.ACCOUNTS));
+    }
+
+    @Test
+    void keepsAPathItDoesNotCallOutOfTheTag() {
+        assertEquals("UNKNOWN", MonetaPaths.template("/api/v4/vip/aisp/my/accounts/acc-1/statements/2026-08"));
+        assertEquals("UNKNOWN", MonetaPaths.template("/api/v4/vip/aisp/my/accounts/acc-1"));
+    }
 }

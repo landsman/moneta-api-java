@@ -99,6 +99,16 @@ public final class MonetaClient implements AutoCloseable {
         return decorated;
     }
 
+    /**
+     * The endpoint a request of this client calls, as a template without the account id: {@code
+     * /api/v4/vip/aisp/my/accounts/{accountId}/transactions}; {@code UNKNOWN} for a request it does not make. For a
+     * metrics tag that stays low-cardinality, such as Micrometer's {@code uriMapper(MonetaClient::uriTemplate)}.
+     * The query and any base-URI prefix are left out.
+     */
+    public static String uriTemplate(HttpRequest request) {
+        return MonetaPaths.template(request.uri().getRawPath());
+    }
+
     /** Starts a client for production; set only what differs. */
     public static Builder builder() {
         return new Builder();

@@ -43,6 +43,7 @@ MonetaClient.builder()
         // after: a wrapper that delegates to it, for tracing or metrics; the first added is innermost
         .decorateHttpClient(http -> MicrometerHttpClient.instrumentationBuilder(http, meterRegistry)
                 .observationRegistry(observationRegistry)
+                .uriMapper(MonetaClient::uriTemplate)
                 .build())
         .build();
 ```
@@ -59,20 +60,23 @@ MonetaHttpClientCustomizer monetaProxy() {
 MonetaHttpClientDecorator monetaObservation(MeterRegistry meters, ObservationRegistry observations) {
     return http -> MicrometerHttpClient.instrumentationBuilder(http, meters)
             .observationRegistry(observations)
+            .uriMapper(MonetaClient::uriTemplate)
             .build();
 }
 ```
 
 What to know before relying on it:
 
+- **`configureHttpClient` can undo the library's settings too.** A cookie handler keeps one merchant's cookies
+  for the next merchant's token, and following redirects sends a request somewhere MONETA did not answer from.
+  Change what you came for, a proxy or TLS, and leave those alone.
 - **A decorator wraps, it does not replace.** Returning another client skips the settings above and leaves the
   one the library built unused; whatever a decorator allocates itself is yours to close.
 - **Both are ignored when you define your own `MonetaClient` bean**, since the starter then builds none.
 - **Micrometer** ([`micrometer-java11`](https://docs.micrometer.io/micrometer/reference/reference/java-httpclient.html))
-  gives traces as they are, but tags every call's metrics `uri=UNKNOWN`: its default reads a `URI_PATTERN`
-  request header the library does not send, and a `uriMapper` you write would have to know the library's paths,
-  which are not API. A low-cardinality tag needs the library's help, not done yet
-  ([#36](https://github.com/landsman/moneta-api-java/issues/36)).
+  tags every call `uri=UNKNOWN` unless given a `uriMapper`. Pass `.uriMapper(MonetaClient::uriTemplate)`: it names
+  the endpoint without the account id, `/api/v4/vip/aisp/my/accounts/{accountId}/transactions`, so the tag stays
+  low-cardinality. A mapper on the raw path would put account ids into it.
 - **OpenTelemetry**: the Java agent instruments the JDK client with nothing configured, so add no decorator,
   Micrometer's or OpenTelemetry's, on top of it: each adds a second span per call. Without the agent, its
   [library instrumentation](https://opentelemetry.io/docs/languages/java/libraries/) wraps a JDK client; the

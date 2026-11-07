@@ -36,6 +36,7 @@ import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -711,8 +712,8 @@ class MonetaClientTest {
             var order = new ArrayList<String>();
             var decorated = MonetaClient.builder()
                     .baseUri(base)
-                    .decorateHttpClient(http -> new Wrapper(http, () -> order.add("inner")))
-                    .decorateHttpClient(http -> new Wrapper(http, () -> order.add("outer")))
+                    .decorateHttpClient(http -> new Wrapper(http, request -> order.add("inner")))
+                    .decorateHttpClient(http -> new Wrapper(http, request -> order.add("outer")))
                     .build();
 
             decorated.accounts(TOKEN);
@@ -721,11 +722,32 @@ class MonetaClientTest {
         }
 
         @Test
+        void namesEachCallByItsTemplateWithoutTheAccountIdOrTheQuery() {
+            answer(ACCOUNTS, 200, fixture("accounts.json"));
+            answer(BALANCE, 200, fixture("live/balance.json"));
+            answer(TRANSACTIONS, 200, NO_TRANSACTIONS);
+            var templates = new ArrayList<String>();
+            var client = MonetaClient.builder()
+                    .baseUri(base)
+                    .decorateHttpClient(
+                            http -> new Wrapper(http, request -> templates.add(MonetaClient.uriTemplate(request))))
+                    .build();
+
+            client.accounts(TOKEN);
+            client.balance(TOKEN, "acc-1");
+            client.transactions(TOKEN, "acc-1", FROM, TO);
+
+            assertEquals(
+                    List.of(ACCOUNTS, ACCOUNTS + "/{accountId}/balance", ACCOUNTS + "/{accountId}/transactions"),
+                    templates.stream().distinct().toList());
+        }
+
+        @Test
         void closesTheClientItBuiltBehindAWrapperThatDoesNotPassCloseOn() {
             answer(ACCOUNTS, 200, fixture("accounts.json"));
             var decorated = MonetaClient.builder()
                     .baseUri(base)
-                    .decorateHttpClient(http -> new Wrapper(http, () -> {}))
+                    .decorateHttpClient(http -> new Wrapper(http, request -> {}))
                     .build();
 
             decorated.close();
@@ -786,7 +808,7 @@ class MonetaClientTest {
         void anUncheckedIoFailureFromAWrapperIsNoAnswer() {
             var failing = MonetaClient.builder()
                     .baseUri(base)
-                    .decorateHttpClient(http -> new Wrapper(http, () -> {
+                    .decorateHttpClient(http -> new Wrapper(http, request -> {
                         throw new UncheckedIOException(new IOException("reset"));
                     }))
                     .build();
@@ -831,9 +853,9 @@ class MonetaClientTest {
     private static final class Wrapper extends HttpClient {
 
         private final HttpClient inner;
-        private final Runnable onSend;
+        private final Consumer<HttpRequest> onSend;
 
-        Wrapper(HttpClient inner, Runnable onSend) {
+        Wrapper(HttpClient inner, Consumer<HttpRequest> onSend) {
             this.inner = inner;
             this.onSend = onSend;
         }
@@ -841,14 +863,14 @@ class MonetaClientTest {
         @Override
         public <T> HttpResponse<T> send(HttpRequest request, HttpResponse.BodyHandler<T> handler)
                 throws IOException, InterruptedException {
-            onSend.run();
+            onSend.accept(request);
             return inner.send(request, handler);
         }
 
         @Override
         public <T> CompletableFuture<HttpResponse<T>> sendAsync(
                 HttpRequest request, HttpResponse.BodyHandler<T> handler) {
-            onSend.run();
+            onSend.accept(request);
             return inner.sendAsync(request, handler);
         }
 
@@ -857,7 +879,7 @@ class MonetaClientTest {
                 HttpRequest request,
                 HttpResponse.BodyHandler<T> handler,
                 HttpResponse.@Nullable PushPromiseHandler<T> push) {
-            onSend.run();
+            onSend.accept(request);
             return inner.sendAsync(request, handler, push);
         }
 
