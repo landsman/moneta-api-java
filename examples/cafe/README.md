@@ -29,16 +29,20 @@ Then try it by hand at http://localhost:8080/scalar, an API reference built from
   so the database refuses a second.
 - **A bill paid by a pending payment waits for its booked version.** MONETA gives the payment a new id once
   booked, so the check keeps looking for that bill, and when a booked payment with its symbol and amount
-  arrives, the bill takes its id and the payer's message, which MONETA only sends then. The read reaches back
-  to the day the pending payment was seen, since booking can come days later.
+  arrives, the bill takes its id and the payer's message, which MONETA only sends then. For such a bill the read
+  starts the day before the pending payment was seen, since booking can come days later, and never more than
+  14 days back, so a payment that is never booked stops widening it.
+- **A reversal pays nothing**, and a second payment for a bill already taken in the same round is logged as a
+  warning rather than dropped.
 - **`paidSeenAt` is when the café first saw the payment.** MONETA gives a payment a date and no time, so this,
   to the polling interval, is the closest there is to when it was paid.
 - **The QR code** is drawn by [spayd-qr-java](https://github.com/janhalasa/spayd-qr-java), with instant payment
   asked for (`PT:IP`); a symbol over 10 digits or an amount over 9 999 999.99 is refused rather than cut by
   the reader.
 
-Each payment in `/payments` carries its reference, amount, currency, variable symbol, whether it is booked, and
-its day: the booking day, or while pending the day MONETA took it in. The counterparty's account stays out.
+Each payment in `/payments` carries its reference, amount, currency, variable symbol, message, whether it is
+booked, and its day: the value date once booked, the day MONETA took it in while pending. The counterparty
+stays out.
 
 **`/payments` covers whole days only.** MONETA dates a movement but gives it no time, so "the last hour" cannot
 be answered from its data; the bills show the way round it, recording when each payment was first seen.

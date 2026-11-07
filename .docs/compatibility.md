@@ -29,3 +29,20 @@ dependencyManagement { dependencies { dependency("com.fasterxml.jackson.core:jac
 
 Spring Boot 3.5.13 and newer, and every Spring Boot 4, need nothing. `make build` checks all three cases, and a
 Kotlin caller, in [testing/](../testing/README.md).
+
+## Micronaut
+
+No module. A factory is all it takes:
+
+```java
+@Factory
+class MonetaFactory {
+    @Singleton
+    MonetaClient monetaClient() {
+        return new MonetaClient();
+    }
+}
+```
+
+Whether a module with typed `moneta.*` is worth it, and what a GraalVM native image would need first, is
+[#19](https://github.com/landsman/moneta-api-java/issues/19).

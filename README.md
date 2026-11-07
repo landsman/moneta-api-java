@@ -8,7 +8,7 @@ This is a client for that API, **MONETA API**, for Java 21+ and Kotlin projects,
 reads accounts and transactions so far; payments are not covered yet. Its only dependencies are Jackson and
 JSpecify.
 
-Partly verified against the live API, see [what is known](.docs/moneta-api.md). Published on GitHub Packages, not
+Checked against the live API, see [how it behaves](.docs/moneta-api.md). Published on GitHub Packages, not
 Maven Central.
 
 | Read | For |
@@ -18,7 +18,8 @@ Maven Central.
 | [Using the client](.docs/usage.md) | accounts, transactions, money, symbols, failures |
 | [Spring Boot starter](modules/moneta-api-spring-boot-starter/README.md) | `moneta.*` in application.yml, a `MonetaClient` bean |
 | [Kotlin and Spring Boot](.docs/compatibility.md) | what a Kotlin caller gets, and the one fix Spring Boot 3 before 3.5.13 needs |
-| [What is known about MONETA API](.docs/moneta-api.md) | what the live API showed, what is still open, what is not covered |
+| [How MONETA API behaves](.docs/moneta-api.md) | what to watch out for: pending and booked movements, dates, ids, errors |
+| [Roadmap](.docs/plan/roadmap.md) | the working plan: what is still unknown, what comes next, what is not covered |
 | [Development](.docs/development.md) | build, tests, `make dev` against a real account |
 | [Example café](examples/cafe/README.md) | bills as QR payments, found paid; try it at http://localhost:8080/scalar after `make dev` |
 
