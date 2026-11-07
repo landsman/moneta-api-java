@@ -90,8 +90,8 @@ public final class MonetaClient implements AutoCloseable {
                 token,
                 MonetaPaths.ACCOUNTS,
                 Query.NONE,
-                MonetaJson.AccountsPage.class,
-                node -> Account.from(bind(node, MonetaJson.AccountJson.class)));
+                AccountsPageJson.class,
+                node -> Account.from(bind(node, AccountJson.class)));
     }
 
     /**
@@ -104,7 +104,7 @@ public final class MonetaClient implements AutoCloseable {
     public Balance balance(AccessToken token, String accountId) {
         var path = MonetaPaths.balance(accountId);
         var what = "GET /" + path;
-        return Balance.from(what, get(token, what, path, MonetaJson.BalancesJson.class));
+        return Balance.from(what, get(token, what, path, BalancesJson.class));
     }
 
     /**
@@ -144,8 +144,8 @@ public final class MonetaClient implements AutoCloseable {
                 token,
                 MonetaPaths.transactions(accountId),
                 query,
-                MonetaJson.TransactionsPage.class,
-                node -> Transaction.from(bind(node, MonetaJson.TransactionJson.class), node.toString()));
+                TransactionsPageJson.class,
+                node -> Transaction.from(bind(node, TransactionJson.class), node.toString()));
     }
 
     /**
@@ -158,7 +158,7 @@ public final class MonetaClient implements AutoCloseable {
             AccessToken token,
             String path,
             Query query,
-            Class<? extends MonetaJson.Page> pageType,
+            Class<? extends PageJson> pageType,
             Function<JsonNode, T> map) {
         var all = new ArrayList<T>();
         var sized = query.with("size", PAGE_SIZE);

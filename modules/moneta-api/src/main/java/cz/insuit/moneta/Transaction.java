@@ -72,14 +72,14 @@ public record Transaction(
         OTHER
     }
 
-    static Transaction from(MonetaJson.TransactionJson json, String raw) {
+    static Transaction from(TransactionJson json, String raw) {
         var status = switch (json.status()) {
             case "BOOK" -> Status.BOOKED;
             case "PDNG" -> Status.PENDING;
             default -> Status.OTHER;
         };
         // Unlike the status, a direction is not guessed.
-        var indicator = MonetaJson.CreditDebit.of(json.creditDebitIndicator());
+        var indicator = CreditDebit.of(json.creditDebitIndicator());
         var direction = indicator.direction;
         var amount = indicator.signed(json.amount());
         return new Transaction(
@@ -98,7 +98,7 @@ public record Transaction(
                 raw);
     }
 
-    private static @Nullable LocalDate date(MonetaJson.@Nullable DateValue value) {
-        return value instanceof MonetaJson.DateValue(var date) ? date : null;
+    private static @Nullable LocalDate date(@Nullable DateValueJson value) {
+        return value instanceof DateValueJson(var date) ? date : null;
     }
 }

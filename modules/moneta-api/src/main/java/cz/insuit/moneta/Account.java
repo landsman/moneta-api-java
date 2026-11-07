@@ -14,8 +14,8 @@ public record Account(
         Currency currency,
         @Nullable String name) {
 
-    static Account from(MonetaJson.AccountJson json) {
-        var iban = json.identification() instanceof MonetaJson.Identification(var value) ? value : null;
+    static Account from(AccountJson json) {
+        var iban = json.identification() instanceof IdentificationJson(var value) ? value : null;
         return new Account(json.id(), iban, json.currency(), json.nameI18N());
     }
 }
