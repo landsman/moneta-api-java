@@ -2,7 +2,7 @@ package example.cafe.bill;
 
 import static java.util.Objects.requireNonNull;
 
-import cz.landsman.moneta.Transaction;
+import cz.insuit.moneta.Transaction;
 import java.math.BigDecimal;
 import java.time.Instant;
 import org.jspecify.annotations.Nullable;

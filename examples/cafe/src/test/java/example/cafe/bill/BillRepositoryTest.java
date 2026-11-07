@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import cz.landsman.moneta.Money;
-import cz.landsman.moneta.PaymentSymbols;
-import cz.landsman.moneta.Transaction;
+import cz.insuit.moneta.Money;
+import cz.insuit.moneta.PaymentSymbols;
+import cz.insuit.moneta.Transaction;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
