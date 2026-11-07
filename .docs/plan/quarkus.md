@@ -41,7 +41,7 @@ does, and says itself that not every step applies to every extension. Going thro
   the same repository, so it has to be published too.
 - **Gradle, with the `io.quarkus.extension` plugin.** The guide calls it experimental and says it may lack
   what the Maven plugin has. What this extension needs from it is the descriptor and the deployment link, which
-  it does. If step 1 finds a gap, writing `META-INF/quarkus-extension.properties` by hand is the fallback;
+  it does. If step 2 finds a gap, writing `META-INF/quarkus-extension.properties` by hand is the fallback;
   a Maven sub-build in a Gradle repo is not.
 - **Compiled against the oldest supported Quarkus, 3.33 LTS**, `compileOnly` the BOM, the way the starter is
   compiled against Spring Boot 3.5. Supported: the two LTS lines still maintained, **3.33** (until
