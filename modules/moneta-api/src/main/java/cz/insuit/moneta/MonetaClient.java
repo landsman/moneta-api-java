@@ -12,6 +12,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.function.Consumer;
@@ -256,7 +257,7 @@ public final class MonetaClient implements AutoCloseable {
             response = http.send(request.build(), HttpResponse.BodyHandlers.ofString());
         } catch (IOException | UncheckedIOException e) {
             // A decorated client may report a failed exchange unchecked; it is the same missing answer.
-            log(new Call(what, null, millisSince(started), null, e.toString()));
+            log(what, null, millisSince(started), null, e.toString());
             throw new MonetaException.NoAnswer(what + " did not get an answer", e);
         } catch (InterruptedException e) {
             // Whoever owns the thread asked it to stop; that is not MONETA failing, so it is not a MonetaException
@@ -269,12 +270,12 @@ public final class MonetaClient implements AutoCloseable {
         int status = response.statusCode();
         var message = what + " answered " + status;
         // X-Request-Id is what MONETA's support asks for about one call. Never the token, never the body.
-        log(new Call(
+        log(
                 what,
                 status,
                 millisSince(started),
                 response.headers().firstValue("X-Request-Id").orElse(null),
-                null));
+                null);
         return switch (status / 100) {
             case 2 -> parse(what, () -> JSON.readValue(response.body(), type));
             default ->
@@ -287,20 +288,23 @@ public final class MonetaClient implements AutoCloseable {
     }
 
     /**
-     * One call to MONETA as it is logged, as JSON. Never the token, never the body.
+     * One call to MONETA as a JSON line, only when debug is on. Never the token, never the body. A map, not a record:
+     * writing a bean makes databind 3.2 look for annotations newer than the {@code jackson-annotations} 2.21 a
+     * Spring Boot 3.5 or Micronaut 4 BOM pins, and a native image would need it registered for reflection.
      *
      * @param requestId MONETA's {@code X-Request-Id}, what its support asks for about one call
      */
-    record Call(
-            String request,
-            @Nullable Integer status,
-            long millis,
-            @Nullable String requestId,
-            @Nullable String error) {}
-
-    /** Serialised only when debug is on. */
-    private static void log(Call call) {
-        LOG.log(Level.DEBUG, () -> JSON.writeValueAsString(call));
+    private static void log(
+            String request, @Nullable Integer status, long millis, @Nullable String requestId, @Nullable String error) {
+        LOG.log(Level.DEBUG, () -> {
+            var line = new LinkedHashMap<String, @Nullable Object>();
+            line.put("request", request);
+            line.put("status", status);
+            line.put("millis", millis);
+            line.put("requestId", requestId);
+            line.put("error", error);
+            return JSON.writeValueAsString(line);
+        });
     }
 
     private static long millisSince(long nanos) {
