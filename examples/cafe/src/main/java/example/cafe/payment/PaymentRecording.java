@@ -73,8 +73,8 @@ final class PaymentRecording {
     }
 
     /**
-     * An account as one value however MONETA wrote it: pending it sends {@code 2700284437/2010}, booked
-     * {@code 0 2700284437/2010}, a zero prefix and a space (live, 2026-11-07). Spaces, the dash a prefix is
+     * An account as one value however MONETA wrote it: pending it sends {@code 4040404040/0800}, booked
+     * {@code 0 4040404040/0800}, a zero prefix and a space (live, 2026-11-07). Spaces, the dash a prefix is
      * written with, and leading zeros go.
      */
     static @Nullable String accountKey(@Nullable String account) {

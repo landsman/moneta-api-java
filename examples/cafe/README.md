@@ -34,8 +34,8 @@ Two tables in H2 (`build/cafe`, kept across restarts; `./gradlew clean` starts a
   shows as overpaid, two halves as paid; nothing is dropped.
 - **One payment is one row, pending or booked.** MONETA gives a payment a new id once booked, so a booked payment
   that matches a pending row (same amount, symbol, payer's account and day) books that row instead of adding
-  one. The payer's account is compared as one value however MONETA wrote it: pending `2700284437/2010`, booked
-  `0 2700284437/2010`. `PaymentRecording` is that rule, tested on its own.
+  one. The payer's account is compared as one value however MONETA wrote it: pending `4040404040/0800`, booked
+  `0 4040404040/0800`. `PaymentRecording` is that rule, tested on its own.
 - **The read covers yesterday and today**, so a payment just before midnight is not missed, and reaches back to
   the day a still pending payment was made, since booking came three days later over a weekend; never more than
   14 days back.

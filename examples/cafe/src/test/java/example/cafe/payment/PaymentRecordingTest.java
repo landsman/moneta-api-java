@@ -21,7 +21,7 @@ class PaymentRecordingTest {
 
     @Test
     void aPaymentNotSeenBeforeIsRecorded() {
-        var payment = pending("2606928699810906118", "1007", "2700284437/2010");
+        var payment = pending("2600000000000000001", "1007", "4040404040/0800");
 
         assertEquals(
                 List.of(new PaymentRecording.Step.Record(payment)),
@@ -30,16 +30,16 @@ class PaymentRecordingTest {
 
     @Test
     void aPaymentRecordedUnderItsIdIsLeftAlone() {
-        var payment = pending("2606928699810906118", "1007", "2700284437/2010");
+        var payment = pending("2600000000000000001", "1007", "4040404040/0800");
 
-        assertEquals(List.of(), PaymentRecording.steps(List.of(payment), Set.of("2606928699810906118"), List.of()));
+        assertEquals(List.of(), PaymentRecording.steps(List.of(payment), Set.of("2600000000000000001"), List.of()));
     }
 
     @Test
     void theBookedVersionBooksThePendingRowEvenWithTheAccountWrittenDifferently() {
-        // Pending MONETA wrote the payer's account 2700284437/2010, booked 0 2700284437/2010 (live, 2026-11-07).
-        var row = Payment.of(pending("2606928699810906118", "1007", "2700284437/2010"), SEEN, 1007L);
-        var booked = booked("0285985332:20261109:00001:1", "1007", "0 2700284437/2010");
+        // Pending MONETA wrote the payer's account 4040404040/0800, booked 0 4040404040/0800 (live, 2026-11-07).
+        var row = Payment.of(pending("2600000000000000001", "1007", "4040404040/0800"), SEEN, 1007L);
+        var booked = booked("0000001337:20261109:00001:1", "1007", "0 4040404040/0800");
 
         assertEquals(
                 List.of(new PaymentRecording.Step.Book(row, booked)),
@@ -48,7 +48,7 @@ class PaymentRecordingTest {
 
     @Test
     void aBookedPaymentWithNoPendingRowIsRecordedAsNew() {
-        var booked = booked("0285985332:20261109:00002:2", "1007", "0 2700284437/2010");
+        var booked = booked("0000001337:20261109:00002:2", "1007", "0 4040404040/0800");
 
         assertEquals(
                 List.of(new PaymentRecording.Step.Record(booked)),
@@ -58,10 +58,10 @@ class PaymentRecordingTest {
     @Test
     void twoIdenticalPaymentsStayTwoWhenBooked() {
         // Paid twice from one account: each booked payment takes one pending row, none is lost.
-        var first = Payment.of(pending("p1", "1007", "2700284437/2010"), SEEN, 1007L);
-        var second = Payment.of(pending("p2", "1007", "2700284437/2010"), SEEN, 1007L);
-        var bookedFirst = booked("b1", "1007", "0 2700284437/2010");
-        var bookedSecond = booked("b2", "1007", "0 2700284437/2010");
+        var first = Payment.of(pending("p1", "1007", "4040404040/0800"), SEEN, 1007L);
+        var second = Payment.of(pending("p2", "1007", "4040404040/0800"), SEEN, 1007L);
+        var bookedFirst = booked("b1", "1007", "0 4040404040/0800");
+        var bookedSecond = booked("b2", "1007", "0 4040404040/0800");
 
         assertEquals(
                 List.of(
@@ -83,7 +83,7 @@ class PaymentRecordingTest {
                 new PaymentSymbols("1007", null, null),
                 null,
                 null,
-                "0 2700284437/2010",
+                "0 4040404040/0800",
                 true,
                 "{}");
 
@@ -92,7 +92,7 @@ class PaymentRecordingTest {
 
     @Test
     void anAccountIsOneValueHoweverItIsWritten() {
-        assertEquals("2700284437/2010", PaymentRecording.accountKey("0 2700284437/2010"));
+        assertEquals("4040404040/0800", PaymentRecording.accountKey("0 4040404040/0800"));
         assertEquals("192000145399/0800", PaymentRecording.accountKey("19-2000145399/0800"));
         assertEquals("192000145399/0800", PaymentRecording.accountKey("19 2000145399/0800"));
     }
