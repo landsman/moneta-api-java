@@ -17,7 +17,7 @@ dependencies {
 
 sourceSets.test {
     java.srcDir("../shared/src/test/java")
-    resources.srcDir("../shared/src/test/resources")
+    resources.srcDir("../../resources") // one MONETA answer for every testing project
 }
 
 // Micronaut 5's jars are Java 25 bytecode, so this caller is compiled for 25 and runs on it whatever -PtestsJdk
