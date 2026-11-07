@@ -36,7 +36,7 @@ dependencies {
     // Every test application has Micrometer, so the metrics are on unless a test turns them off; the testing/quarkus
     // projects are the applications without it.
     testImplementation("io.micrometer:micrometer-core")
-    testRuntimeOnly("io.micrometer:micrometer-java11")
+    testImplementation("io.micrometer:micrometer-java11")
     testRuntimeOnly("io.quarkus:quarkus-micrometer-deployment")
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
