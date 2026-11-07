@@ -12,6 +12,10 @@ include(
 
 // Callers the library promises to work for, each on its own classpath; see testing/README.md.
 include(
+    // Gradle would add these parents anyway; listed so Dependabot reads their build files too.
+    ":testing:spring-boot",
+    ":testing:play",
+    ":testing:micronaut",
     ":testing:spring-boot:3.5.12",
     ":testing:spring-boot:3.5.16",
     ":testing:spring-boot:4.0.0",
