@@ -4,19 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import cz.insuit.moneta.Money;
-import cz.insuit.moneta.PaymentSymbols;
-import cz.insuit.moneta.Transaction;
+import example.cafe.payment.Payment;
+import example.cafe.payment.PaymentRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.Currency;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jdbc.test.autoconfigure.DataJdbcTest;
 
-/** The bill table as schema.sql makes it, on H2 like the app. */
+/** The two tables as schema.sql makes them, on H2 like the app. */
 @DataJdbcTest
 class BillRepositoryTest {
 
@@ -25,45 +22,49 @@ class BillRepositoryTest {
     @Autowired
     BillRepository bills;
 
+    @Autowired
+    PaymentRepository payments;
+
     @Test
-    void symbolsAscendFromAThousandAndOnlyUnpaidBillsAreLookedFor() {
+    void symbolsAscendFromAThousand() {
         var coffee = bills.save(Bill.issue(new BigDecimal("65"), NOW));
         var cake = bills.save(Bill.issue(new BigDecimal("89"), NOW));
-        bills.save(cake.paidWith(payment("t1"), NOW));
 
         // A rolled-back test does not give its ids back, and neither does production: a symbol is never reused.
         assertTrue(Long.parseLong(coffee.variableSymbol()) >= 1000);
         assertEquals(Long.parseLong(coffee.variableSymbol()) + 1, Long.parseLong(cake.variableSymbol()));
-        assertEquals(
-                List.of(coffee.variableSymbol()),
-                bills.findByPaymentBookedFalseOrderById().stream()
-                        .map(Bill::variableSymbol)
-                        .toList());
     }
 
     @Test
-    void oneSymbolCannotPayTwoBills() {
+    void aBillsPaymentsAreTheOnesLinkedToIt() {
         var coffee = bills.save(Bill.issue(new BigDecimal("65"), NOW));
-        var cake = bills.save(Bill.issue(new BigDecimal("65"), NOW));
-        bills.save(coffee.paidWith(payment("t1"), NOW));
+        payments.save(payment("p1", coffee.id()));
+        payments.save(payment("p2", null));
 
-        assertThrows(RuntimeException.class, () -> bills.save(cake.paidWith(payment("t1"), NOW)));
+        assertEquals(1, payments.findByBillIdOrderByFirstSeenAt(coffee.id()).size());
+        assertEquals(1, payments.findByBillIdIsNullOrderByFirstSeenAtDesc().size());
     }
 
-    private static Transaction payment(String reference) {
-        return new Transaction(
+    @Test
+    void onePaymentIsRecordedOnce() {
+        payments.save(payment("p1", null));
+
+        assertThrows(RuntimeException.class, () -> payments.save(payment("p1", null)));
+    }
+
+    private static Payment payment(String reference, Long billId) {
+        return new Payment(
+                null,
                 reference,
-                Transaction.Status.BOOKED,
-                Transaction.Direction.CREDIT,
-                new Money(new BigDecimal("65"), Currency.getInstance("CZK")),
+                false,
+                new BigDecimal("65"),
+                "CZK",
+                null,
                 null,
                 null,
                 LocalDate.of(2026, 11, 6),
-                new PaymentSymbols(null, null, null),
-                null,
-                null,
-                null,
-                false,
-                "{}");
+                NOW,
+                billId,
+                null);
     }
 }

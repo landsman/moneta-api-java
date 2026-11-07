@@ -1,6 +1,10 @@
 package example.cafe.bill;
 
+import static java.util.Objects.requireNonNull;
+
 import example.cafe.CafeProperties;
+import example.cafe.payment.PaymentRecorder;
+import example.cafe.payment.PaymentRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,8 +25,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 /**
  * {@code POST /bills} with {@code {"amount": 1.00}} issues a bill and answers with its QR payment to show the
- * customer; {@code GET /bills} lists them; {@code GET /bills/{variableSymbol}} answers whether one is paid,
- * looking in MONETA first when it is not yet.
+ * customer; {@code GET /bills} lists them with their payments; {@code GET /bills/{variableSymbol}} answers how much
+ * of one is paid, reading MONETA first when it is not covered yet.
  */
 @RestController
 @Tag(name = "Bills")
@@ -31,13 +35,20 @@ class BillsController {
     private static final Logger log = LoggerFactory.getLogger(BillsController.class);
 
     private final BillRepository bills;
-    private final BillChecker checker;
+    private final PaymentRepository payments;
+    private final PaymentRecorder recorder;
     private final Clock clock;
     private final CafeProperties cafe;
 
-    BillsController(BillRepository bills, BillChecker checker, Clock clock, CafeProperties cafe) {
+    BillsController(
+            BillRepository bills,
+            PaymentRepository payments,
+            PaymentRecorder recorder,
+            Clock clock,
+            CafeProperties cafe) {
         this.bills = bills;
-        this.checker = checker;
+        this.payments = payments;
+        this.recorder = recorder;
         this.clock = clock;
         this.cafe = cafe;
     }
@@ -71,9 +82,9 @@ class BillsController {
     @GetMapping("/bills")
     @Operation(
             summary = "List every bill",
-            description = "Newest first; paid or not, by which payment, first seen when.")
+            description = "Newest first, each with the payments linked to it and what they add up to.")
     List<BillView> list() {
-        return bills.findAllByOrderByIdDesc().stream().map(BillView::of).toList();
+        return bills.findAllByOrderByIdDesc().stream().map(this::view).toList();
     }
 
     /**
@@ -83,15 +94,20 @@ class BillsController {
     @GetMapping("/bills/{variableSymbol}")
     @Operation(
             summary = "Look up a bill",
-            description = "Paid or not; still unpaid, it is first looked for among the payments into the café's"
-                    + " account.")
+            description = "What its payments add up to; not covered yet, the payments into the café's account are"
+                    + " read first.")
     BillView lookUp(@Parameter(example = "1000") @PathVariable("variableSymbol") long variableSymbol) {
         var bill = bills.findById(variableSymbol).orElseThrow(() -> noBill(variableSymbol));
-        if (!bill.paid()) {
-            checker.check();
-            bill = bills.findById(variableSymbol).orElseThrow(() -> noBill(variableSymbol));
+        var view = view(bill);
+        if (view.status() == BillStatus.UNPAID || view.status() == BillStatus.PARTLY_PAID) {
+            recorder.record();
+            view = view(bill);
         }
-        return BillView.of(bill);
+        return view;
+    }
+
+    private BillView view(Bill bill) {
+        return BillView.of(bill, payments.findByBillIdOrderByFirstSeenAt(requireNonNull(bill.id())));
     }
 
     private static ResponseStatusException noBill(long variableSymbol) {
