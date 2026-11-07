@@ -1,7 +1,9 @@
 package example.cafe.payment;
 
 import cz.insuit.moneta.AccessToken;
+import cz.insuit.moneta.Balance;
 import cz.insuit.moneta.MonetaClient;
+import example.cafe.CafeProperties;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -10,13 +12,16 @@ import java.time.LocalDate;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * {@code GET /payments?period=yesterday}, or {@code ?from=2026-11-01&to=2026-11-06} for a range of its own, which
- * wins over the period. Only money in; the counterparty's account and name stay out of the answer.
+ * wins over the period. Only money in; the counterparty's account and name stay out of the answer. {@code GET
+ * /balance} is the café account's balance.
  */
 @RestController
 @Tag(name = "Payments")
@@ -25,11 +30,26 @@ class PaymentsController {
     private final MonetaClient moneta;
     private final AccessToken token;
     private final Clock clock;
+    private final CafeProperties cafe;
 
-    PaymentsController(MonetaClient moneta, AccessToken token, Clock clock) {
+    PaymentsController(MonetaClient moneta, AccessToken token, Clock clock, CafeProperties cafe) {
         this.moneta = moneta;
         this.token = token;
         this.clock = clock;
+        this.cafe = cafe;
+    }
+
+    @GetMapping("/balance")
+    @Operation(
+            summary = "The café account's balance",
+            description = "Booked and available, with the instant MONETA computed it.")
+    Balance balance() {
+        var account = moneta.accounts(token).stream()
+                .filter(a -> cafe.iban().equals(a.iban()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "the token does not open the café's account " + cafe.iban()));
+        return moneta.balance(token, account.id());
     }
 
     @GetMapping("/payments")

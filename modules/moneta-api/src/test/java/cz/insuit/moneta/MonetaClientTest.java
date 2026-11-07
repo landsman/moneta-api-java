@@ -20,6 +20,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Currency;
@@ -46,6 +47,7 @@ class MonetaClientTest {
     private static final AccessToken TOKEN = new AccessToken("secret-token");
     private static final String ACCOUNTS = "/api/v4/vip/aisp/my/accounts";
     private static final String TRANSACTIONS = ACCOUNTS + "/acc-1/transactions";
+    private static final String BALANCE = ACCOUNTS + "/acc-1/balance";
     private static final LocalDate FROM = LocalDate.of(2026, 8, 1);
     private static final LocalDate TO = LocalDate.of(2026, 8, 31);
     private static final Currency CZK = Currency.getInstance("CZK");
@@ -298,6 +300,49 @@ class MonetaClientTest {
             assertEquals("1010101010/0100", outgoing.counterpartyAccount());
             assertNull(outgoing.counterpartyName());
             assertFalse(outgoing.toString().contains("1010101010"));
+        }
+
+        @Test
+        void readsTheBookedAndAvailableBalanceWithItsInstant() {
+            // Recorded from the live API, the amounts replaced.
+            answer(BALANCE, 200, fixture("live/balance.json"));
+
+            var balance = client.balance(TOKEN, "acc-1");
+
+            var amount = new Money(new BigDecimal("1337"), CZK);
+            assertEquals(new Balance(amount, amount, Instant.parse("2026-11-07T15:32:12.391Z")), balance);
+        }
+
+        @Test
+        void anOverdrawnBalanceIsBelowZero() {
+            // language=JSON
+            var overdrawn = """
+                    {"balances": [
+                      {"amount": {"currency": "CZK", "value": 12.5}, "creditDebitIndicator": "DBIT",
+                       "date": {"dateTime": "2026-11-07T15:32:12Z"}, "type": {"codeOrProprietary": {"code": "CLBD"}}},
+                      {"amount": {"currency": "CZK", "value": 87.5}, "creditDebitIndicator": "CRDT",
+                       "date": {"dateTime": "2026-11-07T15:32:12Z"}, "type": {"codeOrProprietary": {"code": "CLAV"}}}
+                    ]}""";
+            answer(BALANCE, 200, overdrawn);
+
+            var balance = client.balance(TOKEN, "acc-1");
+
+            assertEquals(new Money(new BigDecimal("-12.50"), CZK), balance.booked());
+            assertEquals(new Money(new BigDecimal("87.50"), CZK), balance.available());
+        }
+
+        @Test
+        void aBalanceWithoutTheAvailableOneIsRefused() {
+            // language=JSON
+            var bookedOnly = """
+                    {"balances": [
+                      {"amount": {"currency": "CZK", "value": 1}, "creditDebitIndicator": "CRDT",
+                       "date": {"dateTime": "2026-11-07T15:32:12Z"}, "type": {"codeOrProprietary": {"code": "CLBD"}}}
+                    ]}""";
+            answer(BALANCE, 200, bookedOnly);
+
+            var refused = assertThrows(MonetaException.InvalidResponse.class, () -> client.balance(TOKEN, "acc-1"));
+            assertTrue(String.valueOf(refused.getMessage()).contains("CLAV"), refused.getMessage());
         }
 
         @Test

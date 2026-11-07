@@ -3,6 +3,7 @@ package cz.insuit.moneta;
 import static java.util.Objects.requireNonNull;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
@@ -145,6 +146,36 @@ final class MonetaJson {
             requireNonNull(currency, "currency");
         }
     }
+
+    /** {@code GET …/accounts/{id}/balance}: one entry per type, {@code CLBD} and {@code CLAV} (live, 2026-11-07). */
+    record BalancesJson(List<BalanceJson> balances) {
+        BalancesJson {
+            requireNonNull(balances, "balances");
+        }
+    }
+
+    record BalanceJson(Amount amount, String creditDebitIndicator, DateTimeValue date, BalanceType type) {
+        BalanceJson {
+            requireNonNull(amount, "amount");
+            requireNonNull(creditDebitIndicator, "creditDebitIndicator");
+            requireNonNull(date, "date");
+            requireNonNull(type, "type");
+        }
+    }
+
+    record DateTimeValue(Instant dateTime) {
+        DateTimeValue {
+            requireNonNull(dateTime, "dateTime");
+        }
+    }
+
+    record BalanceType(CodeOrProprietary codeOrProprietary) {
+        BalanceType {
+            requireNonNull(codeOrProprietary, "codeOrProprietary");
+        }
+    }
+
+    record CodeOrProprietary(@Nullable String code) {}
 
     /** A pending movement sends {@code {"date": null}} for its booking and value dates (live, 2026-11-06). */
     record DateValue(@Nullable LocalDate date) {}

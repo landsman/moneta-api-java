@@ -1,0 +1,18 @@
+{
+  "balances": [
+    {
+      "amount": { "currency": "CZK", "value": 1337 },
+      "creditDebitIndicator": "CRDT",
+      "creditLine": { "amount": { "value": 0 }, "included": true },
+      "date": { "dateTime": "2026-11-07T15:32:12.391Z" },
+      "type": { "codeOrProprietary": { "code": "CLAV" } }
+    },
+    {
+      "amount": { "currency": "CZK", "value": 1337 },
+      "creditDebitIndicator": "CRDT",
+      "creditLine": { "amount": { "value": 0 }, "included": true },
+      "date": { "dateTime": "2026-11-07T15:32:12.391Z" },
+      "type": { "codeOrProprietary": { "code": "CLBD" } }
+    }
+  ]
+}

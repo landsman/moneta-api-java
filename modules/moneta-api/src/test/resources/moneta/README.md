@@ -19,7 +19,7 @@ validator and belong to nobody.
 | a payer | `4040404040/0800` | `CZ4008000000004040404040` | 404 Not Found |
 | another counterparty | `1010101010/0100` | `CZ2301000000001010101010` | binary |
 
-A movement's `entryReference` is replaced with `2600000000000000001`, counting up for more than one; a name,
+A balance's amounts are replaced with `1337`. A movement's `entryReference` is replaced with `2600000000000000001`, counting up for more than one; a name,
 when one appears, with `Jan Novak`.
 
 Recording one: save the body, then run it through `jq` setting every `identification`, `iban`, name and

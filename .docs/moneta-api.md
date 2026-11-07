@@ -72,6 +72,19 @@ and a portal account: [access](access.md).
 | `toDate` before `fromDate` | 400 `{"errors":[{"error":"DT01","message":"Neplatné datum."}]}` |
 | `fromDate=garbage` | 500 `cbl.process.request.exception`, "Zkuste zadání vašeho požadavku opakovat později." |
 
+## A balance
+
+`GET …/accounts/{id}/balance` (not `balances`, which is a 400 `INVALID_REQUEST`) answers two entries, read on
+2026-11-07 ([`live/balance.json`](../modules/moneta-api/src/test/resources/moneta/live/balance.json), amounts
+replaced):
+
+- **`type.codeOrProprietary.code`** is `CLBD` for the booked balance and `CLAV` for the available one.
+- **The amount is unsigned beside `creditDebitIndicator`**, as a movement's.
+- **`date` is `{"dateTime": "2026-11-07T15:32:12.391Z"}`**, an instant in UTC: the `{"date": …}` wrapper of a
+  movement has a date-time choice, and the balance uses it.
+- **`creditLine`** is `{"amount": {"value": 0}, "included": true}` on an account without one, its amount
+  without a currency.
+
 ## A movement
 
 A booked credit as MONETA sends it, anonymised: the first movement in

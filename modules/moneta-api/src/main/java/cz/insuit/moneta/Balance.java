@@ -1,0 +1,40 @@
+package cz.insuit.moneta;
+
+import java.time.Instant;
+import java.util.List;
+
+/**
+ * An account's balance as MONETA reports it. Both amounts are signed, so an overdraft is below zero.
+ *
+ * @param booked what is booked on the account, MONETA's {@code CLBD}
+ * @param available what can be spent, MONETA's {@code CLAV}; a credit line, if the account has one, is in it
+ * @param at when MONETA computed the available balance: a balance carries a time of day, unlike a movement
+ */
+public record Balance(Money booked, Money available, Instant at) {
+
+    static Balance from(String what, MonetaJson.BalancesJson json) {
+        var booked = ofType(what, json.balances(), "CLBD");
+        var available = ofType(what, json.balances(), "CLAV");
+        return new Balance(signed(booked), signed(available), available.date().dateTime());
+    }
+
+    private static MonetaJson.BalanceJson ofType(String what, List<MonetaJson.BalanceJson> balances, String code) {
+        return balances.stream()
+                .filter(balance ->
+                        code.equals(balance.type().codeOrProprietary().code()))
+                .findFirst()
+                .orElseThrow(() -> new MonetaException.InvalidResponse(what + " sent no " + code + " balance", null));
+    }
+
+    /** Unsigned beside a direction, as a movement's amount; an unknown direction is refused, not guessed. */
+    private static Money signed(MonetaJson.BalanceJson balance) {
+        var amount = new Money(balance.amount().value(), balance.amount().currency());
+        return switch (balance.creditDebitIndicator()) {
+            case "CRDT" -> amount;
+            case "DBIT" -> amount.negate();
+            default ->
+                throw new MonetaException.InvalidResponse(
+                        "unknown creditDebitIndicator '" + balance.creditDebitIndicator() + "' on a balance", null);
+        };
+    }
+}
