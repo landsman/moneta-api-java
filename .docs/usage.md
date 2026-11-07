@@ -25,6 +25,9 @@ for (var account : moneta.accounts(token)) {
 - **Which date is the payment's**: `enteredDate()` while pending, `valueDate()` once booked. `bookingDate()` can
   be a later business day, and `enteredDate()` is null on a booked credit. [How MONETA API behaves](moneta-api.md)
   has the whole table.
+- **No time of day**: a movement has dates only. To tell "paid in the last minute", store when your poller
+  first saw each `entryReference`; polling every few seconds makes that as close as it gets.
+  `examples/cafe` keeps it as `first_seen_at`.
 - **`reversed()`** marks a movement MONETA flags as a reversal; a shop should not count it as a payment.
 - **`incoming(…)`** is `transactions(…)` with only the money that came in, the call a shop checking payments
   makes. Debits are dropped by the client; MONETA has no such filter that is known.
