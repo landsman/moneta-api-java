@@ -1,11 +1,11 @@
 package example.quarkus;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.junit.main.Launch;
-import io.quarkus.test.junit.main.LaunchResult;
 import io.quarkus.test.junit.main.QuarkusMainIntegrationTest;
+import io.quarkus.test.junit.main.QuarkusMainLauncher;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -17,9 +17,13 @@ import org.junit.jupiter.api.Test;
 class MonetaInQuarkusIT {
 
     @Test
-    @Launch
-    void printsTheTransactionsMonetaReturned(LaunchResult result) {
+    void printsTheTransactionsMonetaReturned(QuarkusMainLauncher launcher) {
+        var result = launcher.launch();
+
+        // The application's output in the message, so a CI log shows why it stopped.
+        var output = result.getOutput() + "\n" + result.getErrorOutput();
+        assertEquals(0, result.exitCode(), output);
         // After the banner and the startup log.
-        assertTrue(result.getOutputStream().contains("-12.50 CZK"), result.getOutput());
+        assertTrue(result.getOutputStream().contains("-12.50 CZK"), output);
     }
 }

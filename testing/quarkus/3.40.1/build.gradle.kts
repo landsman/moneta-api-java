@@ -40,3 +40,8 @@ tasks.check { dependsOn(tasks.named("quarkusIntTest")) }
 if (providers.systemProperty("quarkus.native.enabled").orNull == "true") {
     configurations.all { resolutionStrategy.force("com.fasterxml.jackson.core:jackson-annotations:2.22") }
 }
+
+tasks.named<Test>("quarkusIntTest") {
+    // The whole failure, with the application's output, in the CI log; no report is kept there.
+    testLogging { exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL }
+}
