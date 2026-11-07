@@ -6,8 +6,8 @@ import java.net.URI;
 
 /**
  * {@code moneta.*}, read into the client's builder; the keys are the Spring starter's. Public for an application
- * that disables {@link MonetaModule} to add a proxy, mTLS or metrics: it starts from this builder, so the keys are
- * still read in one place.
+ * that disables {@link MonetaModule} to build the client itself: it starts from this builder, so the keys are still
+ * read in one place. A proxy, mTLS or metrics need no such thing: {@code moneta.http.*} names the hooks.
  */
 public final class MonetaConfig {
 

@@ -134,10 +134,10 @@ is found through `reference.conf` and not through the test's own bindings, then 
 
 ## Left out
 
-- **The starter's HTTP hooks** (customizer, decorator, Micrometer, mTLS from an SSL bundle): Play has no bundles,
-  and binding hooks through Guice multibinders would tie the module to Guice. An application that needs a proxy,
-  mTLS or metrics disables the module with `play.modules.disabled` and binds its own client, built with
-  `configureHttpClient` and `decorateHttpClient`; the module's README shows it. Add the hooks when one asks.
+- **Automatic Micrometer instrumentation**, as the starter does: Play has no `MeterRegistry` of its own to find.
+  `HttpClientCustomizer` and `HttpClientDecorator` classes listed under `moneta.http.customizers` and
+  `.decorators`, made by Play's injector, cover a proxy, mTLS and metrics instead, without tying the module to
+  Guice's multibinders.
 - **Compile-time DI** (a `MonetaComponents` interface for an application without Guice): add when one asks.
 - **A client on Play's `WSClient`**, async: a second transport for one framework. `Builder.httpClient` already
   takes the application's `HttpClient`; an async API belongs in the client, for every caller.

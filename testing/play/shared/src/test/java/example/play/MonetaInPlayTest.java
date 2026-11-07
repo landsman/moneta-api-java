@@ -3,6 +3,7 @@ package example.play;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.inject.ConfigurationException;
 import com.sun.net.httpserver.HttpServer;
@@ -16,6 +17,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.time.LocalDate;
 import java.util.Currency;
+import java.util.List;
 import java.util.Objects;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -100,6 +102,30 @@ class MonetaInPlayTest {
                 MonetaException.NoAnswer.class,
                 () -> moneta.transactions(
                         new AccessToken("t"), "acc-1", LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31)));
+    }
+
+    @Test
+    void theHooksNamedInConfigAreAppliedCustomizersFirst() throws Exception {
+        // Decorators listed first, to show the order is the kind's and not the config's.
+        var app = new GuiceApplicationBuilder()
+                .configure("moneta.http.decorators", List.of(Hooks.Metrics.class.getName()))
+                .configure("moneta.http.customizers", List.of(Hooks.Proxy.class.getName()))
+                .build();
+        try {
+            assertEquals(List.of("customize", "decorate"), app.injector().instanceOf(Hooks.Calls.class).names);
+        } finally {
+            stop(app);
+        }
+    }
+
+    @Test
+    void aHookThatIsNotOneStopsTheStart() {
+        var start = assertThrows(
+                RuntimeException.class,
+                () -> new GuiceApplicationBuilder()
+                        .configure("moneta.http.customizers", List.of(String.class.getName()))
+                        .build());
+        assertTrue(String.valueOf(start.getMessage()).contains("moneta.http.customizers"), start::getMessage);
     }
 
     /** Play 3.0 and 2.9 pin Jackson 2.14, below the jackson-annotations 2.21 the client brings. */

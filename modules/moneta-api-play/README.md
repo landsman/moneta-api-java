@@ -70,41 +70,49 @@ guide. The module ships neither, because that class takes a Pekko `ActorSystem` 
 
 ## A proxy, mTLS or metrics
 
-The module builds a plain client. For anything the Spring starter configures with beans, disable it and bind your
-own, closed the same way. `MonetaConfig.builder(config)` still reads `moneta.*`, so only the HTTP part is yours:
+List `HttpClientCustomizer` and `HttpClientDecorator` classes under `moneta.http`, as `play.filters.enabled` lists
+filters. Play's injector makes each, so it can take what it needs; they apply in the listed order, customizers
+before decorators, and the client still owns and closes its HTTP client.
 
 ```hocon
-play.modules.disabled += "cz.insuit.moneta.play.MonetaModule"
+moneta.http {
+  customizers = ["app.moneta.Mtls"]
+  decorators = ["app.moneta.Metrics"]
+}
 ```
 
 ```java
-// play.api.inject.ApplicationLifecycle, as the module uses: every application has it. play.inject's is bound
-// only with play-java, so a Scala application without it would not start.
-import play.api.inject.ApplicationLifecycle;
+public class Mtls implements HttpClientCustomizer {
+    @Override
+    public void customize(HttpClient.Builder http) {
+        http.sslContext(sslContextFromYourKeyStore());
+    }
+}
 
-public class MonetaProvider implements Provider<MonetaClient> {
-    @Inject Config config;
-    @Inject ApplicationLifecycle lifecycle;
+public class Metrics implements HttpClientDecorator {
+    private final MeterRegistry registry;
+
+    @Inject
+    public Metrics(MeterRegistry registry) {
+        this.registry = registry;
+    }
 
     @Override
-    public MonetaClient get() {
-        var client = MonetaConfig.builder(config)
-                .configureHttpClient(http -> http.sslContext(mtls()))
-                .decorateHttpClient(http -> MicrometerHttpClient.instrumentationBuilder(http, registry)
-                        .uriMapper(MonetaClient::uriTemplate)
-                        .build())
+    public HttpClient decorate(HttpClient http) {
+        return MicrometerHttpClient.instrumentationBuilder(http, registry)
+                .uriMapper(MonetaClient::uriTemplate)
                 .build();
-        lifecycle.addStopHook(() -> {
-            client.close();
-            return CompletableFuture.completedFuture(null);
-        });
-        return client;
     }
 }
 ```
 
-bound with `bind(MonetaClient.class).toProvider(MonetaProvider.class).asEagerSingleton()` in a Guice module of
-the application's.
+A name that is not such a class stops the start. Unlike the Spring starter, nothing instruments by itself: Play has
+no `MeterRegistry` of its own to find.
+
+To build the client entirely yourself, disable the module with
+`play.modules.disabled += "cz.insuit.moneta.play.MonetaModule"` and start from `MonetaConfig.builder(config)`, which
+still reads `moneta.*`; close the client in a stop hook on `play.api.inject.ApplicationLifecycle`, which every
+application has, unlike `play.inject`'s, bound only with play-java.
 
 ## Jackson
 
