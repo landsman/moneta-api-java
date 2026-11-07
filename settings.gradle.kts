@@ -1,7 +1,7 @@
 rootProject.name = "moneta-api-java"
 
-// What ships: the client, and the Spring Boot starter around it.
-include(":modules:moneta-api", ":modules:moneta-api-spring-boot-starter")
+// What ships: the client, and the Spring Boot starter and Play module around it.
+include(":modules:moneta-api", ":modules:moneta-api-spring-boot-starter", ":modules:moneta-api-play")
 
 // Callers the library promises to work for, each on its own classpath; see testing/README.md.
 include(
@@ -10,6 +10,9 @@ include(
     ":testing:spring-boot:4.0.0",
     ":testing:spring-boot:4.1.2",
     ":testing:kotlin",
+    ":testing:play:3.0-scala-2.13",
+    ":testing:play:3.0-scala-3",
+    ":testing:play:2.9",
 )
 
 // make dev
