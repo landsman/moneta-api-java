@@ -66,17 +66,60 @@ and a portal account: [access](access.md).
 ## A movement
 
 ```json
-{"entryReference": "0000001337:20261109:00001:26110600000000001", "status": "BOOK",
- "creditDebitIndicator": "CRDT", "amount": {"value": 1, "currency": "CZK"},
- "enteredDate": {"date": null}, "bookingDate": {"date": "2026-11-09"}, "valueDate": {"date": "2026-11-06"},
- "reversalIndicator": false,
- "entryDetails": {"transactionDetails": {
-   "references": {"clearingSystemReference": "PAYMENT_ORDER_DOMESTIC", "endToEndIdentification": "1007"},
-   "relatedParties": {"debtor": {"name": "Novak, Jan"},
-                      "debtorAccount": {"identification": {"other": {"identification": "4040404040/0800"}}},
-                      "creditorAccount": {"identification": {"other": {"identification": "1337/0600"}}}},
-   "remittanceInformation": {"structured": {"creditorReferenceInformation": {"reference": "VS:1007"}},
-                             "unstructured": "KAVARNA UCET 1007"}}}}
+{
+  "entryReference": "0000001337:20261109:00001:26110600000000001",
+  "status": "BOOK",
+  "creditDebitIndicator": "CRDT",
+  "amount": {
+    "value": 1,
+    "currency": "CZK"
+  },
+  "enteredDate": {
+    "date": null
+  },
+  "bookingDate": {
+    "date": "2026-11-09"
+  },
+  "valueDate": {
+    "date": "2026-11-06"
+  },
+  "reversalIndicator": false,
+  "entryDetails": {
+    "transactionDetails": {
+      "references": {
+        "clearingSystemReference": "PAYMENT_ORDER_DOMESTIC",
+        "endToEndIdentification": "1007"
+      },
+      "relatedParties": {
+        "debtor": {
+          "name": "Novak, Jan"
+        },
+        "debtorAccount": {
+          "identification": {
+            "other": {
+              "identification": "4040404040/0800"
+            }
+          }
+        },
+        "creditorAccount": {
+          "identification": {
+            "other": {
+              "identification": "1337/0600"
+            }
+          }
+        }
+      },
+      "remittanceInformation": {
+        "structured": {
+          "creditorReferenceInformation": {
+            "reference": "VS:1007"
+          }
+        },
+        "unstructured": "KAVARNA UCET 1007"
+      }
+    }
+  }
+}
 ```
 
 ### Pending and booked
