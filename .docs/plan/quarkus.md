@@ -94,7 +94,9 @@ does, and says itself that not every step applies to every extension. Going thro
    native by `make native-test` and run on Linux; the README and the compatibility section.
 3. **Metrics.** A decorator wrapping the client in `MicrometerHttpClient` with
    `uriMapper(MonetaClient::uriTemplate)` when `quarkus-micrometer` and `micrometer-java11` are present, off
-   under the OpenTelemetry Java agent, replaceable, as in the starter. Its own pull request.
+   under the OpenTelemetry Java agent, as in the starter. Done in its own pull request; turned off with the
+   build-time `quarkus.moneta.metrics.enabled=false` rather than by replacing a named bean, since a CDI
+   `@DefaultBean` would step aside for any decorator of the application's.
 
 What the native build found, which the JVM never showed: the TLS registry has to be a real dependency of the
 runtime module, since an image links every class it refers to; and `jackson-annotations` 2.21, which the

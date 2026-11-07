@@ -19,6 +19,7 @@ serving many merchants leaves `quarkus.moneta.token` unset and passes each one's
 | `quarkus.moneta.request-timeout` | the client's |
 | `quarkus.moneta.partner.identification-number`, `.business-name`, `.application-name` | none: no partner headers; all three or none |
 | `quarkus.moneta.tls-configuration-name` | none: the JDK's TLS |
+| `quarkus.moneta.metrics.enabled` | `true`; fixed at build time |
 
 The names are the Spring Boot starter's, under `quarkus.` as Quarkus asks of extensions. A `MonetaClient` bean of
 the application's own replaces the one built here. The client is built at startup, so a token, partner value or
@@ -38,6 +39,23 @@ quarkus.tls.moneta.key-store.p12.password=${MONETA_P12_PASSWORD}
 Anything else is an `HttpClientCustomizer` bean, which changes the HTTP client before it is built, or an
 `HttpClientDecorator` bean, which wraps it; both apply in `@Priority` order, highest first, after the TLS
 configuration. The client still owns and closes its HTTP client.
+
+## Metrics
+
+With `quarkus-micrometer` and `micrometer-java11` in the application, every call is timed as
+`http.client.requests`, tagged by `MonetaClient::uriTemplate`, so the `uri` tag holds
+`/api/v4/vip/aisp/my/accounts/{accountId}/balance` and never an account id, as under the starter. Quarkus has
+no binder for the JDK client of its own, so `micrometer-java11` is the one to add; the Quarkus BOM manages its
+version.
+
+```kotlin
+implementation("io.quarkus:quarkus-micrometer-registry-prometheus") // or any registry
+implementation("io.micrometer:micrometer-java11")
+```
+
+`quarkus.moneta.metrics.enabled=false` turns it off, for an application that wraps the client with an
+`HttpClientDecorator` of its own instead. It is off under the OpenTelemetry Java agent too, which instruments the
+JDK client already. Traces come from Quarkus's own OpenTelemetry, not from here.
 
 ## Native image
 

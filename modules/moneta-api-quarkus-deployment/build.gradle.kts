@@ -14,9 +14,13 @@ dependencies {
     // Every extension the runtime module depends on needs its deployment half here; the plugin checks it.
     implementation("io.quarkus:quarkus-tls-registry-deployment:3.33.4")
     compileOnly(quarkus)
+    compileOnly("io.quarkus:quarkus-core")
     compileOnly("io.quarkus:quarkus-core-deployment")
+    compileOnly("io.quarkus:quarkus-builder")
     compileOnly("io.quarkus:quarkus-arc-deployment")
     compileOnly("io.quarkus.arc:arc-processor")
+    compileOnly("io.quarkus:quarkus-bootstrap-core")
+    compileOnly("io.smallrye.config:smallrye-config-core")
     compileOnly("jakarta.inject:jakarta.inject-api")
     annotationProcessor(quarkus)
     annotationProcessor("io.quarkus:quarkus-extension-processor")
@@ -29,6 +33,11 @@ dependencies {
     testImplementation("org.jboss.shrinkwrap:shrinkwrap-api")
     // What QuarkusUnitTest builds the application from; found by Quarkus at build time, never by a class.
     testRuntimeOnly("io.quarkus:quarkus-arc-deployment")
+    // Every test application has Micrometer, so the metrics are on unless a test turns them off; the testing/quarkus
+    // projects are the applications without it.
+    testImplementation("io.micrometer:micrometer-core")
+    testRuntimeOnly("io.micrometer:micrometer-java11")
+    testRuntimeOnly("io.quarkus:quarkus-micrometer-deployment")
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
