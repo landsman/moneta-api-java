@@ -30,6 +30,61 @@ dependencyManagement { dependencies { dependency("com.fasterxml.jackson.core:jac
 Spring Boot 3.5.13 and newer, and every Spring Boot 4, need nothing. `make build` checks all three cases, and a
 Kotlin caller, in [testing/](../testing/README.md).
 
+## Your own HTTP stack
+
+The client sends through a JDK `java.net.http.HttpClient` it builds itself: no redirects followed, no cookies
+(one client serves many merchants' tokens), a 10-second connect timeout. Two hooks change it and keep that,
+including that `close()` closes it:
+
+```java
+MonetaClient.builder()
+        // before it is built: a proxy, an SSLContext for mTLS or a trust store, an executor
+        .configureHttpClient(http -> http.proxy(ProxySelector.of(new InetSocketAddress("proxy.internal", 3128))))
+        // after: a wrapper that delegates to it, for tracing or metrics; the first added is innermost
+        .decorateHttpClient(http -> MicrometerHttpClient.instrumentationBuilder(http, meterRegistry)
+                .observationRegistry(observationRegistry)
+                .build())
+        .build();
+```
+
+With the starter, the same as beans, applied in their `@Order`:
+
+```java
+@Bean
+MonetaHttpClientCustomizer monetaProxy() {
+    return http -> http.proxy(ProxySelector.of(new InetSocketAddress("proxy.internal", 3128)));
+}
+
+@Bean
+MonetaHttpClientDecorator monetaObservation(MeterRegistry meters, ObservationRegistry observations) {
+    return http -> MicrometerHttpClient.instrumentationBuilder(http, meters)
+            .observationRegistry(observations)
+            .build();
+}
+```
+
+What to know before relying on it:
+
+- **A decorator wraps, it does not replace.** Returning another client skips the settings above and leaves the
+  one the library built unused; whatever a decorator allocates itself is yours to close.
+- **Both are ignored when you define your own `MonetaClient` bean**, since the starter then builds none.
+- **Micrometer** ([`micrometer-java11`](https://docs.micrometer.io/micrometer/reference/reference/java-httpclient.html))
+  gives traces as they are, but tags every call's metrics `uri=UNKNOWN`: its default reads a `URI_PATTERN`
+  request header the library does not send, and a `uriMapper` you write would have to know the library's paths,
+  which are not API. A low-cardinality tag needs the library's help, not done yet
+  ([#36](https://github.com/landsman/moneta-api-java/issues/36)).
+- **OpenTelemetry**: the Java agent instruments the JDK client with nothing configured, so add no decorator,
+  Micrometer's or OpenTelemetry's, on top of it: each adds a second span per call. Without the agent, its
+  [library instrumentation](https://opentelemetry.io/docs/languages/java/libraries/) wraps a JDK client; the
+  method has changed name between releases, so take it from the version you use.
+- **The JDK client cannot do everything** an OkHttp or Apache stack can: a SOCKS proxy is skipped silently, Basic
+  auth on an HTTPS proxy tunnel is off by default (`jdk.http.auth.tunneling.disabledSchemes`), NTLM is missing,
+  and interceptors written for those stacks do not apply. There is no transport hook for them yet.
+- **A failure inside a wrapper**: an `UncheckedIOException` becomes `MonetaException.NoAnswer`, anything else
+  reaches you as it was thrown.
+- **`httpClient(…)`** still takes a client of your own, which you close, and which brings its own redirects,
+  cookies and timeouts; `configureHttpClient` is refused beside it.
+
 ## Micronaut
 
 No module. A factory is all it takes:
