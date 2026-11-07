@@ -48,7 +48,13 @@ class MonetaInSpringBootTest {
                 + server.getAddress().getPort() + "/";
         try (var context = new SpringApplicationBuilder(App.class)
                 .web(WebApplicationType.NONE)
-                .properties("moneta.base-uri=" + base, "moneta.token=t")
+                .properties(
+                        "moneta.base-uri=" + base,
+                        "moneta.token=t",
+                        // Spring Boot routes the client's System.Logger into Logback, so this writes its DEBUG line,
+                        // with
+                        // whatever jackson-annotations the BOM pins.
+                        "logging.level.cz.insuit.moneta=DEBUG")
                 .run()) {
             var moneta = context.getBean(MonetaClient.class);
             var token = context.getBean(AccessToken.class);

@@ -23,3 +23,9 @@ copy of that build file. The Micronaut projects are laid out the same, around `m
 and keep Micrometer off their classpath: the module names its types in a method signature, and these projects
 are what proves it loads without them.
 
+Both also log the client at DEBUG, since writing that line is the one place it serialises: a BOM pinning
+`jackson-annotations` 2.21 under databind 3.2 once broke every call there. The Micronaut projects carry
+`slf4j-jdk-platform-logging` and a `logback.xml`, as the module README tells an application to, and check the line
+reaches Logback through `logger.levels` alone; without the provider it does not, Micronaut leaves
+`java.util.logging` alone.
+

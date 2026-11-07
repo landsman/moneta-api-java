@@ -1,0 +1,12 @@
+<!-- What a Micronaut application ships; logger.levels needs one to apply to. INFO, so only logger.levels turns the
+     client's DEBUG line on. -->
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    <root level="info">
+        <appender-ref ref="STDOUT"/>
+    </root>
+</configuration>
