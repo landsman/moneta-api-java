@@ -1,17 +1,15 @@
 package example.cafe.payment;
 
 import cz.insuit.moneta.AccessToken;
-import cz.insuit.moneta.Account;
 import cz.insuit.moneta.MonetaClient;
 import cz.insuit.moneta.MonetaException;
 import cz.insuit.moneta.Transaction;
-import example.cafe.CafeProperties;
+import example.cafe.CafeAccount;
 import example.cafe.bill.Bill;
 import example.cafe.bill.BillRepository;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -38,7 +36,7 @@ public class PaymentRecorder {
     private final MonetaClient moneta;
     private final AccessToken token;
     private final Clock clock;
-    private final CafeProperties cafe;
+    private final CafeAccount cafeAccount;
 
     PaymentRecorder(
             PaymentRepository payments,
@@ -47,14 +45,14 @@ public class PaymentRecorder {
             MonetaClient moneta,
             AccessToken token,
             Clock clock,
-            CafeProperties cafe) {
+            CafeAccount cafeAccount) {
         this.payments = payments;
         this.writes = writes;
         this.bills = bills;
         this.moneta = moneta;
         this.token = token;
         this.clock = clock;
-        this.cafe = cafe;
+        this.cafeAccount = cafeAccount;
     }
 
     @Scheduled(fixedDelayString = "${cafe.check-moneta-every:PT30S}")
@@ -68,9 +66,9 @@ public class PaymentRecorder {
     }
 
     public void record() {
-        var account = cafeAccount();
+        var account = cafeAccount.find();
         if (account.isEmpty()) {
-            log.error("The token does not open the café's account {} (cafe.iban)", cafe.iban());
+            log.error("The token does not open the café's account {} (cafe.iban)", cafeAccount.iban());
             return;
         }
         var pending = payments.findByBookedFalse();
@@ -151,11 +149,5 @@ public class PaymentRecorder {
                 .filter(bill -> bill.currency().equals(currency))
                 .map(Bill::id)
                 .orElse(null);
-    }
-
-    private Optional<Account> cafeAccount() {
-        return moneta.accounts(token).stream()
-                .filter(account -> cafe.iban().equals(account.iban()))
-                .findFirst();
     }
 }
