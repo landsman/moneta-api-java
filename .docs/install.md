@@ -10,10 +10,17 @@ All six jars are on this repository's [GitHub Packages](https://github.com/lands
 | `cz.insuit:moneta-api-micronaut` | the client and its Micronaut wiring; brings `moneta-api` with it |
 | `cz.insuit:moneta-api-quarkus` | the client and its Quarkus extension; brings `moneta-api` with it, and Quarkus fetches `moneta-api-quarkus-deployment` from the same repository at build time |
 
-**GitHub Packages asks for a token even for a public package.** A personal access token (classic) with the
-`read:packages` scope is enough; keep it out of the build file.
+**GitHub Packages asks for a token even for a public package**, with the `read:packages` scope. It checks only
+the token: any non-empty user name passes.
 
 ## Gradle
+
+With the [GitHub CLI](https://cli.github.com/) signed in, the build can read gh's own token on every run, so no
+copy of it sits on disk and nothing has to be renewed by hand. Give gh the scope once:
+
+```sh
+gh auth refresh -h github.com -s read:packages
+```
 
 ```kotlin
 repositories {
@@ -21,18 +28,35 @@ repositories {
     maven {
         url = uri("https://maven.pkg.github.com/landsman/moneta-api-java")
         credentials {
-            username = providers.gradleProperty("gpr.user").get()
-            password = providers.gradleProperty("gpr.key").get()
+            username = providers.gradleProperty("gpr.user").orElse("gh").orNull
+            password = providers.gradleProperty("gpr.key").orElse(gh("auth", "token")).orNull
         }
+        content { includeGroup("cz.insuit") }
     }
 }
 
 dependencies {
     implementation("cz.insuit:moneta-api-spring-boot-starter:0.1.0") // or -play, -micronaut, -quarkus, or moneta-api alone
 }
+
+// gh's token, or nothing when gh is missing or signed out: the build then gets GitHub's 401, not a crash.
+fun gh(vararg args: String): Provider<String> =
+    provider {
+        runCatching {
+            providers.exec {
+                commandLine("gh", *args)
+                isIgnoreExitValue = true
+            }.standardOutput.asText.get().trim()
+        }.getOrNull()?.takeIf { it.isNotEmpty() }
+    }
 ```
 
-with `gpr.user` and `gpr.key` in `~/.gradle/gradle.properties`, not in the project.
+- **Without gh**, a personal access token (classic) with only `read:packages` (fine-grained tokens cannot read
+  packages) as `gpr.user` and `gpr.key` in `~/.gradle/gradle.properties`, never in the project. They win over gh.
+- **In CI**, pass the token from a secret, e.g. `.orElse(providers.environmentVariable("GITHUB_PACKAGES_TOKEN"))`
+  before the gh fallback, so a runner never calls gh.
+- **The configuration cache** stores the resolved token, encrypted, under the project's `.gradle`; with it on,
+  "no copy on disk" no longer holds.
 
 ## Maven
 
