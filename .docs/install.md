@@ -80,4 +80,4 @@ and in `~/.m2/settings.xml` a `<server>` with the same `id`, your GitHub user an
 ## Snapshots
 
 None are published: only a tagged release is. To try what is not released yet, `make publish-local` in a checkout
-installs every jar into `~/.m2` as `0.1.0-SNAPSHOT`, where `mavenLocal()` finds them.
+installs every jar into `~/.m2` as `0.3.0-SNAPSHOT`, where `mavenLocal()` finds them.

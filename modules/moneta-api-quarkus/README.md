@@ -16,6 +16,7 @@ dependencies {
 <details><summary>Maven</summary>
 
 ```xml
+<!-- in <dependencies> -->
 <dependency>
     <groupId>cz.insuit</groupId>
     <artifactId>moneta-api-quarkus</artifactId>
@@ -26,7 +27,8 @@ dependencies {
 </details>
 
 GitHub Packages asks for a token even for a public package: the repository block and the token are in
-[Installing](../../.docs/install.md). Quarkus fetches `moneta-api-quarkus-deployment` from the same repository at build time.
+[Installing](../../.docs/install.md). Maven needs both, the `<repositories>` entry and the `<server>`, because
+Quarkus fetches `moneta-api-quarkus-deployment` from there at build time.
 
 ## Configure
 
@@ -35,21 +37,31 @@ quarkus.moneta.token=${MONETA_TOKEN}
 ```
 
 That is the whole setup for an application reading one account: inject `MonetaClient` and `AccessToken`. One
-serving many merchants leaves `quarkus.moneta.token` unset and passes each one's token with the call; injecting
+serving many account holders leaves `quarkus.moneta.token` unset and passes each one's token with the call; injecting
 `AccessToken` then fails, naming the property. Keep the token in the environment, never in a committed file.
 
 ```java
+import cz.insuit.moneta.AccessToken;
+import cz.insuit.moneta.AccountHolder;
+import cz.insuit.moneta.MonetaClient;
+import cz.insuit.moneta.Transaction;
+import jakarta.enterprise.context.ApplicationScoped;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
+
 @ApplicationScoped
-class Payments {
+public class Payments {
     private final AccountHolder me;
 
-    Payments(MonetaClient moneta, AccessToken token) {
+    public Payments(MonetaClient moneta, AccessToken token) {
         this.me = moneta.with(token);
     }
 
-    List<Transaction> paidToday() {
+    /** Money received over the last week, booked. */
+    public List<Transaction> receivedThisWeek() {
         var today = LocalDate.now(ZoneId.of("Europe/Prague"));
-        return me.transactions().between(today, today).incoming().list();
+        return me.transactions().between(today.minusDays(7), today).incoming().booked().list();
     }
 }
 ```
@@ -57,18 +69,29 @@ class Payments {
 <details><summary>Kotlin</summary>
 
 ```kotlin
+import cz.insuit.moneta.AccessToken
+import cz.insuit.moneta.MonetaClient
+import cz.insuit.moneta.Transaction
+import jakarta.enterprise.context.ApplicationScoped
+import java.time.LocalDate
+import java.time.ZoneId
+
 @ApplicationScoped
 class Payments(moneta: MonetaClient, token: AccessToken) {
     private val me = moneta.with(token)
 
-    fun paidToday(): List<Transaction> {
+    /** Money received over the last week, booked. */
+    fun receivedThisWeek(): List<Transaction> {
         val today = LocalDate.now(ZoneId.of("Europe/Prague"))
-        return me.transactions().between(today, today).incoming().list()
+        return me.transactions().between(today.minusDays(7), today).incoming().booked().list()
     }
 }
 ```
 
 </details>
+
+It reads the only account the token opens and throws `IllegalStateException` when there are more; then, or with
+one token per account holder, see [More than one account](../../.docs/usage.md#more-than-one-account).
 
 | Property | Default |
 |----------|---------|

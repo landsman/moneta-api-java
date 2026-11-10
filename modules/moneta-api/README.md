@@ -15,6 +15,7 @@ dependencies {
 <details><summary>Maven</summary>
 
 ```xml
+<!-- in <dependencies> -->
 <dependency>
     <groupId>cz.insuit</groupId>
     <artifactId>moneta-api</artifactId>
@@ -30,10 +31,10 @@ GitHub Packages asks for a token even for a public package: the repository block
 ## Use
 
 ```java
-var moneta = new MonetaClient();
-var me = moneta.with(new AccessToken(System.getenv("MONETA_TOKEN")));
-
-me.transactions().between(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30)).incoming().booked().list();
+try (var moneta = new MonetaClient()) { // one per application; close it when the application stops
+    var me = moneta.with(new AccessToken(System.getenv("MONETA_TOKEN")));
+    me.transactions().between(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30)).incoming().booked().list();
+}
 ```
 
 The rest is in [Using the client](../../.docs/usage.md).
