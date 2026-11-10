@@ -376,6 +376,22 @@ class MonetaClientTest {
         }
 
         @Test
+        void aBookedCardPaymentKeepsTheHoldsAmountAndNamesTheMerchantFromItsDescription() {
+            // The same payment as pending-card.json, read once booked; the account and the symbols replaced.
+            answer(TRANSACTIONS, 200, fixture("live/booked-card.json"));
+
+            var card = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
+
+            assertTrue(card.card());
+            assertEquals(Transaction.Status.BOOKED, card.status());
+            assertEquals(new Money(new BigDecimal("-30.00"), CZK), card.amount());
+            assertEquals(LocalDate.of(2026, 11, 7), card.enteredDate());
+            assertEquals(LocalDate.of(2026, 11, 10), card.bookingDate());
+            assertEquals("SumUp  *Studio Art Mic Praha C", card.counterpartyName());
+            assertNull(card.counterpartyAccount());
+        }
+
+        @Test
         void aTransferIsNotACardPayment() {
             answer(TRANSACTIONS, 200, fixture("live/booked.json"));
             assertTrue(client.transactions(TOKEN, "acc-1", FROM, TO).stream().noneMatch(Transaction::card));

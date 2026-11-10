@@ -20,9 +20,9 @@ import org.jspecify.annotations.Nullable;
  * @param counterpartyName the payer of a credit, the payee of a debit; sent once booked, for credits
  * @param counterpartyAccount the other side's account as MONETA writes it, {@code number/bank}
  * @param reversed whether MONETA marks the movement as a reversal
- * @param card whether a card made it. A card payment is a debit whose counterparty name is the card network's
- *     merchant descriptor, padded to fixed widths, and which has no counterparty account. Seen pending only so far
- *     (live, 2026-11-07); a pending card payment is a hold, which the booked one may not match
+ * @param card whether a card made it. A card payment is a debit whose counterparty name is the merchant and which
+ *     has no counterparty account; the merchant text differs between the pending hold and the booked payment
+ *     (live, 2026-11-07 and 2026-11-10)
  * @param raw the movement as MONETA sent it, re-serialised as JSON (key order and number formatting may
  *     differ), for whatever this record does not map. It, the message and the counterparty are left out of
  *     {@link #toString()}, so logging a transaction does not log who paid or what they wrote

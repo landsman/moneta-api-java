@@ -1,0 +1,63 @@
+{
+  "transactions" : [ {
+    "amount" : {
+      "currency" : "CZK",
+      "value" : 30
+    },
+    "bankTransactionCode" : {
+      "proprietary" : {
+        "code" : "30000201000",
+        "issuer" : "CNB"
+      }
+    },
+    "bookingDate" : {
+      "date" : "2026-11-10"
+    },
+    "creditDebitIndicator" : "DBIT",
+    "enteredDate" : {
+      "date" : "2026-11-07"
+    },
+    "entryDetails" : {
+      "transactionDetails" : {
+        "additionalTransactionInformation" : "PLATBA KARTOU ONLINE",
+        "purpose" : {
+          "proprietary" : "Služby"
+        },
+        "references" : {
+          "chequeNumber" : "478544******1033",
+          "clearingSystemReference" : "PAYMENT_CARD",
+          "endToEndIdentification" : "1337",
+          "transactionDescription" : "SumUp  *Studio Art Mic Praha C"
+        },
+        "relatedParties" : {
+          "creditorAccount" : {
+            "identification" : { }
+          },
+          "debtorAccount" : {
+            "identification" : {
+              "other" : {
+                "identification" : "1337/0600"
+              }
+            }
+          }
+        },
+        "remittanceInformation" : {
+          "structured" : {
+            "creditorReferenceInformation" : {
+              "reference" : "VS:1337 KS:1000"
+            }
+          }
+        }
+      }
+    },
+    "entryReference" : "0000001337:20261110:00001:26110600000000001",
+    "reversalIndicator" : false,
+    "status" : "BOOK",
+    "valueDate" : {
+      "date" : null
+    }
+  } ],
+  "pageNumber" : 0,
+  "pageSize" : 100,
+  "pageCount" : 1
+}

@@ -117,7 +117,9 @@ reference" is `entryReference`), and shows the same "Okamžitá platba" while pe
 
 One card payment, read while pending on 2026-11-07
 ([`live/pending-card.json`](../modules/moneta-api/src/test/resources/moneta/live/pending-card.json), the account,
-reference and merchant replaced). How it looks once booked is not seen yet.
+reference and merchant replaced) and again once booked on 2026-11-10, the first working day after it
+([`live/booked-card.json`](../modules/moneta-api/src/test/resources/moneta/live/booked-card.json), the account and
+symbols replaced; the card number comes masked from MONETA and the merchant is kept).
 
 | Field | Pending card payment | Pending transfer, for comparison |
 |-------|----------------------|----------------------------------|
@@ -129,14 +131,33 @@ reference and merchant replaced). How it looks once booked is not seen yet.
 | symbols (`reference`) | `""` | `"VS:"` |
 | `amount.value` | `30.0` | `1` |
 
-- **The merchant descriptor is fixed-width**: 25 characters of name, 13 of city, 2 of country, padded with
-  spaces, as card networks lay out the card acceptor's name and location. A payment facilitator puts its own
+- **The pending merchant descriptor is fixed-width**: 25 characters of name, 13 of city, 2 of country, padded
+  with spaces, as card networks lay out the card acceptor's name and location. A payment facilitator puts its own
   prefix before `*` in the name. Read from one payment, so the widths are an inference.
-- **No card number, no merchant category, no time.**
+- **No card number, no merchant category, no time** while pending.
 - **What the code's digits mean is not published** by MONETA or found in a ČNB or ČBA document; only the first
   digit has differed so far, 1 for a transfer and 3 for a card.
-- **A pending card payment is a hold.** The booked payment may differ in amount, or the hold may lapse without
-  one; not observed yet.
+- **A pending card payment is a hold.** It may lapse without a booked payment; not observed yet.
+
+Once booked, the same payment changed this much:
+
+| Field | Pending | Booked |
+|-------|---------|--------|
+| `status`, `bookingDate` | `PDNG`, `null` | `BOOK`, `2026-11-10` |
+| `clearingSystemReference` | `BLOCKED_PAYMENT_CARD` | `PAYMENT_CARD` |
+| `bankTransactionCode.proprietary.code` | `30000301000` | `30000201000` |
+| the merchant | `creditor.name`, 40 characters at fixed widths | `transactionDescription`, 30 characters, another text |
+| `chequeNumber` | missing | the card number, masked by MONETA: `478544******1033` |
+| `additionalTransactionInformation`, `purpose.proprietary` | missing | `PLATBA KARTOU ONLINE`, `Služby` |
+| `endToEndIdentification`, symbols (`reference`) | missing, `""` | present |
+| `amount.value`, `enteredDate`, `valueDate` | `30.0`, `2026-11-07`, `null` | `30`, `2026-11-07`, `null` |
+
+- **The booked amount matched the hold**, and the booked movement replaced the pending one: the count stayed the
+  same, nothing was left pending.
+- **The merchant moves**: `counterpartyName()` reads `creditor.name` and falls back to `transactionDescription`
+  for a card payment. The booked text is not the pending descriptor shortened, so neither is split into fields.
+- **The code's sixth digit went from 3 to 2** on booking; a transfer's pending code ends `0301000` too, so it may
+  mean pending. One payment, an inference.
 
 ### The rest
 

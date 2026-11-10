@@ -38,12 +38,17 @@ record TransactionJson(
         return remittance().map(RemittanceInformationJson::unstructured).orElse(null);
     }
 
-    /** The other side's name: the debtor of a credit, the creditor of a debit. Sent once booked. */
+    /**
+     * The other side's name: the debtor of a credit, the creditor of a debit. Sent once booked; a card payment sends
+     * its merchant as the creditor while pending and only in {@code transactionDescription} once booked.
+     */
     @Nullable
     String counterpartyName(boolean credit) {
         return parties()
                 .map(parties -> credit ? parties.debtor() : parties.creditor())
                 .map(PartyJson::name)
+                .or(() -> card() ? references().map(ReferencesJson::transactionDescription) : Optional.empty())
+                .filter(name -> !name.isBlank())
                 .orElse(null);
     }
 
@@ -58,13 +63,9 @@ record TransactionJson(
                 .orElse(null);
     }
 
-    /**
-     * Whether a card made the movement. Seen only pending so far, as {@code BLOCKED_PAYMENT_CARD}; the booked value
-     * is assumed to keep the {@code PAYMENT_CARD} ending, as a transfer's keeps {@code PAYMENT_ORDER_DOMESTIC}.
-     */
+    /** Whether a card made the movement: {@code BLOCKED_PAYMENT_CARD} pending, {@code PAYMENT_CARD} booked. */
     boolean card() {
-        return details()
-                .map(TransactionDetailsJson::references)
+        return references()
                 .map(ReferencesJson::clearingSystemReference)
                 .filter(reference -> reference.endsWith("PAYMENT_CARD"))
                 .isPresent();
@@ -72,6 +73,10 @@ record TransactionJson(
 
     private Optional<TransactionDetailsJson> details() {
         return Optional.ofNullable(entryDetails).map(EntryDetailsJson::transactionDetails);
+    }
+
+    private Optional<ReferencesJson> references() {
+        return details().map(TransactionDetailsJson::references);
     }
 
     private Optional<RemittanceInformationJson> remittance() {
