@@ -31,21 +31,14 @@ for (var account : moneta.accounts(token)) {
 - **`balance(token, accountId)`** gives the booked and the available balance, signed, and `at()`, the instant
   MONETA computed it: unlike a movement, a balance has a time of day.
 - **`method()`** says how the money moved: `TRANSFER`, `CARD`, or `OTHER` for anything not mapped yet (fees,
-  interest, ATM withdrawals: [#66](https://github.com/landsman/moneta-api-java/issues/66)).
-  Filter by it, and by direction and status, by chaining:
-
-  ```java
-  moneta.transactions(token, accountId).between(from, to).transfers().outgoing().list();
-  moneta.transactions(token, accountId).between(from, to).cards().booked().list();
-  ```
-
-  Only `between` is required; `incoming()`, `outgoing()`, `booked()`, `pending()` and `method(…)` are optional.
-  MONETA filters by date only, so every movement in the range is read and the rest dropped here. A card payment is a debit whose `counterpartyName()` is the merchant and which has
-  no `counterpartyAccount()`; the merchant text differs between the pending hold and the booked payment, so match
-  a card payment by amount and date, not by name.
+  interest, ATM withdrawals: [#66](https://github.com/landsman/moneta-api-java/issues/66)). Constants will be
+  added as they are seen live, so a `switch` or a Kotlin `when` over it keeps a `default` or an `else`. A card
+  payment is a debit whose `counterpartyName()` is the merchant and which has no `counterpartyAccount()`; the
+  merchant text differs between the pending hold and the booked payment, so match one by amount and date, not by
+  name.
 - **`reversed()`** marks a movement MONETA flags as a reversal; a shop should not count it as a payment.
 - **`incoming(…)`** is `transactions(…)` with only the money that came in, the call a shop checking payments
-  makes. Debits are dropped by the client; MONETA has no such filter that is known.
+  makes; the same as `.incoming()` in [a query](#filtering).
 - **Amounts are `Money`**, a `BigDecimal` with a `Currency`, parsed without a detour through `double`. MONETA
   sends them positive beside a direction; `amount()` is signed, negative for money out, so amounts add up as
   they are. `1500` and `1500.00` CZK are equal.
@@ -76,6 +69,34 @@ for (var account : moneta.accounts(token)) {
   `Transaction` or `Account` would break on the next field.
 
 ---
+
+
+## Filtering
+
+`transactions(token, accountId)` starts a query, narrowed by chaining and read by `list()`:
+
+```java
+var november = moneta.transactions(token, accountId).between(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30));
+
+november.transfers().outgoing().list(); // transfers that went out
+november.cards().booked().list();       // card payments, holds left out
+november.incoming().list();             // everything that came in
+```
+
+| Step | Keeps |
+|------|-------|
+| `between(from, to)` | the date range, both days inclusive; **required** |
+| `transfers()`, `cards()`, `method(…)` | movements made that way |
+| `incoming()`, `outgoing()` | money in, money out |
+| `booked()`, `pending()` | booked movements, pending ones |
+
+- **Every step but `between` is optional**, and the steps combine: each one narrows the last. A later step of
+  the same kind replaces the earlier one, so `incoming().outgoing()` is outgoing.
+- **A query is immutable**: each step returns a new one, so one base query can be narrowed two ways, as above.
+- **Nothing is read until `list()`**, and `list()` without `between` throws `IllegalStateException` before any
+  request.
+- **MONETA filters by date only**, so `list()` reads every movement in the range, all pages, and drops the rest
+  in the client. Narrowing does not make the read cheaper, a shorter range does.
 
 ## Optional settings
 
