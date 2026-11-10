@@ -25,6 +25,7 @@ Maven Central.
 | [Roadmap](.docs/plan/roadmap.md) | the working plan: what is still unknown, what comes next, what is not covered |
 | [Development](.docs/development.md) | build, tests, `make dev` against a real account |
 | [Example café](examples/cafe/README.md) | bills as QR payments, found paid; try it at http://localhost:8080/scalar after `make dev` |
+| [llms.txt](llms.txt) | the setup and the mistakes to avoid, for a coding assistant adding the library to a project |
 
 ## What it covers
 
