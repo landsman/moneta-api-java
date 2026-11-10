@@ -36,7 +36,7 @@ repositories {
 }
 
 dependencies {
-    implementation("cz.insuit:moneta-api-spring-boot-starter:0.1.0") // or -play, -micronaut, -quarkus, or moneta-api alone
+    implementation("cz.insuit:moneta-api-spring-boot-starter:0.2.0") // or -play, -micronaut, -quarkus, or moneta-api alone
 }
 
 // gh's token, or nothing when gh is missing or signed out: the build then gets GitHub's 401, not a crash.
@@ -71,7 +71,7 @@ fun gh(vararg args: String): Provider<String> =
 <dependency>
     <groupId>cz.insuit</groupId>
     <artifactId>moneta-api-spring-boot-starter</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 

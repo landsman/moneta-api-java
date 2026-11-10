@@ -3,6 +3,32 @@
 Micronaut wiring for the client: add the dependency, set `moneta.*`, inject `MonetaClient`. One jar for
 Micronaut 4.10 and 5; [testing/micronaut](../../testing/README.md) checks each.
 
+## Install
+
+```kotlin
+// build.gradle.kts
+dependencies {
+    implementation("cz.insuit:moneta-api-micronaut:0.2.0")
+}
+```
+
+<details><summary>Maven</summary>
+
+```xml
+<dependency>
+    <groupId>cz.insuit</groupId>
+    <artifactId>moneta-api-micronaut</artifactId>
+    <version>0.2.0</version>
+</dependency>
+```
+
+</details>
+
+GitHub Packages asks for a token even for a public package: the repository block and the token are in
+[Installing](../../.docs/install.md).
+
+## Configure
+
 ```yaml
 moneta:
   token: ${MONETA_TOKEN}
@@ -11,6 +37,38 @@ moneta:
 That is the whole setup for an application reading one account: inject `MonetaClient` and `AccessToken`. One
 serving many merchants leaves `moneta.token` unset and passes each one's token with the call. Keep the token in
 the environment, never in a committed file.
+
+```java
+@Singleton
+class Payments {
+    private final AccountHolder me;
+
+    Payments(MonetaClient moneta, AccessToken token) {
+        this.me = moneta.with(token);
+    }
+
+    List<Transaction> paidToday() {
+        var today = LocalDate.now(ZoneId.of("Europe/Prague"));
+        return me.transactions().between(today, today).incoming().list();
+    }
+}
+```
+
+<details><summary>Kotlin</summary>
+
+```kotlin
+@Singleton
+class Payments(moneta: MonetaClient, token: AccessToken) {
+    private val me = moneta.with(token)
+
+    fun paidToday(): List<Transaction> {
+        val today = LocalDate.now(ZoneId.of("Europe/Prague"))
+        return me.transactions().between(today, today).incoming().list()
+    }
+}
+```
+
+</details>
 
 A `MonetaClient` bean of the application's own replaces the one built here. Like every Micronaut bean, the client
 is built when first injected, not at startup, and closed with the context. A token or partner value it would refuse

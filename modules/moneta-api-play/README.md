@@ -4,6 +4,32 @@ A Play Framework module for the client: add the dependency, set `moneta.*`, inje
 `reference.conf` enables it; nothing else to register. Works on Play 3.0 (Scala 2.13 and 3) and 2.9;
 [testing/play](../../testing/README.md) checks each.
 
+## Install
+
+```kotlin
+// build.gradle.kts
+dependencies {
+    implementation("cz.insuit:moneta-api-play:0.2.0")
+}
+```
+
+<details><summary>Maven</summary>
+
+```xml
+<dependency>
+    <groupId>cz.insuit</groupId>
+    <artifactId>moneta-api-play</artifactId>
+    <version>0.2.0</version>
+</dependency>
+```
+
+</details>
+
+GitHub Packages asks for a token even for a public package: the repository block and the token are in
+[Installing](../../.docs/install.md).
+
+## Configure
+
 ```hocon
 # application.conf
 moneta.token = ${?MONETA_TOKEN}
@@ -12,6 +38,25 @@ moneta.token = ${?MONETA_TOKEN}
 That is the whole setup for an application reading one account: inject `MonetaClient` and `AccessToken`. One
 serving many merchants leaves `moneta.token` unset and passes each one's token with the call. Keep the token in
 the environment, never in a committed file.
+
+```java
+@Singleton
+class Payments {
+    private final AccountHolder me;
+
+    @Inject
+    Payments(MonetaClient moneta, AccessToken token) {
+        this.me = moneta.with(token);
+    }
+
+    List<Transaction> paidToday() {
+        var today = LocalDate.now(ZoneId.of("Europe/Prague"));
+        return me.transactions().between(today, today).incoming().list();
+    }
+}
+```
+
+The call blocks: run it on the pool below, not Play's default one.
 
 The client is a singleton built when the application starts, so a token it would refuse stops the start, and it is
 closed when the application stops, a dev-mode reload included.

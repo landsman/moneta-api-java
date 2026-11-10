@@ -4,6 +4,32 @@ A Quarkus extension for the client: add the dependency, set `quarkus.moneta.*`, 
 mode and as a native image. Compiled against Quarkus 3.33 LTS; [testing/quarkus](../../testing/README.md) checks
 3.33 and 3.40.
 
+## Install
+
+```kotlin
+// build.gradle.kts
+dependencies {
+    implementation("cz.insuit:moneta-api-quarkus:0.2.0")
+}
+```
+
+<details><summary>Maven</summary>
+
+```xml
+<dependency>
+    <groupId>cz.insuit</groupId>
+    <artifactId>moneta-api-quarkus</artifactId>
+    <version>0.2.0</version>
+</dependency>
+```
+
+</details>
+
+GitHub Packages asks for a token even for a public package: the repository block and the token are in
+[Installing](../../.docs/install.md). Quarkus fetches `moneta-api-quarkus-deployment` from the same repository at build time.
+
+## Configure
+
 ```properties
 quarkus.moneta.token=${MONETA_TOKEN}
 ```
@@ -11,6 +37,38 @@ quarkus.moneta.token=${MONETA_TOKEN}
 That is the whole setup for an application reading one account: inject `MonetaClient` and `AccessToken`. One
 serving many merchants leaves `quarkus.moneta.token` unset and passes each one's token with the call; injecting
 `AccessToken` then fails, naming the property. Keep the token in the environment, never in a committed file.
+
+```java
+@ApplicationScoped
+class Payments {
+    private final AccountHolder me;
+
+    Payments(MonetaClient moneta, AccessToken token) {
+        this.me = moneta.with(token);
+    }
+
+    List<Transaction> paidToday() {
+        var today = LocalDate.now(ZoneId.of("Europe/Prague"));
+        return me.transactions().between(today, today).incoming().list();
+    }
+}
+```
+
+<details><summary>Kotlin</summary>
+
+```kotlin
+@ApplicationScoped
+class Payments(moneta: MonetaClient, token: AccessToken) {
+    private val me = moneta.with(token)
+
+    fun paidToday(): List<Transaction> {
+        val today = LocalDate.now(ZoneId.of("Europe/Prague"))
+        return me.transactions().between(today, today).incoming().list()
+    }
+}
+```
+
+</details>
 
 | Property | Default |
 |----------|---------|
