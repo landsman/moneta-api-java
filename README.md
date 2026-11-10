@@ -35,7 +35,7 @@ client implements:
 |---|:---:|:---:|
 | Accounts the token sees | ✅ | ✅ |
 | Transactions, pending and booked | ✅ | ✅ |
-| Card transactions | ✅ | in the transaction list, `card()`; not their own endpoint |
+| Card transactions | ✅ | in the transaction list, `method()`; not their own endpoint |
 | Balances | ✅ | ✅ |
 | Pending card transactions | ✅ | ⬜ |
 | Electronic statements | ✅ | ⬜ |

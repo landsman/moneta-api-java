@@ -30,8 +30,18 @@ for (var account : moneta.accounts(token)) {
   `examples/cafe` keeps it as `first_seen_at`.
 - **`balance(token, accountId)`** gives the booked and the available balance, signed, and `at()`, the instant
   MONETA computed it: unlike a movement, a balance has a time of day.
-- **`card()`** is true for a card payment: a debit whose `counterpartyName()` is the merchant and which has no
-  `counterpartyAccount()`. The merchant text differs between the pending hold and the booked payment, so match
+- **`method()`** says how the money moved: `TRANSFER`, `CARD`, or `OTHER` for anything not mapped yet (fees,
+  interest, ATM withdrawals: [#66](https://github.com/landsman/moneta-api-java/issues/66)).
+  Filter by it, and by direction and status, by chaining:
+
+  ```java
+  moneta.transactions(token, accountId).between(from, to).transfers().outgoing().list();
+  moneta.transactions(token, accountId).between(from, to).cards().booked().list();
+  ```
+
+  Only `between` is required; `incoming()`, `outgoing()`, `booked()`, `pending()` and `method(…)` are optional.
+  MONETA filters by date only, so every movement in the range is read and the rest dropped here. A card payment is a debit whose `counterpartyName()` is the merchant and which has
+  no `counterpartyAccount()`; the merchant text differs between the pending hold and the booked payment, so match
   a card payment by amount and date, not by name.
 - **`reversed()`** marks a movement MONETA flags as a reversal; a shop should not count it as a payment.
 - **`incoming(…)`** is `transactions(…)` with only the money that came in, the call a shop checking payments

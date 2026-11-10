@@ -47,7 +47,9 @@ record TransactionJson(
         return parties()
                 .map(parties -> credit ? parties.debtor() : parties.creditor())
                 .map(PartyJson::name)
-                .or(() -> card() ? references().map(ReferencesJson::transactionDescription) : Optional.empty())
+                .or(() -> method() == Transaction.Method.CARD
+                        ? references().map(ReferencesJson::transactionDescription)
+                        : Optional.empty())
                 .filter(name -> !name.isBlank())
                 .orElse(null);
     }
@@ -63,12 +65,17 @@ record TransactionJson(
                 .orElse(null);
     }
 
-    /** Whether a card made the movement: {@code BLOCKED_PAYMENT_CARD} pending, {@code PAYMENT_CARD} booked. */
-    boolean card() {
-        return references()
+    /** How the money moved; a pending movement's reference carries a {@code BLOCKED_} prefix. */
+    Transaction.Method method() {
+        var reference = references()
                 .map(ReferencesJson::clearingSystemReference)
-                .filter(reference -> reference.endsWith("PAYMENT_CARD"))
-                .isPresent();
+                .map(r -> r.startsWith("BLOCKED_") ? r.substring("BLOCKED_".length()) : r)
+                .orElse("");
+        return switch (reference) {
+            case "PAYMENT_ORDER_DOMESTIC" -> Transaction.Method.TRANSFER;
+            case "PAYMENT_CARD" -> Transaction.Method.CARD;
+            default -> Transaction.Method.OTHER;
+        };
     }
 
     private Optional<TransactionDetailsJson> details() {

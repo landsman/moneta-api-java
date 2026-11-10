@@ -366,7 +366,7 @@ class MonetaClientTest {
 
             var card = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
 
-            assertTrue(card.card());
+            assertEquals(Transaction.Method.CARD, card.method());
             assertEquals(Transaction.Status.PENDING, card.status());
             assertEquals(new Money(new BigDecimal("-30.00"), CZK), card.amount());
             assertEquals(LocalDate.of(2026, 11, 7), card.enteredDate());
@@ -382,7 +382,7 @@ class MonetaClientTest {
 
             var card = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
 
-            assertTrue(card.card());
+            assertEquals(Transaction.Method.CARD, card.method());
             assertEquals(Transaction.Status.BOOKED, card.status());
             assertEquals(new Money(new BigDecimal("-30.00"), CZK), card.amount());
             assertEquals(LocalDate.of(2026, 11, 7), card.enteredDate());
@@ -392,9 +392,47 @@ class MonetaClientTest {
         }
 
         @Test
-        void aTransferIsNotACardPayment() {
+        void bookedTransfersAreTransfers() {
             answer(TRANSACTIONS, 200, fixture("live/booked.json"));
-            assertTrue(client.transactions(TOKEN, "acc-1", FROM, TO).stream().noneMatch(Transaction::card));
+            assertTrue(client.transactions(TOKEN, "acc-1", FROM, TO).stream()
+                    .allMatch(t -> t.method() == Transaction.Method.TRANSFER));
+        }
+
+        @Test
+        void aQueryKeepsOnlyWhatEveryStepAskedFor() {
+            // Two pending transfers, one in and one out.
+            answer(TRANSACTIONS, 200, fixture("live/pending-symbols-and-outgoing.json"));
+            var all = client.transactions(TOKEN, "acc-1", FROM, TO);
+            var query = client.transactions(TOKEN, "acc-1").between(FROM, TO);
+
+            assertEquals(2, query.list().size());
+            assertEquals(1, query.transfers().outgoing().list().size());
+            assertEquals(
+                    all.stream()
+                            .filter(t -> t.method() == Transaction.Method.TRANSFER
+                                    && t.direction() == Transaction.Direction.DEBIT)
+                            .toList(),
+                    query.transfers().outgoing().list());
+            assertEquals(query.outgoing().list(), query.incoming().outgoing().list());
+            assertTrue(query.cards().list().isEmpty());
+        }
+
+        @Test
+        void aQueryFindsTheCardPayment() {
+            answer(TRANSACTIONS, 200, fixture("live/booked-card.json"));
+            var query = client.transactions(TOKEN, "acc-1").between(FROM, TO);
+
+            assertEquals(1, query.cards().outgoing().booked().list().size());
+            assertTrue(query.cards().pending().list().isEmpty());
+            assertTrue(query.transfers().list().isEmpty());
+        }
+
+        @Test
+        void aQueryWithoutDatesIsRefusedBeforeAnyRequest() {
+            assertThrows(
+                    IllegalStateException.class,
+                    () -> client.transactions(TOKEN, "acc-1").cards().list());
+            assertTrue(requests.isEmpty());
         }
 
         @Test

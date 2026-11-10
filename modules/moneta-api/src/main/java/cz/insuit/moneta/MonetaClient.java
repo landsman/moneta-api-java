@@ -152,7 +152,7 @@ public final class MonetaClient implements AutoCloseable {
     }
 
     /**
-     * The money that came in: {@link #transactions} with only {@link Transaction.Direction#CREDIT}, pending ones
+     * The money that came in: {@link #transactions(AccessToken, String, LocalDate, LocalDate)} with only {@link Transaction.Direction#CREDIT}, pending ones
      * included. MONETA has no such filter of its own that is known, so all movements are read and the debits
      * dropped here.
      *
@@ -165,6 +165,15 @@ public final class MonetaClient implements AutoCloseable {
         return transactions(token, accountId, from, to).stream()
                 .filter(t -> t.direction() == Transaction.Direction.CREDIT)
                 .toList();
+    }
+
+    /**
+     * A query over the account's movements, narrowed by chaining and read by {@link TransactionQuery#list()}:
+     * {@code transactions(token, accountId).between(from, to).transfers().outgoing().list()}. Nothing is read
+     * until {@code list()}.
+     */
+    public TransactionQuery transactions(AccessToken token, String accountId) {
+        return new TransactionQuery(this, token, accountId);
     }
 
     /**
