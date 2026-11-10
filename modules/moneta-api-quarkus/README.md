@@ -30,6 +30,23 @@ GitHub Packages asks for a token even for a public package: the repository block
 [Installing](../../.docs/install.md). Maven needs both, the `<repositories>` entry and the `<server>`, because
 Quarkus fetches `moneta-api-quarkus-deployment` from there at build time.
 
+## With a coding assistant
+
+Paste this into it:
+
+```text
+Add the MONETA API client to this Quarkus project.
+
+1. Read https://github.com/landsman/moneta-api-java/blob/main/llms.txt and https://github.com/landsman/moneta-api-java/blob/main/modules/moneta-api-quarkus/README.md first. Do not guess the API.
+2. Dependency: cz.insuit:moneta-api-quarkus:0.2.0 from GitHub Packages, with Gradle or Maven, as
+   https://github.com/landsman/moneta-api-java/blob/main/.docs/install.md shows. Never write a token into the project.
+3. Configuration: quarkus.moneta.token=${MONETA_TOKEN} in application.properties.
+4. Code: inject MonetaClient and AccessToken. Bind the token with moneta.with(token), read with
+   transactions().between(from, to), narrowed by incoming(), outgoing(), transfers(),
+   cards(), booked() or pending(), then list().
+5. Act on booked movements only, unless I ask for pending ones.
+```
+
 ## Configure
 
 ```properties

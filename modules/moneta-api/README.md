@@ -28,6 +28,23 @@ dependencies {
 GitHub Packages asks for a token even for a public package: the repository block and the token are in
 [Installing](../../.docs/install.md).
 
+## With a coding assistant
+
+Paste this into it:
+
+```text
+Add the MONETA API client to this plain Java or Kotlin project.
+
+1. Read https://github.com/landsman/moneta-api-java/blob/main/llms.txt and https://github.com/landsman/moneta-api-java/blob/main/modules/moneta-api/README.md first. Do not guess the API.
+2. Dependency: cz.insuit:moneta-api:0.2.0 from GitHub Packages, with Gradle or Maven, as
+   https://github.com/landsman/moneta-api-java/blob/main/.docs/install.md shows. Never write a token into the project.
+3. Configuration: the token from the MONETA_TOKEN environment variable, wrapped in AccessToken.
+4. Code: make one MonetaClient for the application and close it when the application stops. Bind the token with moneta.with(token), read with
+   transactions().between(from, to), narrowed by incoming(), outgoing(), transfers(),
+   cards(), booked() or pending(), then list().
+5. Act on booked movements only, unless I ask for pending ones.
+```
+
 ## Use
 
 ```java

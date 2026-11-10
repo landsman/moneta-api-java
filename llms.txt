@@ -7,7 +7,8 @@
 
 Setting it up in a project:
 
-- Add the module for the project's framework, or `cz.insuit:moneta-api` without one. The framework modules bring
+- Add the module for the project's framework, or `cz.insuit:moneta-api` without one; each module's README has
+  the Gradle and Maven lines, sbt for Play, and a prompt for a coding assistant. The framework modules bring
   `moneta-api` with them; do not add both.
 - Add the GitHub Packages repository `https://maven.pkg.github.com/landsman/moneta-api-java`. It asks for a token
   even for a public package (`read:packages`). Never write a token into the build file or the repository.
