@@ -5,13 +5,14 @@ import static java.util.Objects.requireNonNull;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.CancellationException;
+import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 
 /**
  * The movements on one account, narrowed step by step and read by {@link #list()}:
  *
  * <pre>{@code
- * moneta.transactions(token, accountId).between(from, to).transfers().outgoing().list();
+ * moneta.with(token).transactions().between(from, to).transfers().outgoing().list();
  * }</pre>
  *
  * Only {@link #between} is required. Each step returns a new query, so a base one can be narrowed two ways; a
@@ -22,14 +23,14 @@ public final class TransactionQuery {
 
     private final MonetaClient client;
     private final AccessToken token;
-    private final @Nullable String accountId;
+    private final Supplier<String> accountId;
     private final @Nullable LocalDate from;
     private final @Nullable LocalDate to;
     private final Transaction.@Nullable Method method;
     private final Transaction.@Nullable Direction direction;
     private final Transaction.@Nullable Status status;
 
-    TransactionQuery(MonetaClient client, AccessToken token, @Nullable String accountId) {
+    TransactionQuery(MonetaClient client, AccessToken token, Supplier<String> accountId) {
         this(client, token, accountId, null, null, null, null, null);
     }
 
@@ -88,26 +89,17 @@ public final class TransactionQuery {
         if (from == null || to == null) {
             throw new IllegalStateException("call between(from, to) first: MONETA reads a date range");
         }
-        return client.transactions(token, accountId != null ? accountId : onlyAccount(), from, to).stream()
+        return client.transactions(token, accountId.get(), from, to).stream()
                 .filter(t -> method == null || t.method() == method)
                 .filter(t -> direction == null || t.direction() == direction)
                 .filter(t -> status == null || t.status() == status)
                 .toList();
     }
 
-    private String onlyAccount() {
-        var accounts = client.accounts(token);
-        if (accounts.size() != 1) {
-            throw new IllegalStateException(
-                    "the token opens " + accounts.size() + " accounts, so name one: transactions(token, accountId)");
-        }
-        return accounts.getFirst().id();
-    }
-
     private TransactionQuery(
             MonetaClient client,
             AccessToken token,
-            @Nullable String accountId,
+            Supplier<String> accountId,
             @Nullable LocalDate from,
             @Nullable LocalDate to,
             Transaction.@Nullable Method method,
@@ -115,7 +107,7 @@ public final class TransactionQuery {
             Transaction.@Nullable Status status) {
         this.client = requireNonNull(client);
         this.token = requireNonNull(token);
-        this.accountId = accountId;
+        this.accountId = requireNonNull(accountId);
         this.from = from;
         this.to = to;
         this.method = method;

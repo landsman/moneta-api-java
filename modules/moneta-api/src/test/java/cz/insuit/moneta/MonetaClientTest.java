@@ -435,7 +435,29 @@ class MonetaClientTest {
 
             assertEquals(
                     1,
-                    client.transactions(TOKEN).between(FROM, TO).cards().list().size());
+                    client.with(TOKEN)
+                            .transactions()
+                            .between(FROM, TO)
+                            .cards()
+                            .list()
+                            .size());
+        }
+
+        @Test
+        void aHolderAsksForItsOnlyAccountOnce() {
+            answer(ACCOUNTS, 200, """
+                    {"accounts": [{"id": "acc-1", "currency": "CZK"}], "pageNumber": 0, "pageCount": 1}""");
+            answer(TRANSACTIONS, 200, fixture("live/booked-card.json"));
+            var me = client.with(TOKEN);
+
+            me.transactions().between(FROM, TO).list();
+            me.transactions().between(FROM, TO).cards().list();
+
+            assertEquals(
+                    1,
+                    requests.stream()
+                            .filter(r -> r.getRequestURI().getPath().equals(ACCOUNTS))
+                            .count());
         }
 
         @Test
@@ -445,7 +467,7 @@ class MonetaClientTest {
 
             var refused = assertThrows(
                     IllegalStateException.class,
-                    () -> client.transactions(TOKEN).between(FROM, TO).list());
+                    () -> client.with(TOKEN).transactions().between(FROM, TO).list());
             assertTrue(String.valueOf(refused.getMessage()).contains("opens 2 accounts"), refused.getMessage());
         }
 

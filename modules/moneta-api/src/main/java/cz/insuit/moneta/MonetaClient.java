@@ -168,22 +168,28 @@ public final class MonetaClient implements AutoCloseable {
     }
 
     /**
-     * A query over the account's movements, narrowed by chaining and read by {@link TransactionQuery#list()}:
-     * {@code transactions(token, accountId).between(from, to).transfers().outgoing().list()}. Nothing is read
-     * until {@code list()}.
+     * This client with the token bound, so the calls after it need none:
+     * {@code moneta.with(token).transactions().between(from, to).cards().list()}. Cheap: it holds the client and the
+     * token, and reads nothing until a call. Keep it to have the only account's id remembered.
      */
-    public TransactionQuery transactions(AccessToken token, String accountId) {
-        return new TransactionQuery(this, token, requireNonNull(accountId, "accountId"));
+    public AccountHolder with(AccessToken token) {
+        return new AccountHolder(this, token);
     }
 
-    /**
-     * {@link #transactions(AccessToken, String)} on the only account the token opens, for an application with one:
-     * {@code transactions(token).between(from, to).cards().list()}. {@code list()} asks for the accounts first, one
-     * request more each time, and throws {@link IllegalStateException} unless there is exactly one. A poller reading
-     * every few seconds keeps the id instead.
-     */
-    public TransactionQuery transactions(AccessToken token) {
-        return new TransactionQuery(this, token, null);
+    /** A query over the account's movements; see {@link TransactionQuery}. Nothing is read until its {@code list()}. */
+    public TransactionQuery transactions(AccessToken token, String accountId) {
+        requireNonNull(accountId, "accountId");
+        return new TransactionQuery(this, token, () -> accountId);
+    }
+
+    /** The id of the only account the token opens; {@link IllegalStateException} unless there is exactly one. */
+    String onlyAccount(AccessToken token) {
+        var accounts = accounts(token);
+        if (accounts.size() != 1) {
+            throw new IllegalStateException(
+                    "the token opens " + accounts.size() + " accounts, so name one: transactions(accountId)");
+        }
+        return accounts.getFirst().id();
     }
 
     /**
