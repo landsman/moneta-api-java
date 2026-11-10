@@ -360,6 +360,126 @@ class MonetaClientTest {
         }
 
         @Test
+        void aPendingCardPaymentIsADebitToTheMerchantWithNoAccount() {
+            // Recorded from the live API, the account, the reference and the merchant replaced.
+            answer(TRANSACTIONS, 200, fixture("live/pending-card.json"));
+
+            var card = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
+
+            assertEquals(Transaction.Method.CARD, card.method());
+            assertEquals(Transaction.Status.PENDING, card.status());
+            assertEquals(new Money(new BigDecimal("-30.00"), CZK), card.amount());
+            assertEquals(LocalDate.of(2026, 11, 7), card.enteredDate());
+            assertEquals("PAYFAC  *MICHAL LANDSMAN PRAHA        CZ", card.counterpartyName());
+            assertNull(card.counterpartyAccount());
+            assertNull(card.message());
+        }
+
+        @Test
+        void aBookedCardPaymentKeepsTheHoldsAmountAndNamesTheMerchantFromItsDescription() {
+            // The same payment as pending-card.json, read once booked; the account and the symbols replaced.
+            answer(TRANSACTIONS, 200, fixture("live/booked-card.json"));
+
+            var card = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
+
+            assertEquals(Transaction.Method.CARD, card.method());
+            assertEquals(Transaction.Status.BOOKED, card.status());
+            assertEquals(new Money(new BigDecimal("-30.00"), CZK), card.amount());
+            assertEquals(LocalDate.of(2026, 11, 7), card.enteredDate());
+            assertEquals(LocalDate.of(2026, 11, 10), card.bookingDate());
+            assertEquals("SumUp  *Studio Art Mic Praha C", card.counterpartyName());
+            assertNull(card.counterpartyAccount());
+        }
+
+        @Test
+        void bookedTransfersAreTransfers() {
+            answer(TRANSACTIONS, 200, fixture("live/booked.json"));
+            assertTrue(client.transactions(TOKEN, "acc-1", FROM, TO).stream()
+                    .allMatch(t -> t.method() == Transaction.Method.TRANSFER));
+        }
+
+        @Test
+        void aQueryKeepsOnlyWhatEveryStepAskedFor() {
+            // Two pending transfers, one in and one out.
+            answer(TRANSACTIONS, 200, fixture("live/pending-symbols-and-outgoing.json"));
+            var all = client.transactions(TOKEN, "acc-1", FROM, TO);
+            var query = client.transactions(TOKEN, "acc-1").between(FROM, TO);
+
+            assertEquals(2, query.list().size());
+            assertEquals(1, query.transfers().outgoing().list().size());
+            assertEquals(
+                    all.stream()
+                            .filter(t -> t.method() == Transaction.Method.TRANSFER
+                                    && t.direction() == Transaction.Direction.DEBIT)
+                            .toList(),
+                    query.transfers().outgoing().list());
+            assertEquals(query.outgoing().list(), query.incoming().outgoing().list());
+            assertTrue(query.cards().list().isEmpty());
+        }
+
+        @Test
+        void aQueryFindsTheCardPayment() {
+            answer(TRANSACTIONS, 200, fixture("live/booked-card.json"));
+            var query = client.transactions(TOKEN, "acc-1").between(FROM, TO);
+
+            assertEquals(1, query.cards().outgoing().booked().list().size());
+            assertTrue(query.cards().pending().list().isEmpty());
+            assertTrue(query.transfers().list().isEmpty());
+        }
+
+        @Test
+        void aQueryWithoutAnAccountReadsTheOnlyOne() {
+            answer(ACCOUNTS, 200, """
+                    {"accounts": [{"id": "acc-1", "currency": "CZK"}], "pageNumber": 0, "pageCount": 1}""");
+            answer(TRANSACTIONS, 200, fixture("live/booked-card.json"));
+
+            assertEquals(
+                    1,
+                    client.with(TOKEN)
+                            .transactions()
+                            .between(FROM, TO)
+                            .cards()
+                            .list()
+                            .size());
+        }
+
+        @Test
+        void aHolderAsksForItsOnlyAccountOnce() {
+            answer(ACCOUNTS, 200, """
+                    {"accounts": [{"id": "acc-1", "currency": "CZK"}], "pageNumber": 0, "pageCount": 1}""");
+            answer(TRANSACTIONS, 200, fixture("live/booked-card.json"));
+            var me = client.with(TOKEN);
+
+            me.transactions().between(FROM, TO).list();
+            me.transactions().between(FROM, TO).cards().list();
+
+            assertEquals(
+                    1,
+                    requests.stream()
+                            .filter(r -> r.getRequestURI().getPath().equals(ACCOUNTS))
+                            .count());
+        }
+
+        @Test
+        void aQueryWithoutAnAccountRefusesATokenWithTwo() {
+            answer(ACCOUNTS, 200, """
+                    {"accounts": [{"id": "a", "currency": "CZK"}, {"id": "b", "currency": "EUR"}], "pageNumber": 0, "pageCount": 1}""");
+
+            var refused = assertThrows(
+                    IllegalStateException.class,
+                    () -> client.with(TOKEN).transactions().between(FROM, TO).list());
+            assertTrue(String.valueOf(refused.getMessage()).contains("opens 2 accounts"), refused.getMessage());
+        }
+
+        @Test
+        void aQueryWithoutDatesIsRefusedBeforeAnyRequest() {
+            assertThrows(
+                    IllegalStateException.class,
+                    () -> client.transactions(TOKEN, "acc-1").cards().list());
+            assertTrue(requests.isEmpty());
+        }
+
+        @Test
         void keepsTheCounterpartyInRawButOutOfToString() {
             answerBothPages();
 

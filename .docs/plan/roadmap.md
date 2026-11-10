@@ -8,7 +8,8 @@ behaves, as far as it is known, is [moneta-api.md](../moneta-api.md).
 - **Released:** `0.0.1` on GitHub Packages, the client and its Spring Boot starter, as a pre-release
   ([install](../install.md)).
 - **The client reads** accounts and transactions, pending and booked, with symbols, message, counterparty and
-  `incoming()`. Checked against a live business account on 2026-11-06 and 2026-11-07.
+  `incoming()`, and tells a card payment from a transfer with `method()`. Checked against a live business account
+  on 2026-11-06 and 2026-11-07, a card payment pending on 2026-11-07 and booked on 2026-11-10.
 - **Tested** on Java 21 and 25, Spring Boot 3.5.12, 3.5.16, 4.0.0 and 4.1.2, a Kotlin caller, and Jackson 3.0.4.
 - **The developer portal registration** (MONETA API – TPP) waits for MONETA's manual approval; until then
   there is no sandbox and no documentation, only the production API with a merchant's token.

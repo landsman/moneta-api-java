@@ -87,6 +87,7 @@ class PaymentRecordingTest {
                 "Novak, Jan",
                 "0 4040404040/0800",
                 false,
+                Transaction.Method.TRANSFER,
                 "{}");
 
         assertEquals(
@@ -109,6 +110,7 @@ class PaymentRecordingTest {
                 null,
                 "0 4040404040/0800",
                 true,
+                Transaction.Method.TRANSFER,
                 "{}");
 
         assertEquals(List.of(), PaymentRecording.steps(List.of(reversal), Set.of(), List.of()));
@@ -135,6 +137,7 @@ class PaymentRecordingTest {
                 null,
                 account,
                 false,
+                Transaction.Method.TRANSFER,
                 "{}");
     }
 
@@ -152,6 +155,7 @@ class PaymentRecordingTest {
                 "Novak, Jan",
                 account,
                 false,
+                Transaction.Method.TRANSFER,
                 "{}");
     }
 

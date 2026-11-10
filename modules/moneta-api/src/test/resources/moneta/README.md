@@ -19,7 +19,7 @@ validator and belong to nobody.
 | a payer | `4040404040/0800` | `CZ4008000000004040404040` | 404 Not Found |
 | another counterparty | `1010101010/0100` | `CZ2301000000001010101010` | binary |
 
-A balance's amounts are replaced with `1337`. A movement's `entryReference` is replaced with `2600000000000000001`, counting up for more than one; a name,
+A pending card payment's merchant descriptor is replaced with `MICHAL LANDSMAN` behind a `PAYFAC  *` prefix, keeping its widths (the maintainer's own name, his choice); a booked one's merchant and the card number MONETA already masks are kept as sent, also his choice. A balance's amounts are replaced with `1337`. A movement's `entryReference` is replaced with `2600000000000000001`, counting up for more than one; a name,
 when one appears, with `Jan Novak`.
 
 Recording one: `make record-fixture N=<number from make peek> NAME=<file> FROM=… TO=…` applies these rules and refuses a party

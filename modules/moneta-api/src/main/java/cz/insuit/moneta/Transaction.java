@@ -20,6 +20,9 @@ import org.jspecify.annotations.Nullable;
  * @param counterpartyName the payer of a credit, the payee of a debit; sent once booked, for credits
  * @param counterpartyAccount the other side's account as MONETA writes it, {@code number/bank}
  * @param reversed whether MONETA marks the movement as a reversal
+ * @param method how the money moved: a transfer, a card payment, or {@code OTHER} for anything not mapped yet. A
+ *     card payment is a debit whose counterparty name is the merchant and which has no counterparty account; the
+ *     merchant text differs between the pending hold and the booked payment (live, 2026-11-07 and 2026-11-10)
  * @param raw the movement as MONETA sent it, re-serialised as JSON (key order and number formatting may
  *     differ), for whatever this record does not map. It, the message and the counterparty are left out of
  *     {@link #toString()}, so logging a transaction does not log who paid or what they wrote
@@ -37,6 +40,7 @@ public record Transaction(
         @Nullable String counterpartyName,
         @Nullable String counterpartyAccount,
         boolean reversed,
+        Method method,
         String raw) {
 
     /** Whether the movement is booked and will not change. */
@@ -46,7 +50,7 @@ public record Transaction(
 
     @Override
     public String toString() {
-        return "Transaction[entryReference=%s, status=%s, direction=%s, amount=%s, enteredDate=%s, bookingDate=%s, valueDate=%s, symbols=%s, reversed=%s]"
+        return "Transaction[entryReference=%s, status=%s, direction=%s, amount=%s, enteredDate=%s, bookingDate=%s, valueDate=%s, symbols=%s, reversed=%s, method=%s]"
                 .formatted(
                         entryReference,
                         status,
@@ -56,13 +60,28 @@ public record Transaction(
                         bookingDate,
                         valueDate,
                         symbols,
-                        reversed);
+                        reversed,
+                        method);
     }
 
     /** Which way the money moved; {@link #amount()} already carries it as the sign. */
     public enum Direction {
         CREDIT,
         DEBIT
+    }
+
+    /**
+     * How the money moved, read from MONETA's {@code clearingSystemReference}. {@code OTHER} for any other value,
+     * which {@link #raw()} keeps.
+     */
+    // TODO: fees, interest, ATM withdrawals and the rest, once one is seen live:
+    //  https://github.com/landsman/moneta-api-java/issues/66
+    public enum Method {
+        /** A domestic payment order, {@code PAYMENT_ORDER_DOMESTIC}; an instant one included. */
+        TRANSFER,
+        /** A card payment, {@code PAYMENT_CARD}; while pending, a hold that may lapse. */
+        CARD,
+        OTHER
     }
 
     /** {@code OTHER} for a code this library does not know yet; {@link #raw()} keeps it. */
@@ -95,6 +114,7 @@ public record Transaction(
                 json.counterpartyName(direction == Direction.CREDIT),
                 json.counterpartyAccount(direction == Direction.CREDIT),
                 Boolean.TRUE.equals(json.reversalIndicator()),
+                json.method(),
                 raw);
     }
 

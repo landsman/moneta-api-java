@@ -152,7 +152,7 @@ public final class MonetaClient implements AutoCloseable {
     }
 
     /**
-     * The money that came in: {@link #transactions} with only {@link Transaction.Direction#CREDIT}, pending ones
+     * The money that came in: {@link #transactions(AccessToken, String, LocalDate, LocalDate)} with only {@link Transaction.Direction#CREDIT}, pending ones
      * included. MONETA has no such filter of its own that is known, so all movements are read and the debits
      * dropped here.
      *
@@ -165,6 +165,31 @@ public final class MonetaClient implements AutoCloseable {
         return transactions(token, accountId, from, to).stream()
                 .filter(t -> t.direction() == Transaction.Direction.CREDIT)
                 .toList();
+    }
+
+    /**
+     * This client with the token bound, so the calls after it need none:
+     * {@code moneta.with(token).transactions().between(from, to).cards().list()}. Cheap: it holds the client and the
+     * token, and reads nothing until a call. Keep it to have the only account's id remembered.
+     */
+    public AccountHolder with(AccessToken token) {
+        return new AccountHolder(this, token);
+    }
+
+    /** A query over the account's movements; see {@link TransactionQuery}. Nothing is read until its {@code list()}. */
+    public TransactionQuery transactions(AccessToken token, String accountId) {
+        requireNonNull(accountId, "accountId");
+        return new TransactionQuery(this, token, () -> accountId);
+    }
+
+    /** The id of the only account the token opens; {@link IllegalStateException} unless there is exactly one. */
+    String onlyAccount(AccessToken token) {
+        var accounts = accounts(token);
+        if (accounts.size() != 1) {
+            throw new IllegalStateException(
+                    "the token opens " + accounts.size() + " accounts, so name one: transactions(accountId)");
+        }
+        return accounts.getFirst().id();
     }
 
     /**

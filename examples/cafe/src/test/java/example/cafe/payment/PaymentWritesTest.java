@@ -109,6 +109,7 @@ class PaymentWritesTest {
                 null,
                 "4040404040/0800",
                 false,
+                Transaction.Method.TRANSFER,
                 "{}");
     }
 
@@ -126,6 +127,7 @@ class PaymentWritesTest {
                 "Novak, Jan",
                 "0 4040404040/0800",
                 false,
+                Transaction.Method.TRANSFER,
                 "{}");
     }
 }
