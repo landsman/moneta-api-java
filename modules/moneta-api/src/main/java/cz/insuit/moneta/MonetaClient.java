@@ -173,7 +173,17 @@ public final class MonetaClient implements AutoCloseable {
      * until {@code list()}.
      */
     public TransactionQuery transactions(AccessToken token, String accountId) {
-        return new TransactionQuery(this, token, accountId);
+        return new TransactionQuery(this, token, requireNonNull(accountId, "accountId"));
+    }
+
+    /**
+     * {@link #transactions(AccessToken, String)} on the only account the token opens, for an application with one:
+     * {@code transactions(token).between(from, to).cards().list()}. {@code list()} asks for the accounts first, one
+     * request more each time, and throws {@link IllegalStateException} unless there is exactly one. A poller reading
+     * every few seconds keeps the id instead.
+     */
+    public TransactionQuery transactions(AccessToken token) {
+        return new TransactionQuery(this, token, null);
     }
 
     /**

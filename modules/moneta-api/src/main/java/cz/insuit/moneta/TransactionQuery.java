@@ -22,14 +22,14 @@ public final class TransactionQuery {
 
     private final MonetaClient client;
     private final AccessToken token;
-    private final String accountId;
+    private final @Nullable String accountId;
     private final @Nullable LocalDate from;
     private final @Nullable LocalDate to;
     private final Transaction.@Nullable Method method;
     private final Transaction.@Nullable Direction direction;
     private final Transaction.@Nullable Status status;
 
-    TransactionQuery(MonetaClient client, AccessToken token, String accountId) {
+    TransactionQuery(MonetaClient client, AccessToken token, @Nullable String accountId) {
         this(client, token, accountId, null, null, null, null, null);
     }
 
@@ -77,7 +77,8 @@ public final class TransactionQuery {
     /**
      * Reads the range, all pages, and keeps what every step asked for.
      *
-     * @throws IllegalStateException when {@link #between} was not called
+     * @throws IllegalStateException when {@link #between} was not called, or the query names no account and the
+     *     token opens other than exactly one
      * @throws IllegalArgumentException when {@code to} is before {@code from}, or the account id is blank or a
      *     dot segment
      * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
@@ -87,17 +88,26 @@ public final class TransactionQuery {
         if (from == null || to == null) {
             throw new IllegalStateException("call between(from, to) first: MONETA reads a date range");
         }
-        return client.transactions(token, accountId, from, to).stream()
+        return client.transactions(token, accountId != null ? accountId : onlyAccount(), from, to).stream()
                 .filter(t -> method == null || t.method() == method)
                 .filter(t -> direction == null || t.direction() == direction)
                 .filter(t -> status == null || t.status() == status)
                 .toList();
     }
 
+    private String onlyAccount() {
+        var accounts = client.accounts(token);
+        if (accounts.size() != 1) {
+            throw new IllegalStateException(
+                    "the token opens " + accounts.size() + " accounts, so name one: transactions(token, accountId)");
+        }
+        return accounts.getFirst().id();
+    }
+
     private TransactionQuery(
             MonetaClient client,
             AccessToken token,
-            String accountId,
+            @Nullable String accountId,
             @Nullable LocalDate from,
             @Nullable LocalDate to,
             Transaction.@Nullable Method method,
@@ -105,7 +115,7 @@ public final class TransactionQuery {
             Transaction.@Nullable Status status) {
         this.client = requireNonNull(client);
         this.token = requireNonNull(token);
-        this.accountId = requireNonNull(accountId);
+        this.accountId = accountId;
         this.from = from;
         this.to = to;
         this.method = method;

@@ -73,20 +73,66 @@ for (var account : moneta.accounts(token)) {
 
 ## Filtering
 
-`transactions(token, accountId)` starts a query, narrowed by chaining and read by `list()`:
+`transactions(token, accountId)`, or `transactions(token)` for a token with one account, starts a query, narrowed
+by chaining and read by `list()`. The token says who is asking, the merchant whose Internet Banka issued it; the
+account id says which of that merchant's accounts, since one token can open several. The client stores neither,
+so one `MonetaClient` serves every merchant.
+
+One account, the usual shop: leave the id out and the query reads the only account the token opens.
 
 ```java
-var november = moneta.transactions(token, accountId).between(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30));
+var moneta = new MonetaClient();
+var token = new AccessToken(System.getenv("MONETA_TOKEN")); // with the Spring Boot starter: moneta.token, injected
+
+var november = moneta.transactions(token).between(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30));
 
 november.transfers().outgoing().list(); // transfers that went out
-november.cards().booked().list();       // card payments, holds left out
+november.cards().booked().list();       // paid by the account's card, holds left out
 november.incoming().list();             // everything that came in
+```
+
+Each `list()` then asks for the accounts first, one request more, and throws `IllegalStateException` when the
+token opens other than exactly one. A poller reading every few seconds names the account instead:
+`moneta.transactions(token, accountId)`, the id from `moneta.accounts(token)` or your config.
+
+Every account the token opens, here what its cards spent last month, summed per account:
+
+```java
+var lastMonth = YearMonth.now(ZoneId.of("Europe/Prague")).minusMonths(1);
+
+for (var account : moneta.accounts(token)) {
+    var spent = moneta.transactions(token, account.id())
+            .between(lastMonth.atDay(1), lastMonth.atEndOfMonth())
+            .cards()
+            .booked()
+            .list();
+    var total = spent.stream().map(t -> t.amount().amount()).reduce(BigDecimal.ZERO, BigDecimal::add);
+    System.out.println(account.id() + ": " + spent.size() + " card payments, " + total); // negative: money out
+}
+```
+
+Several merchants, one client, each with the token you keep for them (a platform, an accountant's tool):
+
+```java
+record Merchant(String name, AccessToken token, String accountId) {}
+
+var today = LocalDate.now(ZoneId.of("Europe/Prague"));
+for (var merchant : merchants) {
+    var holds = moneta.transactions(merchant.token(), merchant.accountId())
+            .between(today.minusDays(7), today)
+            .cards()
+            .pending()
+            .list();
+    if (!holds.isEmpty()) {
+        System.out.println(merchant.name() + ": " + holds.size() + " card payments still on hold");
+    }
+}
 ```
 
 | Step | Keeps |
 |------|-------|
 | `between(from, to)` | the date range, both days inclusive; **required** |
-| `transfers()`, `cards()`, `method(…)` | movements made that way |
+| `transfers()`, `cards()`, `method(…)` | movements made that way; `cards()` is the account's own card paying, while a customer's card payment usually reaches a merchant from the acquirer as a transfer |
 | `incoming()`, `outgoing()` | money in, money out |
 | `booked()`, `pending()` | booked movements, pending ones |
 

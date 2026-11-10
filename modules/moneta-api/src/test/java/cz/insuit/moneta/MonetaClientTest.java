@@ -428,6 +428,28 @@ class MonetaClientTest {
         }
 
         @Test
+        void aQueryWithoutAnAccountReadsTheOnlyOne() {
+            answer(ACCOUNTS, 200, """
+                    {"accounts": [{"id": "acc-1", "currency": "CZK"}], "pageNumber": 0, "pageCount": 1}""");
+            answer(TRANSACTIONS, 200, fixture("live/booked-card.json"));
+
+            assertEquals(
+                    1,
+                    client.transactions(TOKEN).between(FROM, TO).cards().list().size());
+        }
+
+        @Test
+        void aQueryWithoutAnAccountRefusesATokenWithTwo() {
+            answer(ACCOUNTS, 200, """
+                    {"accounts": [{"id": "a", "currency": "CZK"}, {"id": "b", "currency": "EUR"}], "pageNumber": 0, "pageCount": 1}""");
+
+            var refused = assertThrows(
+                    IllegalStateException.class,
+                    () -> client.transactions(TOKEN).between(FROM, TO).list());
+            assertTrue(String.valueOf(refused.getMessage()).contains("opens 2 accounts"), refused.getMessage());
+        }
+
+        @Test
         void aQueryWithoutDatesIsRefusedBeforeAnyRequest() {
             assertThrows(
                     IllegalStateException.class,
