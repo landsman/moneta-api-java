@@ -13,7 +13,7 @@ for (var account : moneta.accounts(token)) {
 }
 ```
 
-- **One client for many merchants.** The token goes with each call as an `AccessToken` and is never stored,
+- **One client for many account holders.** The token goes with each call as an `AccessToken` and is never stored,
   logged or put in an exception message. Its own type keeps it from being swapped with the account id, and it
   refuses a value with a space or a control character, without repeating it.
 - **A movement's `entryReference` changes when it is booked.** Pending and booked, the same payment carries two
@@ -74,11 +74,11 @@ for (var account : moneta.accounts(token)) {
 ## Filtering
 
 `transactions(token, accountId)`, or `transactions(token)` for a token with one account, starts a query, narrowed
-by chaining and read by `list()`. The token says who is asking, the merchant whose Internet Banka issued it; the
-account id says which of that merchant's accounts, since one token can open several. The client stores neither,
-so one `MonetaClient` serves every merchant.
+by chaining and read by `list()`. The token says who is asking, the account holder whose Internet Banka issued it;
+the account id says which of their accounts, since one token can open several. The client stores neither, so one
+`MonetaClient` serves every holder.
 
-One account, the usual shop: leave the id out and the query reads the only account the token opens.
+One account: leave the id out and the query reads the only account the token opens.
 
 ```java
 var moneta = new MonetaClient();
@@ -111,28 +111,28 @@ for (var account : moneta.accounts(token)) {
 }
 ```
 
-Several merchants, one client, each with the token you keep for them (a platform, an accountant's tool):
+Several account holders on one client, a company, a sole trader or a person, each with their own token:
 
 ```java
-record Merchant(String name, AccessToken token, String accountId) {}
+record Holder(String name, AccessToken token, String accountId) {}
 
 var today = LocalDate.now(ZoneId.of("Europe/Prague"));
-for (var merchant : merchants) {
-    var holds = moneta.transactions(merchant.token(), merchant.accountId())
+holders.forEach(holder -> {
+    var holds = moneta.transactions(holder.token(), holder.accountId())
             .between(today.minusDays(7), today)
             .cards()
             .pending()
             .list();
     if (!holds.isEmpty()) {
-        System.out.println(merchant.name() + ": " + holds.size() + " card payments still on hold");
+        System.out.println(holder.name() + ": " + holds.size() + " card payments still on hold");
     }
-}
+});
 ```
 
 | Step | Keeps |
 |------|-------|
 | `between(from, to)` | the date range, both days inclusive; **required** |
-| `transfers()`, `cards()`, `method(…)` | movements made that way; `cards()` is the account's own card paying, while a customer's card payment usually reaches a merchant from the acquirer as a transfer |
+| `transfers()`, `cards()`, `method(…)` | movements made that way; `cards()` is the account's own card paying, while a card payment someone makes to the account usually arrives from the card acquirer as a transfer |
 | `incoming()`, `outgoing()` | money in, money out |
 | `booked()`, `pending()` | booked movements, pending ones |
 
