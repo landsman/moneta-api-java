@@ -1,0 +1,48 @@
+# moneta-api-java
+
+> A Java 21+ and Kotlin client for MONETA API, the free API of the Czech bank MONETA Money Bank for business
+> accounts: it reads accounts, balances and transactions with a token the account holder issues in Internet Banka.
+> Modules for Spring Boot, Play, Micronaut and Quarkus. Published on GitHub Packages (group `cz.insuit`), not Maven
+> Central. Pre-1.0: read records by accessor, never by record pattern.
+
+Setting it up in a project:
+
+- Add the module for the project's framework, or `cz.insuit:moneta-api` without one; each module's README has
+  the Gradle and Maven lines, sbt for Play, and a prompt for a coding assistant. The framework modules bring
+  `moneta-api` with them; do not add both.
+- Add the GitHub Packages repository `https://maven.pkg.github.com/landsman/moneta-api-java`. It asks for a token
+  even for a public package (`read:packages`). Never write a token into the build file or the repository.
+- The MONETA token comes from the environment: `moneta.token` (Spring Boot, Play, Micronaut) or
+  `quarkus.moneta.token` (Quarkus), which also provides an `AccessToken` bean.
+- One `MonetaClient` per application (framework modules provide it as a bean). Bind a token with
+  `moneta.with(token)`, then `transactions().between(from, to)`, optionally `.incoming()`, `.outgoing()`,
+  `.transfers()`, `.cards()`, `.booked()`, `.pending()`, and `.list()`.
+
+Mistakes to avoid:
+
+- `entryReference` changes when a pending movement is booked: deduplicating by it counts a payment twice.
+- Movements have dates only, no time of day.
+- `amount()` is signed: negative is money out.
+- `Transaction.Method` gains constants: keep a `default` branch.
+- A read is all or nothing across pages; read long ranges month by month.
+- The library filters by method, direction and status in memory: only a shorter date range makes a read cheaper.
+- Do not return a `Transaction` from a controller as JSON: `raw()` carries the counterparty's name and account.
+
+## Docs
+
+- [Installing](https://github.com/landsman/moneta-api-java/blob/main/.docs/install.md): the repository block and the token, for Gradle and Maven
+- [Using the client](https://github.com/landsman/moneta-api-java/blob/main/.docs/usage.md): calls, filtering, more than one account, failures
+- [How MONETA API behaves](https://github.com/landsman/moneta-api-java/blob/main/.docs/moneta-api.md): pending and booked movements, dates, ids, errors
+
+## Modules
+
+- [moneta-api](https://github.com/landsman/moneta-api-java/blob/main/modules/moneta-api/README.md): the client alone
+- [Spring Boot starter](https://github.com/landsman/moneta-api-java/blob/main/modules/moneta-api-spring-boot-starter/README.md): `moneta.*` in application.yml, a `MonetaClient` bean
+- [Play module](https://github.com/landsman/moneta-api-java/blob/main/modules/moneta-api-play/README.md): `moneta.*` in application.conf; calls block, run them on their own pool
+- [Micronaut module](https://github.com/landsman/moneta-api-java/blob/main/modules/moneta-api-micronaut/README.md): `moneta.*`, a `MonetaClient` bean
+- [Quarkus extension](https://github.com/landsman/moneta-api-java/blob/main/modules/moneta-api-quarkus/README.md): `quarkus.moneta.*`, JVM and native
+
+## Optional
+
+- [Kotlin and Spring Boot](https://github.com/landsman/moneta-api-java/blob/main/.docs/compatibility.md): Spring Boot 3 before 3.5.13 needs one dependency pinned; native images
+- [Roadmap](https://github.com/landsman/moneta-api-java/blob/main/.docs/plan/roadmap.md): what is still unknown

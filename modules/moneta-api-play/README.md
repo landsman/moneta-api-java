@@ -4,14 +4,101 @@ A Play Framework module for the client: add the dependency, set `moneta.*`, inje
 `reference.conf` enables it; nothing else to register. Works on Play 3.0 (Scala 2.13 and 3) and 2.9;
 [testing/play](../../testing/README.md) checks each.
 
+## Install
+
+```scala
+// build.sbt
+resolvers += "GitHub Packages" at "https://maven.pkg.github.com/landsman/moneta-api-java"
+credentials += Credentials("GitHub Package Registry", "maven.pkg.github.com", "gh", sys.env.getOrElse("GITHUB_TOKEN", ""))
+libraryDependencies += "cz.insuit" % "moneta-api-play" % "0.2.0"
+```
+
+`GITHUB_TOKEN` holds a token with `read:packages`; Gradle and Maven below.
+
+```kotlin
+// build.gradle.kts
+dependencies {
+    implementation("cz.insuit:moneta-api-play:0.2.0")
+}
+```
+
+<details><summary>Maven</summary>
+
+```xml
+<!-- in <dependencies> -->
+<dependency>
+    <groupId>cz.insuit</groupId>
+    <artifactId>moneta-api-play</artifactId>
+    <version>0.2.0</version>
+</dependency>
+```
+
+</details>
+
+GitHub Packages asks for a token even for a public package: the repository block and the token are in
+[Installing](../../.docs/install.md).
+
+## With a coding assistant
+
+Paste this into it:
+
+```text
+Add the MONETA API client to this Play Framework project.
+
+1. Read https://github.com/landsman/moneta-api-java/blob/main/llms.txt and https://github.com/landsman/moneta-api-java/blob/main/modules/moneta-api-play/README.md first. Do not guess the API.
+2. Dependency: cz.insuit:moneta-api-play:0.2.0 from GitHub Packages, with sbt, Gradle or Maven, as
+   https://github.com/landsman/moneta-api-java/blob/main/.docs/install.md shows. Never write a token into the project.
+3. Configuration: moneta.token = ${?MONETA_TOKEN} in application.conf.
+4. Code: inject MonetaClient and AccessToken (javax.inject), and run the calls on a pool of their own, not Play's default one. Bind the token with moneta.with(token), read with
+   transactions().between(from, to), narrowed by incoming(), outgoing(), transfers(),
+   cards(), booked() or pending(), then list().
+5. Act on booked movements only, unless I ask for pending ones.
+```
+
+## Configure
+
 ```hocon
 # application.conf
 moneta.token = ${?MONETA_TOKEN}
 ```
 
 That is the whole setup for an application reading one account: inject `MonetaClient` and `AccessToken`. One
-serving many merchants leaves `moneta.token` unset and passes each one's token with the call. Keep the token in
+serving many account holders leaves `moneta.token` unset and passes each one's token with the call. Keep the token in
 the environment, never in a committed file.
+
+```java
+import cz.insuit.moneta.AccessToken;
+import cz.insuit.moneta.AccountHolder;
+import cz.insuit.moneta.MonetaClient;
+import cz.insuit.moneta.Transaction;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
+@Singleton
+public class Payments {
+    private final AccountHolder me;
+
+    @Inject
+    public Payments(MonetaClient moneta, AccessToken token) {
+        this.me = moneta.with(token);
+    }
+
+    /** Money received over the last week, booked. */
+    public List<Transaction> receivedThisWeek() {
+        var today = LocalDate.now(ZoneId.of("Europe/Prague"));
+        return me.transactions().between(today.minusDays(7), today).incoming().booked().list();
+    }
+}
+```
+
+It reads the only account the token opens and throws `IllegalStateException` when there are more; then, or with
+one token per account holder, see [More than one account](../../.docs/usage.md#more-than-one-account).
+Without `moneta.token` there is no `AccessToken` bean to inject.
+
+The call blocks: run it on [a pool of its own](#calls-block-give-them-a-pool-of-their-own), not Play's default one.
 
 The client is a singleton built when the application starts, so a token it would refuse stops the start, and it is
 closed when the application stops, a dev-mode reload included.
@@ -44,18 +131,16 @@ public class BlockingExecutor implements Executor {
 
 ```java
 public class PaymentsController extends Controller {
-    private final MonetaClient moneta;
-    private final AccessToken token;
+    private final Payments payments;
     private final BlockingExecutor blocking;
     private final ClassLoaderExecutionContext http;
 
     @Inject
-    public PaymentsController(
-            MonetaClient moneta, AccessToken token, BlockingExecutor blocking, ClassLoaderExecutionContext http) { … }
+    public PaymentsController(Payments payments, BlockingExecutor blocking, ClassLoaderExecutionContext http) { … }
 
-    public CompletionStage<Result> incoming() {
-        return CompletableFuture.supplyAsync(() -> moneta.incoming(token, accountId, from, to), blocking)
-                .thenApplyAsync(ts -> ok(views.html.incoming.render(ts)), http.current()); // back off the blocking pool
+    public CompletionStage<Result> received() {
+        return CompletableFuture.supplyAsync(payments::receivedThisWeek, blocking)
+                .thenApplyAsync(ts -> ok(views.html.received.render(ts)), http.current()); // back off the blocking pool
     }
 }
 ```
@@ -126,7 +211,7 @@ None is needed against production. The keys are the Spring Boot starter's.
 |-----|---------|---|
 | `moneta.base-uri` | production, `MonetaClient.PRODUCTION` | the sandbox's host once the portal gives it |
 | `moneta.request-timeout` | the client's, 30 s | one call to MONETA, as a HOCON duration: `20s` |
-| `moneta.partner.identification-number`, `.business-name`, `.application-name` | — | the registered application's headers, all three or none, ASCII only |
+| `moneta.partner.identification-number`, `.business-name`, `.application-name` | none | the registered application's headers, all three or none, ASCII only |
 
 MONETA does not ask for the partner headers: every call so far went through without ([how it
 behaves](../../.docs/moneta-api.md)). Likely for an application approved on the developer portal; set them once the

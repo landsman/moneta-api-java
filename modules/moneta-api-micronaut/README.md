@@ -3,14 +3,112 @@
 Micronaut wiring for the client: add the dependency, set `moneta.*`, inject `MonetaClient`. One jar for
 Micronaut 4.10 and 5; [testing/micronaut](../../testing/README.md) checks each.
 
+## Install
+
+```kotlin
+// build.gradle.kts
+dependencies {
+    implementation("cz.insuit:moneta-api-micronaut:0.2.0")
+}
+```
+
+<details><summary>Maven</summary>
+
+```xml
+<!-- in <dependencies> -->
+<dependency>
+    <groupId>cz.insuit</groupId>
+    <artifactId>moneta-api-micronaut</artifactId>
+    <version>0.2.0</version>
+</dependency>
+```
+
+</details>
+
+GitHub Packages asks for a token even for a public package: the repository block and the token are in
+[Installing](../../.docs/install.md).
+
+## With a coding assistant
+
+Paste this into it:
+
+```text
+Add the MONETA API client to this Micronaut project.
+
+1. Read https://github.com/landsman/moneta-api-java/blob/main/llms.txt and https://github.com/landsman/moneta-api-java/blob/main/modules/moneta-api-micronaut/README.md first. Do not guess the API.
+2. Dependency: cz.insuit:moneta-api-micronaut:0.2.0 from GitHub Packages, with Gradle or Maven, as
+   https://github.com/landsman/moneta-api-java/blob/main/.docs/install.md shows. Never write a token into the project.
+3. Configuration: moneta.token: ${MONETA_TOKEN} in application.yml.
+4. Code: inject MonetaClient and AccessToken. Bind the token with moneta.with(token), read with
+   transactions().between(from, to), narrowed by incoming(), outgoing(), transfers(),
+   cards(), booked() or pending(), then list().
+5. Act on booked movements only, unless I ask for pending ones.
+```
+
+## Configure
+
 ```yaml
 moneta:
   token: ${MONETA_TOKEN}
 ```
 
 That is the whole setup for an application reading one account: inject `MonetaClient` and `AccessToken`. One
-serving many merchants leaves `moneta.token` unset and passes each one's token with the call. Keep the token in
+serving many account holders leaves `moneta.token` unset and passes each one's token with the call. Keep the token in
 the environment, never in a committed file.
+
+```java
+import cz.insuit.moneta.AccessToken;
+import cz.insuit.moneta.AccountHolder;
+import cz.insuit.moneta.MonetaClient;
+import cz.insuit.moneta.Transaction;
+import jakarta.inject.Singleton;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
+
+@Singleton
+public class Payments {
+    private final AccountHolder me;
+
+    public Payments(MonetaClient moneta, AccessToken token) {
+        this.me = moneta.with(token);
+    }
+
+    /** Money received over the last week, booked. */
+    public List<Transaction> receivedThisWeek() {
+        var today = LocalDate.now(ZoneId.of("Europe/Prague"));
+        return me.transactions().between(today.minusDays(7), today).incoming().booked().list();
+    }
+}
+```
+
+<details><summary>Kotlin</summary>
+
+```kotlin
+import cz.insuit.moneta.AccessToken
+import cz.insuit.moneta.MonetaClient
+import cz.insuit.moneta.Transaction
+import jakarta.inject.Singleton
+import java.time.LocalDate
+import java.time.ZoneId
+
+@Singleton
+class Payments(moneta: MonetaClient, token: AccessToken) {
+    private val me = moneta.with(token)
+
+    /** Money received over the last week, booked. */
+    fun receivedThisWeek(): List<Transaction> {
+        val today = LocalDate.now(ZoneId.of("Europe/Prague"))
+        return me.transactions().between(today.minusDays(7), today).incoming().booked().list()
+    }
+}
+```
+
+</details>
+
+It reads the only account the token opens and throws `IllegalStateException` when there are more; then, or with
+one token per account holder, see [More than one account](../../.docs/usage.md#more-than-one-account).
+Without `moneta.token` there is no `AccessToken` bean to inject.
 
 A `MonetaClient` bean of the application's own replaces the one built here. Like every Micronaut bean, the client
 is built when first injected, not at startup, and closed with the context. A token or partner value it would refuse
@@ -98,7 +196,7 @@ None is needed against production. The names are the Spring Boot starter's.
 |----------|---------|---|
 | `moneta.base-uri` | production, `MonetaClient.PRODUCTION` | the sandbox's host once the portal gives it |
 | `moneta.request-timeout` | the client's, 30 s | one call to MONETA: `20s` |
-| `moneta.partner.identification-number`, `.business-name`, `.application-name` | — | the registered application's headers, all three or none, ASCII only |
+| `moneta.partner.identification-number`, `.business-name`, `.application-name` | none | the registered application's headers, all three or none, ASCII only |
 
 MONETA does not ask for the partner headers: every call so far went through without ([how it
 behaves](../../.docs/moneta-api.md)). Likely for an application approved on the developer portal; set them once the

@@ -4,13 +4,111 @@ A Quarkus extension for the client: add the dependency, set `quarkus.moneta.*`, 
 mode and as a native image. Compiled against Quarkus 3.33 LTS; [testing/quarkus](../../testing/README.md) checks
 3.33 and 3.40.
 
+## Install
+
+```kotlin
+// build.gradle.kts
+dependencies {
+    implementation("cz.insuit:moneta-api-quarkus:0.2.0")
+}
+```
+
+<details><summary>Maven</summary>
+
+```xml
+<!-- in <dependencies> -->
+<dependency>
+    <groupId>cz.insuit</groupId>
+    <artifactId>moneta-api-quarkus</artifactId>
+    <version>0.2.0</version>
+</dependency>
+```
+
+</details>
+
+GitHub Packages asks for a token even for a public package: the repository block and the token are in
+[Installing](../../.docs/install.md). Maven needs both, the `<repositories>` entry and the `<server>`, because
+Quarkus fetches `moneta-api-quarkus-deployment` from there at build time.
+
+## With a coding assistant
+
+Paste this into it:
+
+```text
+Add the MONETA API client to this Quarkus project.
+
+1. Read https://github.com/landsman/moneta-api-java/blob/main/llms.txt and https://github.com/landsman/moneta-api-java/blob/main/modules/moneta-api-quarkus/README.md first. Do not guess the API.
+2. Dependency: cz.insuit:moneta-api-quarkus:0.2.0 from GitHub Packages, with Gradle or Maven, as
+   https://github.com/landsman/moneta-api-java/blob/main/.docs/install.md shows. Never write a token into the project.
+3. Configuration: quarkus.moneta.token=${MONETA_TOKEN} in application.properties.
+4. Code: inject MonetaClient and AccessToken. Bind the token with moneta.with(token), read with
+   transactions().between(from, to), narrowed by incoming(), outgoing(), transfers(),
+   cards(), booked() or pending(), then list().
+5. Act on booked movements only, unless I ask for pending ones.
+```
+
+## Configure
+
 ```properties
 quarkus.moneta.token=${MONETA_TOKEN}
 ```
 
 That is the whole setup for an application reading one account: inject `MonetaClient` and `AccessToken`. One
-serving many merchants leaves `quarkus.moneta.token` unset and passes each one's token with the call; injecting
+serving many account holders leaves `quarkus.moneta.token` unset and passes each one's token with the call; injecting
 `AccessToken` then fails, naming the property. Keep the token in the environment, never in a committed file.
+
+```java
+import cz.insuit.moneta.AccessToken;
+import cz.insuit.moneta.AccountHolder;
+import cz.insuit.moneta.MonetaClient;
+import cz.insuit.moneta.Transaction;
+import jakarta.enterprise.context.ApplicationScoped;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
+
+@ApplicationScoped
+public class Payments {
+    private final AccountHolder me;
+
+    public Payments(MonetaClient moneta, AccessToken token) {
+        this.me = moneta.with(token);
+    }
+
+    /** Money received over the last week, booked. */
+    public List<Transaction> receivedThisWeek() {
+        var today = LocalDate.now(ZoneId.of("Europe/Prague"));
+        return me.transactions().between(today.minusDays(7), today).incoming().booked().list();
+    }
+}
+```
+
+<details><summary>Kotlin</summary>
+
+```kotlin
+import cz.insuit.moneta.AccessToken
+import cz.insuit.moneta.MonetaClient
+import cz.insuit.moneta.Transaction
+import jakarta.enterprise.context.ApplicationScoped
+import java.time.LocalDate
+import java.time.ZoneId
+
+@ApplicationScoped
+class Payments(moneta: MonetaClient, token: AccessToken) {
+    private val me = moneta.with(token)
+
+    /** Money received over the last week, booked. */
+    fun receivedThisWeek(): List<Transaction> {
+        val today = LocalDate.now(ZoneId.of("Europe/Prague"))
+        return me.transactions().between(today.minusDays(7), today).incoming().booked().list()
+    }
+}
+```
+
+</details>
+
+It reads the only account the token opens and throws `IllegalStateException` when there are more; then, or with
+one token per account holder, see [More than one account](../../.docs/usage.md#more-than-one-account).
 
 | Property | Default |
 |----------|---------|

@@ -36,7 +36,7 @@ repositories {
 }
 
 dependencies {
-    implementation("cz.insuit:moneta-api-spring-boot-starter:0.1.0") // or -play, -micronaut, -quarkus, or moneta-api alone
+    implementation("cz.insuit:moneta-api-spring-boot-starter:0.2.0") // or -play, -micronaut, -quarkus, or moneta-api alone
 }
 
 // gh's token, or nothing when gh is missing or signed out: the build then gets GitHub's 401, not a crash.
@@ -71,7 +71,7 @@ fun gh(vararg args: String): Provider<String> =
 <dependency>
     <groupId>cz.insuit</groupId>
     <artifactId>moneta-api-spring-boot-starter</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -80,4 +80,4 @@ and in `~/.m2/settings.xml` a `<server>` with the same `id`, your GitHub user an
 ## Snapshots
 
 None are published: only a tagged release is. To try what is not released yet, `make publish-local` in a checkout
-installs every jar into `~/.m2` as `0.1.0-SNAPSHOT`, where `mavenLocal()` finds them.
+installs every jar into `~/.m2` as `0.3.0-SNAPSHOT`, where `mavenLocal()` finds them.
