@@ -18,22 +18,27 @@ behaves, as far as it is known, is [moneta-api.md](../moneta-api.md).
 
 ## Still unknown
 
-Not in the specification `VipAISPPayments_v4` 1.0.1, read 2026-11-11:
+Not in MONETA's specifications, read 2026-11-11:
 
 - **Rate limits**: the specification documents a 429, but no limit and no `Retry-After`. The portal lists "usage
   quotas" in the organisation's settings, not looked at yet. Until known, a 429 fails the whole read. If a
   normal read can hit them, the client retries the page it stopped on, only after a short `Retry-After`, a few
   times, and that can be turned off.
-- **A merchant token's rights and lifetime**: whether it can be read-only, how long it lives. A sandbox token
-  lives 1200 seconds.
+- **A merchant token's rights**: whether it can be read-only. Its expiry is not unknown any more, see Next.
 - **Reversals**: the specification calls `reversalIndicator: true` a cancellation; not seen live.
 - **`business_name` with diacritics**: the client accepts ASCII only for now.
 - **Webhooks**, as an alternative to polling.
 
+Answered by the specification: no movement has a time of day
+([#9](https://github.com/landsman/moneta-api-java/issues/9)); the sandbox is the same host with a client
+credentials token; a merchant token's expiry is readable per token.
+
+
 ## Next
 
-- **Balances**: `…/accounts/{id}/balance`, as `Money`
-  ([#13](https://github.com/landsman/moneta-api-java/issues/13)).
+- **A token's expiry**: `GET /api/v1/vip/token/introspect` answers `{"expiration": "2026-03-06T11:38:09+01:00"}`
+  for the token sent, and a 403 for one that is not a MONETA API token (`VipTokenIntrospect_v1` 1.0.0). As
+  `client.tokenExpiry(token)`, an app warns the merchant before the token stops working, not after a 401.
 - **Maven Central**, once the portal documentation confirms the shapes: signing, a release process on
   JReleaser ([#14](https://github.com/landsman/moneta-api-java/issues/14)).
 - **A cold review** of the starter, the modules layout and the booked-movement changes
@@ -41,18 +46,20 @@ Not in the specification `VipAISPPayments_v4` 1.0.1, read 2026-11-11:
 - **Micronaut**: whether it earns a module or a section in the docs
   ([#19](https://github.com/landsman/moneta-api-java/issues/19)).
 
-Answered by the specification: no movement has a time of day
-([#9](https://github.com/landsman/moneta-api-java/issues/9)); the sandbox is the same host with a client
-credentials token.
-
 ## Not covered
 
 - **Statements**: the specification is in hand. `…/{id}/statements?from=&to=` lists them;
   `…/{id}/statement/download` with `format=JSON&feature=JSON$STND` returns one with its movements, other formats
   a `dataDownloadURL` for `…/statement?file=`.
-- **Payments and standing orders** (`VipPISPPaymentsBatch_v4`, `VipPISPStandingOrders_v4`): each creates an item
-  in Internet Banka that a person signs or rejects, so a client returns "waiting for a signature", never "paid".
-  A batch holds up to 200 payments and has a status endpoint. Their specifications are not downloaded yet.
+- **Payments** (`VipPISPPaymentsBatch_v4` 1.0.0): `POST …/pisp/my/payments/batch`, up to 200, returns a
+  `batchId`; `…/batch/{batchId}/status` is `ACTC` (waiting for the client's signature in Internet Banka), `RJCT` or
+  `ACSP` (signed). `…/batch/onebyone` returns an id per payment, read by
+  `…/batch/onebyone/{transactionId}/status`. A client returns "waiting for a signature", never "paid". Batches
+  are normal priority only, no instant payments. **Symbols are written `VS:1,KS:2,SS:3`, with commas**, though
+  a movement reads them back separated by spaces.
+- **Standing orders** (`VipPISPStandingOrders_v4` 1.0.0): `POST …/pisp/my/standingorders`, CZK domestic only,
+  weekly to yearly, first execution up to 360 days ahead, message and name at most 18 characters; answered with
+  a status (`FOR_SIGNING`, `ACSC`, `CANCELLED` among others) and signed in Internet Banka.
 - **Card transactions as their own endpoint**: none in `VipAISPPayments_v4`.
 - **A sandbox mode**: a sandbox token works as any `AccessToken`; renewing it every 20 minutes is left to the
   caller until someone needs more.
