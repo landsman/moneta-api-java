@@ -6,6 +6,8 @@ Two kinds, told apart by the folder:
   is replaced as below.
 - **The rest** — written by hand in the shape the only public client (a PHP package) assumes, before anything
   was recorded. Replace each with a recorded one as the live API shows it.
+- **`token-introspect.json`** — the example from MONETA's specification (VipTokenIntrospect_v1); it names
+  nobody.
 
 ## The accounts every test uses
 

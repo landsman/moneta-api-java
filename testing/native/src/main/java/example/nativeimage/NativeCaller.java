@@ -12,7 +12,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 
 /**
- * Reads accounts, a balance and transactions from a fake MONETA serving the client's test fixtures, and prints
+ * Reads accounts, a balance, transactions and the token's expiry from a fake MONETA serving the client's test fixtures, and prints
  * what the client returned. bin/native-test.sh runs it on the JVM and as a native image and compares the two: a
  * record the image cannot bind fails the call, and a component it cannot see prints as null.
  *
@@ -28,6 +28,8 @@ public final class NativeCaller {
         serve(server, ACCOUNTS, fixtures.resolve("accounts.json"));
         serve(server, ACCOUNTS + "/acc-1/balance", fixtures.resolve("live/balance.json"));
         serve(server, ACCOUNTS + "/acc-1/transactions", fixtures.resolve("live/booked.json"));
+        // The only record whose java.time component Jackson binds itself rather than a String parsed after.
+        serve(server, "/api/v1/vip/token/introspect", fixtures.resolve("token-introspect.json"));
         server.start();
         var address = server.getAddress();
         var base = URI.create("http://" + address.getHostString() + ":" + address.getPort() + "/");
@@ -37,6 +39,7 @@ public final class NativeCaller {
             System.out.println(moneta.balance(token, "acc-1"));
             moneta.transactions(token, "acc-1", LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31))
                     .forEach(System.out::println);
+            System.out.println(moneta.tokenExpiry(token));
         } finally {
             server.stop(0);
         }
