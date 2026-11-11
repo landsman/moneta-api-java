@@ -42,8 +42,9 @@ repository is public.
 
 ## MONETA's specification
 
-The developer portal gives each service's OpenAPI file on its Spec tab (`VipAISPPayments_v4.json` for accounts,
-balances, transactions and statements). Put downloads in [spec/](../spec), which git ignores: the portal's terms
+The developer portal gives each service's OpenAPI file on its Spec tab: `VipAISPPayments_v4` for accounts,
+balances, transactions and statements, `VipPISPPaymentsBatch_v4` for payments, `VipPISPStandingOrders_v4`, and
+`VipTokenIntrospect_v1` for a token's expiry. Put downloads in [spec/](../spec), which git ignores: the portal's terms
 do not say yet that they may be republished, and this repository is public.
 
 ## Releasing
