@@ -36,6 +36,31 @@ me.tokenExpiry()                       // when the token stops working: ask the 
 
 With the Spring Boot starter, `moneta.token` gives you the `AccessToken` bean.
 
+## A token with several accounts
+
+`me.transactions()` and `me.balance()` read the only account a token opens and refuse a token with more. Then
+find the one you stored by its IBAN, which is what the merchant gave you; MONETA's own account id is known to
+nobody outside it.
+
+```java
+var account = me.account(storedIban);   // spaces and case do not matter
+if (account == null) {
+    return refuse();                     // the token no longer sees it: revoked, or another token pasted
+}
+me.transactions(account.id()).between(from, to).list();
+```
+
+<details><summary>Kotlin</summary>
+
+```kotlin
+val account = me.account(storedIban) ?: return refuse()
+me.transactions(account.id()).between(from, to).list()
+```
+
+</details>
+
+Each call reads the accounts again, so an account revoked for the token shows on the next one.
+
 ## Filtering
 
 | Step | Keeps |

@@ -4,6 +4,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CancellationException;
 import org.jspecify.annotations.Nullable;
 
@@ -66,6 +67,30 @@ public final class AccountHolder {
     /** As {@link MonetaClient#tokenExpiry(AccessToken)}. */
     public Instant tokenExpiry() {
         return client.tokenExpiry(token);
+    }
+
+    /**
+     * The account with this IBAN, compared without spaces and case, so {@code cz02 0600 …} as printed matches; an
+     * account without an IBAN never does. Reads {@link #accounts()} on every call and remembers nothing, so an
+     * account the token stopped seeing shows on the next one.
+     *
+     * @return null when the token does not see it: revoked for that account, or another holder's token
+     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
+     */
+    public @Nullable Account account(String iban) {
+        var wanted = normalised(requireNonNull(iban, "iban"));
+        for (var account : accounts()) {
+            var own = account.iban();
+            if (own != null && normalised(own).equals(wanted)) {
+                return account;
+            }
+        }
+        return null;
+    }
+
+    private static String normalised(String iban) {
+        return iban.replaceAll("\\s", "").toUpperCase(Locale.ROOT);
     }
 
     private String onlyAccountId() {

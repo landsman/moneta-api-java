@@ -1,5 +1,6 @@
 package cz.insuit.moneta;
 
+import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -71,6 +72,13 @@ class MonetaClientTest {
     // language=JSON
     private static final String ONE_ACCOUNT = """
             {"accounts": [{"id": "a", "currency": "CZK"}]}""";
+    // An IBAN-less account first, so a match cannot come from comparing against a missing one.
+    // language=JSON
+    private static final String TWO_ACCOUNTS_ONE_WITHOUT_IBAN = """
+            {"accounts": [
+              {"id": "acc-0", "currency": "EUR"},
+              {"id": "acc-1", "currency": "CZK", "identification": {"iban": "CZ0206000000000000001337"}}
+            ], "pageNumber": 0, "pageCount": 1}""";
     // language=JSON
     private static final String NO_ACCOUNTS = """
             {"accounts": []}""";
@@ -514,6 +522,37 @@ class MonetaClientTest {
 
             assertEquals(
                     1,
+                    requests.stream()
+                            .filter(r -> r.getRequestURI().getPath().equals(ACCOUNTS))
+                            .count());
+        }
+
+        @Test
+        void aHolderFindsAnAccountByItsIbanAsPrinted() {
+            answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
+
+            var found = client.with(TOKEN).account("cz02 0600 0000 0000 0000 1337");
+
+            assertEquals("acc-1", requireNonNull(found).id());
+        }
+
+        @Test
+        void anIbanTheTokenDoesNotSeeIsNullNotAnError() {
+            answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
+
+            assertNull(client.with(TOKEN).account("CZ4008000000004040404040"));
+        }
+
+        @Test
+        void aHolderReadsTheAccountsAgainForEveryIban() {
+            answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
+            var me = client.with(TOKEN);
+
+            me.account("CZ0206000000000000001337");
+            me.account("CZ0206000000000000001337");
+
+            assertEquals(
+                    2,
                     requests.stream()
                             .filter(r -> r.getRequestURI().getPath().equals(ACCOUNTS))
                             .count());
