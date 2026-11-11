@@ -168,7 +168,7 @@ public final class MonetaClient implements AutoCloseable {
     }
 
     /**
-     * The money that came in:{@link #transactions(AccessToken, String, LocalDate, LocalDate)} with only {@link Transaction.Direction#CREDIT}, pending ones
+     * The money that came in: {@link #transactions(AccessToken, String, LocalDate, LocalDate)} with only {@link Transaction.Direction#CREDIT}, pending ones
      * included. MONETA has no such filter of its own that is known, so all movements are read and the debits
      * dropped here.
      *
