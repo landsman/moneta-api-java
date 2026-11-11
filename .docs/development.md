@@ -40,6 +40,12 @@ parties it has no rule for, or any value `make peek` would mask that is not a fi
 peek` numbered with, since a range ending today renumbers when a payment arrives. It never overwrites a fixture. Read the file whole before committing it: the
 repository is public.
 
+## MONETA's specification
+
+The developer portal gives each service's OpenAPI file on its Spec tab (`VipAISPPayments_v4.json` for accounts,
+balances, transactions and statements). Put downloads in [spec/](../spec), which git ignores: the portal's terms
+do not say yet that they may be republished, and this repository is public.
+
 ## Releasing
 
 A release is made by hand, and only a tag makes one: merging to `main` publishes nothing. A tag `vX.Y.Z` on
