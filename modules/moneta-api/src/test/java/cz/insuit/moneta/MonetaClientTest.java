@@ -346,6 +346,39 @@ class MonetaClientTest {
         }
 
         @Test
+        void aBalanceDatedWithoutATimeStartsThatDayInPrague() {
+            // The specification allows "date or date and time"; live has always sent the time so far.
+            // language=JSON
+            var dateOnly = """
+                    {"balances": [
+                      {"amount": {"currency": "CZK", "value": 1}, "creditDebitIndicator": "CRDT",
+                       "date": {"dateTime": "2026-11-07"}, "type": {"codeOrProprietary": {"code": "CLBD"}}},
+                      {"amount": {"currency": "CZK", "value": 1}, "creditDebitIndicator": "CRDT",
+                       "date": {"dateTime": "2026-11-07"}, "type": {"codeOrProprietary": {"code": "CLAV"}}}
+                    ]}""";
+            answer(BALANCE, 200, dateOnly);
+
+            assertEquals(
+                    Instant.parse("2026-11-06T23:00:00Z"),
+                    client.balance(TOKEN, "acc-1").at());
+        }
+
+        @Test
+        void aBalanceWithAnUnreadableDateIsRefused() {
+            // language=JSON
+            var garbled = """
+                    {"balances": [
+                      {"amount": {"currency": "CZK", "value": 1}, "creditDebitIndicator": "CRDT",
+                       "date": {"dateTime": "yesterday"}, "type": {"codeOrProprietary": {"code": "CLBD"}}},
+                      {"amount": {"currency": "CZK", "value": 1}, "creditDebitIndicator": "CRDT",
+                       "date": {"dateTime": "yesterday"}, "type": {"codeOrProprietary": {"code": "CLAV"}}}
+                    ]}""";
+            answer(BALANCE, 200, garbled);
+
+            assertThrows(MonetaException.InvalidResponse.class, () -> client.balance(TOKEN, "acc-1"));
+        }
+
+        @Test
         void aBalanceWithoutTheAvailableOneIsRefused() {
             // language=JSON
             var bookedOnly = """
