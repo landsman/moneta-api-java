@@ -10,6 +10,8 @@ final class MonetaPaths {
 
     static final String ACCOUNTS = AISP + "accounts";
 
+    static final String TOKEN_INTROSPECT = "api/v1/vip/token/introspect";
+
     /** What {@link #template} answers for a path the client does not call. */
     static final String UNKNOWN = "UNKNOWN";
 
@@ -22,8 +24,8 @@ final class MonetaPaths {
             new Template(
                     "/" + ACCOUNTS + "/{accountId}/transactions",
                     Pattern.compile(".*/" + ACCOUNTS + "/[^/]+/transactions")),
-            new Template(
-                    "/" + ACCOUNTS + "/{accountId}/balance", Pattern.compile(".*/" + ACCOUNTS + "/[^/]+/balance")));
+            new Template("/" + ACCOUNTS + "/{accountId}/balance", Pattern.compile(".*/" + ACCOUNTS + "/[^/]+/balance")),
+            new Template("/" + TOKEN_INTROSPECT, Pattern.compile(".*/" + TOKEN_INTROSPECT)));
 
     static String transactions(String accountId) {
         return account(accountId) + "/transactions";

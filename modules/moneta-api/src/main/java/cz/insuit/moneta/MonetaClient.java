@@ -10,6 +10,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -152,7 +153,22 @@ public final class MonetaClient implements AutoCloseable {
     }
 
     /**
-     * The money that came in: {@link #transactions(AccessToken, String, LocalDate, LocalDate)} with only {@link Transaction.Direction#CREDIT}, pending ones
+     * When the token stops working, so the merchant can be asked for a new one before it does. A sandbox token
+     * expires after 20 minutes; a merchant's from Internet Banka lives longer, how long is up to MONETA.
+     *
+     * @throws MonetaException.InvalidToken when the token has expired, or is not a MONETA API token (a 403)
+     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
+     */
+    public Instant tokenExpiry(AccessToken token) {
+        var path = MonetaPaths.TOKEN_INTROSPECT;
+        return get(token, "GET /" + path, path, TokenIntrospectionJson.class)
+                .expiration()
+                .toInstant();
+    }
+
+    /**
+     * The money that came in:{@link #transactions(AccessToken, String, LocalDate, LocalDate)} with only {@link Transaction.Direction#CREDIT}, pending ones
      * included. MONETA has no such filter of its own that is known, so all movements are read and the debits
      * dropped here.
      *

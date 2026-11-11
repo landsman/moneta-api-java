@@ -27,6 +27,7 @@ before the client maps it. `tools/peek` is internal and never published.
     make peek FROM=2026-11-01 TO=2026-11-07   # a range; SHAPE=1 shows masked text as x and 9 instead of a length
     make peek-accounts
     make peek-balance
+    make peek-token                           # when the token expires
     make record-fixture N=3 NAME=booked-card FROM=2026-11-01 TO=2026-11-07  # movement 3 of that make peek
 
 The token is read from 1Password for each run: `op run` resolves `MONETA_OP`, a secret reference that defaults to

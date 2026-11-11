@@ -12,6 +12,7 @@ november.transfers().outgoing().list(); // transfers that went out
 november.cards().list();                // paid by the account's card
 
 me.balance();                           // booked and available, with the instant MONETA computed it
+me.tokenExpiry();                       // when the token stops working: ask the merchant for a new one before
 ```
 
 <details><summary>Kotlin</summary>
@@ -28,6 +29,7 @@ november.transfers().outgoing().list() // transfers that went out
 november.cards().list()                // paid by the account's card
 
 me.balance()                           // booked and available, with the instant MONETA computed it
+me.tokenExpiry()                       // when the token stops working: ask the merchant for a new one before
 ```
 
 </details>

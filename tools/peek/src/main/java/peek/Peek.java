@@ -57,8 +57,9 @@ public final class Peek {
                         }
                     }
                 }
+                case "token" -> System.out.println("expires " + moneta.tokenExpiry(access));
                 case "record" -> record(moneta, access, arguments);
-                default -> fail("unknown command " + command + "; accounts, balance, transactions or record");
+                default -> fail("unknown command " + command + "; accounts, balance, token, transactions or record");
             }
         }
     }

@@ -2,6 +2,7 @@ package cz.insuit.moneta;
 
 import static java.util.Objects.requireNonNull;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import org.jspecify.annotations.Nullable;
@@ -60,6 +61,11 @@ public final class AccountHolder {
     /** As {@link MonetaClient#accounts(AccessToken)}. */
     public List<Account> accounts() {
         return client.accounts(token);
+    }
+
+    /** As {@link MonetaClient#tokenExpiry(AccessToken)}. */
+    public Instant tokenExpiry() {
+        return client.tokenExpiry(token);
     }
 
     private String onlyAccountId() {
