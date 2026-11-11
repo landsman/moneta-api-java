@@ -19,7 +19,7 @@ import org.jspecify.annotations.Nullable;
  * @param message the payer's message, sent once booked; while an instant payment is pending, "Okamžitá platba"
  * @param counterpartyName the payer of a credit, the payee of a debit; sent once booked, for credits
  * @param counterpartyAccount the other side's account as MONETA writes it, {@code number/bank}
- * @param reversed whether MONETA marks the movement as a reversal
+ * @param reversed whether MONETA marks the movement as a cancellation of another one; not seen live yet
  * @param method how the money moved: a transfer, a card payment, or {@code OTHER} for anything not mapped yet. A
  *     card payment is a debit whose counterparty name is the merchant and which has no counterparty account; the
  *     merchant text differs between the pending hold and the booked payment (live, 2026-11-07 and 2026-11-10)

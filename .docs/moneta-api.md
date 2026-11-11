@@ -1,16 +1,17 @@
 # How MONETA API behaves
 
-What a client of MONETA API has to know, whatever library it uses. MONETA publishes its specification only to
-organisations registered in its [developer portal](https://apiportal.moneta.cz/pages/moneta/home.html), so
-everything here was observed: on a live business account on 2026-11-06 and 2026-11-07, with instant payments
-in and out, read pending and then booked. A claim carries its date where it could change. What is still
+What a client of MONETA API has to know, whatever library it uses. Observed on a live business account from
+2026-11-06, with instant payments in and out, read pending and then booked, and checked on 2026-11-11 against
+MONETA's specification, `VipAISPPayments_v4` 1.0.1 (OpenAPI 3.0.3, updated 2026-03-31), which only organisations
+registered in its [developer portal](https://apiportal.moneta.cz/pages/moneta/home.html) can download. A claim
+carries its date where it could change. What is still
 unknown, and what this library does next, is the working document [plan/roadmap.md](plan/roadmap.md).
 
 ## Watch out for
 
 1. **A movement's `entryReference` changes when it is booked.** Deduplicate by it and every payment counts
    twice, once pending and once booked.
-2. **No movement carries a time of day**, only dates. "Payments in the last hour" cannot be asked of MONETA; a
+2. **No movement carries a time of day**, only dates; the specification has none either. "Payments in the last hour" cannot be asked of MONETA; a
    poller records when it first saw each movement, which is as exact as its interval.
 3. **The date of a payment is a different field before and after booking**: `enteredDate` while pending,
    `valueDate` once booked. `bookingDate` can be a later business day than the payment.
@@ -21,6 +22,8 @@ unknown, and what this library does next, is the working document [plan/roadmap.
 6. **An unknown query parameter is ignored without an error**, so a misspelt filter returns the whole account.
 7. **A page past the last is a 404**, not an empty page.
 8. **A nonsense date is a 500**, which a retrying client mistakes for an outage.
+9. **A page can hold more than `size`**: the specification caps `size` at 100 and adds pending (blocked)
+   movements on top.
 
 ## MONETA API and PSD2
 
@@ -40,9 +43,13 @@ and a portal account: [access](access.md).
 
 - **Host and paths:** `https://api.moneta.cz/api/v4/vip/aisp/my/accounts` and
   `…/accounts/{id}/transactions`; the account id is its 10-digit number.
-- **Authentication:** `Authorization: Bearer <token>`, the token the merchant issued in Internet Banka.
-- **The partner headers** `identification_number`, `business_name`, `application_name` are not required: every
-  call was made without them (2026-11-06).
+- **Authentication:** `Authorization: Bearer <token>`, the token the merchant issued in Internet Banka. That
+  token is the only way to production for a partner without a PSD2 licence ([access](access.md)).
+- **The sandbox is the same host**, chosen by the token: one from `POST /auth/oauth/v2/token` with client
+  credentials and scope `vip_sandbox`, valid 1200 seconds. It answers fixed test data and validates almost no
+  parameter, so it shows the shapes, not the errors.
+- **The partner headers** `identification_number`, `business_name`, `application_name` are optional, per the
+  specification; every live call was made without them (2026-11-06).
 - **A response carries `X-Request-Id`**, what MONETA's support asks for about one call, and `Is-Sandbox: false`
   on production.
 
@@ -52,7 +59,10 @@ and a portal account: [access](access.md).
   default is 10.
 - **`toDate` is inclusive**: `fromDate` = `toDate` = a day returned that day's pending movements (2026-11-06). No
   limit on a range's length was met, back to 2020.
-- **A pending movement is filtered by `enteredDate`** (2026-11-06).
+- **A pending movement is filtered by `enteredDate`** (2026-11-06). The specification says the range filters on
+  `valueDate`, which a pending movement does not have.
+- **`sort` and `order`** exist: `sort=date` (`bookingDate`, or `enteredDate` for a card hold) or `sort=amount`,
+  `order=ASC` or `DESC`. Not used by this client.
 - **A movement booked for a later day comes back from every range that starts on or before its `bookingDate`**,
   whatever `toDate` says. On Saturday 2026-11-07 the account held ten movements valued 6 and 7 November and booked
   for Monday 9 November. Each of these ranges returned all ten: a single day from 3 to 9 November,
@@ -72,6 +82,10 @@ and a portal account: [access](access.md).
 | `toDate` before `fromDate` | 400 `{"errors":[{"error":"DT01","message":"Neplatné datum."}]}` |
 | `fromDate=garbage` | 500 `cbl.process.request.exception`, "Zkuste zadání vašeho požadavku opakovat později." |
 
+Every error body is `{"errors": [{"error", "message", "parameters", "scope"}]}`, and `message` is "not for direct
+output to the user". **The specification documents a 429** for too many requests, with no limit and no
+`Retry-After`; none has been met yet.
+
 ## A balance
 
 `GET …/accounts/{id}/balance` (not `balances`, which is a 400 `INVALID_REQUEST`) answers two entries, read on
@@ -80,10 +94,11 @@ replaced):
 
 - **`type.codeOrProprietary.code`** is `CLBD` for the booked balance and `CLAV` for the available one.
 - **The amount is unsigned beside `creditDebitIndicator`**, as a movement's.
-- **`date` is `{"dateTime": "2026-11-07T15:32:12.391Z"}`**, an instant in UTC: the `{"date": …}` wrapper of a
-  movement has a date-time choice, and the balance uses it.
+- **`date` is `{"dateTime": "2026-11-07T15:32:12.391Z"}`**, an instant in UTC. The specification allows a bare
+  date there too; this client reads one as the start of that day in Prague.
 - **`creditLine`** is `{"amount": {"value": 0}, "included": true}` on an account without one, its amount
-  without a currency.
+  without a currency. The specification does not list it, nor a movement's `bankTransactionCode`; both come
+  live (2026-11-11).
 
 ## A movement
 
@@ -169,6 +184,10 @@ Once booked, the same payment changed this much:
 - **No time of day exists anywhere**, pending or booked (checked again on booked movements, 2026-11-07): not in
   the body, the headers or the `entryReference`, which grows with
   time but decodes to no timestamp. Internet Banka's export has none either.
+- **`reversalIndicator: true` marks a cancellation**, per the specification; none has been seen live.
+- **`clearingSystemReference` is one of 25 values** in the specification: transfers, foreign payments, standing
+  orders, card payments, SIPO, direct debits, interest, fees, loans and deposits, each `BLOCKED_` variant for a
+  pending one.
 - **An account has no `nameI18N` unless one is set**; `productI18N` names the product ("Běžný účet").
 
 ## Deduplicating payments

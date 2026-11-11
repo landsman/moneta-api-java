@@ -209,10 +209,9 @@ None is needed against production. The keys are the Spring Boot starter's.
 
 | Key | Default | |
 |-----|---------|---|
-| `moneta.base-uri` | production, `MonetaClient.PRODUCTION` | the sandbox's host once the portal gives it |
+| `moneta.base-uri` | production, `MonetaClient.PRODUCTION` | a test server; the sandbox is the same host, chosen by its token |
 | `moneta.request-timeout` | the client's, 30 s | one call to MONETA, as a HOCON duration: `20s` |
 | `moneta.partner.identification-number`, `.business-name`, `.application-name` | none | the registered application's headers, all three or none, ASCII only |
 
-MONETA does not ask for the partner headers: every call so far went through without ([how it
-behaves](../../.docs/moneta-api.md)). Likely for an application approved on the developer portal; set them once the
-portal says so.
+MONETA does not ask for the partner headers: its specification marks them optional, and every live call went
+through without ([how it behaves](../../.docs/moneta-api.md)).

@@ -1,6 +1,7 @@
 package cz.insuit.moneta;
 
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 /**
@@ -18,7 +19,15 @@ public record Balance(Money booked, Money available, Instant at) {
         return new Balance(
                 CreditDebit.of(booked.creditDebitIndicator()).signed(booked.amount()),
                 CreditDebit.of(available.creditDebitIndicator()).signed(available.amount()),
-                available.date().dateTime());
+                instant(what, available.date()));
+    }
+
+    private static Instant instant(String what, DateTimeValueJson date) {
+        try {
+            return date.instant();
+        } catch (DateTimeParseException e) {
+            throw new MonetaException.InvalidResponse(what + " sent the balance date " + date.dateTime(), e);
+        }
     }
 
     private static BalanceJson ofType(String what, List<BalanceJson> balances, BalanceCode code) {

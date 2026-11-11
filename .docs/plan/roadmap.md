@@ -11,23 +11,22 @@ behaves, as far as it is known, is [moneta-api.md](../moneta-api.md).
   `incoming()`, and tells a card payment from a transfer with `method()`. Checked against a live business account
   on 2026-11-06 and 2026-11-07, a card payment pending on 2026-11-07 and booked on 2026-11-10.
 - **Tested** on Java 21 and 25, Spring Boot 3.5.12, 3.5.16, 4.0.0 and 4.1.2, a Kotlin caller, and Jackson 3.0.4.
-- **The developer portal registration** (MONETA API – TPP) waits for MONETA's manual approval; until then
-  there is no sandbox and no documentation, only the production API with a merchant's token.
+- **The developer portal registration** (MONETA API – TPP) was approved. It gives the specification and a
+  sandbox; production stays the merchant's token, as without a PSD2 licence the portal offers no more
+  ([access](../access.md)).
 - **[examples/cafe](../../examples/cafe/README.md)** issues bills as QR payments and finds them paid, live.
 
 ## Still unknown
 
-Mostly behind the portal, so expected once the registration is approved
-([#11](https://github.com/landsman/moneta-api-java/issues/11)):
+Not in the specification `VipAISPPayments_v4` 1.0.1, read 2026-11-11:
 
-- **A time of day for a movement**, if any field or endpoint has one
-  ([#9](https://github.com/landsman/moneta-api-java/issues/9)).
-- **Rate limits**: per token, application or partner; the window; whether a 429 carries `Retry-After`. Until
-  known, a 429 fails the whole read. If a normal read can hit them, the client retries the page it stopped on,
-  only after a short `Retry-After`, a few times, and that can be turned off.
-- **Token rights and lifetime**: whether a token can be read-only, how long it lives.
-- **The sandbox's host** and how its tokens are issued.
-- **Reversals**: what a movement with `reversalIndicator: true` looks like.
+- **Rate limits**: the specification documents a 429, but no limit and no `Retry-After`. The portal lists "usage
+  quotas" in the organisation's settings, not looked at yet. Until known, a 429 fails the whole read. If a
+  normal read can hit them, the client retries the page it stopped on, only after a short `Retry-After`, a few
+  times, and that can be turned off.
+- **A merchant token's rights and lifetime**: whether it can be read-only, how long it lives. A sandbox token
+  lives 1200 seconds.
+- **Reversals**: the specification calls `reversalIndicator: true` a cancellation; not seen live.
 - **`business_name` with diacritics**: the client accepts ASCII only for now.
 - **Webhooks**, as an alternative to polling.
 
@@ -42,7 +41,18 @@ Mostly behind the portal, so expected once the registration is approved
 - **Micronaut**: whether it earns a module or a section in the docs
   ([#19](https://github.com/landsman/moneta-api-java/issues/19)).
 
+Answered by the specification: no movement has a time of day
+([#9](https://github.com/landsman/moneta-api-java/issues/9)); the sandbox is the same host with a client
+credentials token.
+
 ## Not covered
 
-Payments (PISP), statements, standing orders, card transactions as their own endpoint, OAuth client credentials
-for the sandbox. Each waits for the specification.
+- **Statements**: the specification is in hand. `…/{id}/statements?from=&to=` lists them;
+  `…/{id}/statement/download` with `format=JSON&feature=JSON$STND` returns one with its movements, other formats
+  a `dataDownloadURL` for `…/statement?file=`.
+- **Payments and standing orders** (`VipPISPPaymentsBatch_v4`, `VipPISPStandingOrders_v4`): each creates an item
+  in Internet Banka that a person signs or rejects, so a client returns "waiting for a signature", never "paid".
+  A batch holds up to 200 payments and has a status endpoint. Their specifications are not downloaded yet.
+- **Card transactions as their own endpoint**: none in `VipAISPPayments_v4`.
+- **A sandbox mode**: a sandbox token works as any `AccessToken`; renewing it every 20 minutes is left to the
+  caller until someone needs more.

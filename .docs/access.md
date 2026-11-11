@@ -44,9 +44,25 @@ After the form comes an e-mail to confirm, then **approval by hand**: apiportal@
 "is currently under review", with no time frame. One account per organisation; a colleague asks its admin to be
 added rather than signing up again.
 
-Approval opens the documentation, a sandbox where the partner issues its own tokens, and temporary tokens from
-an authentication endpoint ([developer page](https://www.moneta.cz/zivnostnici-a-firmy/api-pro-vyvojare)).
-Until then the production API with a merchant's token is the only way to try the client; `make dev` does that.
+Approval opens the documentation and a sandbox, and nothing more without a PSD2 licence: the portal's Production
+plan "requires a valid PSD2 license", and non-PSD2 partners get "Sandbox only". **Production is always the
+merchant's token**; the portal's credentials reach only the sandbox. `make dev` runs against production.
+
+For the sandbox, from the portal's guide (2026-11-11):
+
+1. Ask MONETA's integrations admin for the Sandbox API plan on the service, e.g. `VipAISPPayments_v4`.
+2. In the portal application, Key Overview: generate a key (the client id), set the scope to `vip_sandbox` and
+   the type to Confidential.
+3. Get a token, valid 1200 seconds:
+
+       curl https://api.moneta.cz/auth/oauth/v2/token \
+         --data-urlencode client_id=… --data-urlencode client_secret=… \
+         --data-urlencode grant_type=client_credentials --data-urlencode scope=vip_sandbox
+
+4. Send it as `Authorization: Bearer`, to the same host as production.
+
+The sandbox answers fixed test data and validates almost nothing, so errors are tried against a real account.
+The client has no sandbox mode: a sandbox token is passed as any `AccessToken`, and renewed by the caller.
 
 ## Contacts
 
