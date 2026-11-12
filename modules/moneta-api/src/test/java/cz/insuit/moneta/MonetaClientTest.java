@@ -574,6 +574,14 @@ class MonetaClientTest {
             assertTrue(String.valueOf(refused.getMessage()).contains("acc-eur"), refused.getMessage());
         }
 
+        @ParameterizedTest
+        @ValueSource(
+                strings = {"CZ0206000000000000001373", "CZ0306000000000000001337", "CZ02", "0206000000000000001337"})
+        void aMistypedIbanIsRefusedRatherThanReadAsRevoked(String typo) {
+            assertThrows(IllegalArgumentException.class, () -> client.accountByIban(TOKEN, typo));
+            assertTrue(requests.isEmpty());
+        }
+
         @Test
         void theClientFindsAnAccountByIbanWithoutAHolder() {
             answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);

@@ -147,16 +147,19 @@ public final class MonetaClient implements AutoCloseable {
      * so an account the token stopped seeing shows on the next one.
      *
      * @return null when the token does not see it: revoked for that account, or another holder's token
-     * @throws IllegalArgumentException when the IBAN is blank
+     * @throws IllegalArgumentException when the IBAN is blank or fails its check digits, a typo
      * @throws IllegalStateException when more than one account has that IBAN, as one per currency could
      * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
      * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
      */
     public @Nullable Account accountByIban(AccessToken token, String iban) {
         var wanted = normalisedIban(requireNonNull(iban, "iban"));
+        // Null would read as "revoked", and a caller may disconnect the merchant over its own typo.
         if (wanted.isEmpty()) {
-            // Null would read as "revoked", and a caller may disconnect the merchant over its own empty value.
             throw new IllegalArgumentException("iban is blank");
+        }
+        if (!ibanChecksOut(wanted)) {
+            throw new IllegalArgumentException("iban " + iban + " fails its check digits, so it is mistyped");
         }
         var matches = accounts(token).stream()
                 .filter(account ->
@@ -169,6 +172,25 @@ public final class MonetaClient implements AutoCloseable {
                     + matches.stream().map(Account::id).toList() + "), so name one by its id");
         }
         return matches.isEmpty() ? null : matches.getFirst();
+    }
+
+    /** ISO 13616: two letters, two check digits, up to 30 more; moved to the end, the number is 1 modulo 97. */
+    private static boolean ibanChecksOut(String normalised) {
+        if (normalised.length() < 5
+                || normalised.length() > 34
+                || !Character.isLetter(normalised.charAt(0))
+                || !Character.isLetter(normalised.charAt(1))
+                || !Character.isDigit(normalised.charAt(2))
+                || !Character.isDigit(normalised.charAt(3))) {
+            return false;
+        }
+        var rearranged = normalised.substring(4) + normalised.substring(0, 4);
+        int remainder = 0;
+        for (int i = 0; i < rearranged.length(); i++) {
+            int value = Character.digit(rearranged.charAt(i), 36);
+            remainder = (remainder * (value < 10 ? 10 : 100) + value) % 97;
+        }
+        return remainder == 1;
     }
 
     /**
