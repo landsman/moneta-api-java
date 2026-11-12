@@ -205,11 +205,16 @@ public final class MonetaClient implements AutoCloseable {
      * so an account the token stopped seeing shows on the next one.
      *
      * @return null when the token does not see it: revoked for that account, or another holder's token
+     * @throws IllegalArgumentException when the IBAN is blank
      * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
      * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
      */
     public @Nullable Account account(AccessToken token, String iban) {
         var wanted = normalisedIban(requireNonNull(iban, "iban"));
+        if (wanted.isEmpty()) {
+            // Null would read as "revoked", and a caller may disconnect the merchant over its own empty value.
+            throw new IllegalArgumentException("iban is blank");
+        }
         for (var account : accounts(token)) {
             var own = account.iban();
             if (own != null && normalisedIban(own).equals(wanted)) {
