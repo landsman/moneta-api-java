@@ -141,6 +141,45 @@ public final class MonetaClient implements AutoCloseable {
     }
 
     /**
+     * The account with this IBAN, compared without spaces and case, so {@code cz02 0600 …} as printed matches; an
+     * account without an IBAN never does. Reads {@link #accounts(AccessToken)} on every call and remembers nothing,
+     * so an account the token stopped seeing shows on the next one.
+     *
+     * @return null when the token does not see it: revoked for that account, or another holder's token
+     * @throws IllegalArgumentException when the IBAN is blank
+     * @throws IllegalStateException when more than one account has that IBAN, as one per currency could
+     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
+     */
+    public @Nullable Account accountByIban(AccessToken token, String iban) {
+        var wanted = normalisedIban(requireNonNull(iban, "iban"));
+        if (wanted.isEmpty()) {
+            // Null would read as "revoked", and a caller may disconnect the merchant over its own empty value.
+            throw new IllegalArgumentException("iban is blank");
+        }
+        var matches = accounts(token).stream()
+                .filter(account ->
+                        account.iban() != null && normalisedIban(account.iban()).equals(wanted))
+                .toList();
+        if (matches.size() > 1) {
+            // A multi-currency account may list one entry per currency under one IBAN; picking one would read the
+            // wrong currency without an error.
+            throw new IllegalStateException("the token opens " + matches.size() + " accounts with that IBAN ("
+                    + matches.stream().map(Account::id).toList() + "), so name one by its id");
+        }
+        return matches.isEmpty() ? null : matches.getFirst();
+    }
+
+    /** Without any space, a no-break one copied from a PDF or a web page included; other characters are kept. */
+    private static String normalisedIban(String iban) {
+        var kept = new StringBuilder(iban.length());
+        iban.codePoints()
+                .filter(c -> !Character.isWhitespace(c) && !Character.isSpaceChar(c))
+                .forEach(kept::appendCodePoint);
+        return kept.toString().toUpperCase(Locale.ROOT);
+    }
+
+    /**
      * The account's booked and available balance, as of the instant MONETA computed it.
      *
      * @throws IllegalArgumentException when the account id is blank or a dot segment
@@ -197,45 +236,6 @@ public final class MonetaClient implements AutoCloseable {
     public TransactionQuery transactions(AccessToken token, String accountId) {
         requireNonNull(accountId, "accountId");
         return new TransactionQuery(this, token, () -> accountId);
-    }
-
-    /**
-     * The account with this IBAN, compared without spaces and case, so {@code cz02 0600 …} as printed matches; an
-     * account without an IBAN never does. Reads {@link #accounts(AccessToken)} on every call and remembers nothing,
-     * so an account the token stopped seeing shows on the next one.
-     *
-     * @return null when the token does not see it: revoked for that account, or another holder's token
-     * @throws IllegalArgumentException when the IBAN is blank
-     * @throws IllegalStateException when more than one account has that IBAN, as one per currency could
-     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
-     * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
-     */
-    public @Nullable Account account(AccessToken token, String iban) {
-        var wanted = normalisedIban(requireNonNull(iban, "iban"));
-        if (wanted.isEmpty()) {
-            // Null would read as "revoked", and a caller may disconnect the merchant over its own empty value.
-            throw new IllegalArgumentException("iban is blank");
-        }
-        var matches = accounts(token).stream()
-                .filter(account ->
-                        account.iban() != null && normalisedIban(account.iban()).equals(wanted))
-                .toList();
-        if (matches.size() > 1) {
-            // A multi-currency account may list one entry per currency under one IBAN; picking one would read the
-            // wrong currency without an error.
-            throw new IllegalStateException("the token opens " + matches.size() + " accounts with that IBAN ("
-                    + matches.stream().map(Account::id).toList() + "), so name one by its id");
-        }
-        return matches.isEmpty() ? null : matches.getFirst();
-    }
-
-    /** Without any space, a no-break one copied from a PDF or a web page included; other characters are kept. */
-    private static String normalisedIban(String iban) {
-        var kept = new StringBuilder(iban.length());
-        iban.codePoints()
-                .filter(c -> !Character.isWhitespace(c) && !Character.isSpaceChar(c))
-                .forEach(kept::appendCodePoint);
-        return kept.toString().toUpperCase(Locale.ROOT);
     }
 
     /** The id of the only account the token opens; {@link IllegalStateException} unless there is exactly one. */

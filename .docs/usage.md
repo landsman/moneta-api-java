@@ -43,7 +43,7 @@ find the one you stored by its IBAN, which is what the merchant gave you; MONETA
 nobody outside it.
 
 ```java
-var account = me.account(storedIban);   // spaces of any kind and case do not matter; dashes do
+var account = me.accountByIban(storedIban);   // spaces of any kind and case do not matter; dashes do
 if (account == null) {
     return refuse();                     // the token no longer sees it: revoked, or another token pasted
 }
@@ -53,7 +53,7 @@ me.transactions(account.id()).between(from, to).list();
 <details><summary>Kotlin</summary>
 
 ```kotlin
-val account = me.account(storedIban) ?: return refuse()
+val account = me.accountByIban(storedIban) ?: return refuse()
 me.transactions(account.id()).between(from, to).list()
 ```
 

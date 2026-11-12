@@ -68,9 +68,9 @@ public final class AccountHolder {
         return client.tokenExpiry(token);
     }
 
-    /** As {@link MonetaClient#account(AccessToken, String)}. */
-    public @Nullable Account account(String iban) {
-        return client.account(token, iban);
+    /** As {@link MonetaClient#accountByIban(AccessToken, String)}. */
+    public @Nullable Account accountByIban(String iban) {
+        return client.accountByIban(token, iban);
     }
 
     private String onlyAccountId() {

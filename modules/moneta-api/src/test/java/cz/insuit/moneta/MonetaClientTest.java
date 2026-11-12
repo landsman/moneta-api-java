@@ -531,7 +531,7 @@ class MonetaClientTest {
         void aHolderFindsAnAccountByItsIbanAsPrinted() {
             answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
 
-            var found = client.with(TOKEN).account("cz02 0600 0000 0000 0000 1337");
+            var found = client.with(TOKEN).accountByIban("cz02 0600 0000 0000 0000 1337");
 
             assertEquals("acc-1", requireNonNull(found).id());
         }
@@ -540,14 +540,14 @@ class MonetaClientTest {
         void anIbanTheTokenDoesNotSeeIsNullNotAnError() {
             answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
 
-            assertNull(client.with(TOKEN).account("CZ4008000000004040404040"));
+            assertNull(client.with(TOKEN).accountByIban("CZ4008000000004040404040"));
         }
 
         @Test
         void aNoBreakSpaceCopiedFromAStatementMatchesToo() {
             answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
 
-            var found = client.account(TOKEN, "CZ02 0600 0000\t0000 0000 1337");
+            var found = client.accountByIban(TOKEN, "CZ02 0600 0000\t0000 0000 1337");
 
             assertEquals("acc-1", requireNonNull(found).id());
         }
@@ -557,7 +557,7 @@ class MonetaClientTest {
         void aBlankIbanIsTheCallersMistakeNotARevokedAccount(String blank) {
             answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
 
-            assertThrows(IllegalArgumentException.class, () -> client.account(TOKEN, blank));
+            assertThrows(IllegalArgumentException.class, () -> client.accountByIban(TOKEN, blank));
         }
 
         @Test
@@ -569,8 +569,8 @@ class MonetaClientTest {
                       {"id": "acc-eur", "currency": "EUR", "identification": {"iban": "CZ0206000000000000001337"}}
                     ], "pageNumber": 0, "pageCount": 1}""");
 
-            var refused =
-                    assertThrows(IllegalStateException.class, () -> client.account(TOKEN, "CZ0206000000000000001337"));
+            var refused = assertThrows(
+                    IllegalStateException.class, () -> client.accountByIban(TOKEN, "CZ0206000000000000001337"));
             assertTrue(String.valueOf(refused.getMessage()).contains("acc-eur"), refused.getMessage());
         }
 
@@ -580,7 +580,7 @@ class MonetaClientTest {
 
             assertEquals(
                     "acc-1",
-                    requireNonNull(client.account(TOKEN, "CZ0206000000000000001337"))
+                    requireNonNull(client.accountByIban(TOKEN, "CZ0206000000000000001337"))
                             .id());
         }
 
@@ -589,8 +589,8 @@ class MonetaClientTest {
             answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
             var me = client.with(TOKEN);
 
-            me.account("CZ0206000000000000001337");
-            me.account("CZ0206000000000000001337");
+            me.accountByIban("CZ0206000000000000001337");
+            me.accountByIban("CZ0206000000000000001337");
 
             assertEquals(
                     2,
