@@ -544,6 +544,15 @@ class MonetaClientTest {
         }
 
         @Test
+        void aNoBreakSpaceCopiedFromAStatementMatchesToo() {
+            answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
+
+            var found = client.account(TOKEN, "CZ02 0600 0000\t0000 0000 1337");
+
+            assertEquals("acc-1", requireNonNull(found).id());
+        }
+
+        @Test
         void theClientFindsAnAccountByIbanWithoutAHolder() {
             answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
 

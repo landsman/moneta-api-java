@@ -219,8 +219,13 @@ public final class MonetaClient implements AutoCloseable {
         return null;
     }
 
+    /** Without any space, a no-break one copied from a PDF or a web page included; other characters are kept. */
     private static String normalisedIban(String iban) {
-        return iban.replaceAll("\\s", "").toUpperCase(Locale.ROOT);
+        var kept = new StringBuilder(iban.length());
+        iban.codePoints()
+                .filter(c -> !Character.isWhitespace(c) && !Character.isSpaceChar(c))
+                .forEach(kept::appendCodePoint);
+        return kept.toString().toUpperCase(Locale.ROOT);
     }
 
     /** The id of the only account the token opens; {@link IllegalStateException} unless there is exactly one. */
