@@ -62,6 +62,7 @@ class MonetaClientTest {
     private static final String ACCOUNTS = "/api/v4/vip/aisp/my/accounts";
     private static final String TRANSACTIONS = ACCOUNTS + "/acc-1/transactions";
     private static final String BALANCE = ACCOUNTS + "/acc-1/balance";
+    private static final String TOKEN_INTROSPECT = "/api/v1/vip/token/introspect";
     private static final LocalDate FROM = LocalDate.of(2026, 8, 1);
     private static final LocalDate TO = LocalDate.of(2026, 8, 31);
     private static final Currency CZK = Currency.getInstance("CZK");
@@ -343,6 +344,31 @@ class MonetaClientTest {
 
             assertEquals(new Money(new BigDecimal("-12.50"), CZK), balance.booked());
             assertEquals(new Money(new BigDecimal("87.50"), CZK), balance.available());
+        }
+
+        @Test
+        void readsWhenTheTokenExpires() {
+            // The example from MONETA's specification, VipTokenIntrospect_v1.
+            answer(TOKEN_INTROSPECT, 200, """
+                    {"expiration": "2026-03-06T11:38:09+01:00"}""");
+
+            assertEquals(
+                    Instant.parse("2026-03-06T10:38:09Z"), client.with(TOKEN).tokenExpiry());
+        }
+
+        @Test
+        void aTokenAnswerWithoutAnExpiryIsRefused() {
+            answer(TOKEN_INTROSPECT, 200, "{}");
+
+            assertThrows(MonetaException.InvalidResponse.class, () -> client.tokenExpiry(TOKEN));
+        }
+
+        @Test
+        void aTokenThatIsNotMonetasIsInvalidToken() {
+            answer(TOKEN_INTROSPECT, 403, """
+                    {"errors": [{"error": "FORBIDDEN", "message": "This is not a Moneta API token."}]}""");
+
+            assertThrows(MonetaException.InvalidToken.class, () -> client.tokenExpiry(TOKEN));
         }
 
         @Test
@@ -879,6 +905,8 @@ class MonetaClientTest {
             answer(ACCOUNTS, 200, fixture("accounts.json"));
             answer(BALANCE, 200, fixture("live/balance.json"));
             answer(TRANSACTIONS, 200, NO_TRANSACTIONS);
+            answer(TOKEN_INTROSPECT, 200, """
+                    {"expiration": "2026-03-06T11:38:09+01:00"}""");
             var templates = new ArrayList<String>();
             var client = MonetaClient.builder()
                     .baseUri(base)
@@ -889,9 +917,14 @@ class MonetaClientTest {
             client.accounts(TOKEN);
             client.balance(TOKEN, "acc-1");
             client.transactions(TOKEN, "acc-1", FROM, TO);
+            client.tokenExpiry(TOKEN);
 
             assertEquals(
-                    List.of(ACCOUNTS, ACCOUNTS + "/{accountId}/balance", ACCOUNTS + "/{accountId}/transactions"),
+                    List.of(
+                            ACCOUNTS,
+                            ACCOUNTS + "/{accountId}/balance",
+                            ACCOUNTS + "/{accountId}/transactions",
+                            TOKEN_INTROSPECT),
                     templates.stream().distinct().toList());
         }
 

@@ -38,6 +38,7 @@ client implements:
 | Transactions, pending and booked | ✅ | ✅ |
 | Card transactions | ✅ | in the transaction list, `method()`; not their own endpoint |
 | Balances | ✅ | ✅ |
+| When a token expires | ✅ | ✅ |
 | Pending card transactions | ✅ | ⬜ |
 | Electronic statements | ✅ | ⬜ |
 | Overview of payment orders | ✅ | ⬜ |

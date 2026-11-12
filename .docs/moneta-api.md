@@ -49,7 +49,8 @@ and a portal account: [access](access.md).
   credentials and scope `vip_sandbox`, valid 1200 seconds. It answers fixed test data and validates almost no
   parameter, so it shows the shapes, not the errors.
 - **A token's expiry** is `GET /api/v1/vip/token/introspect`: `{"expiration": "2026-03-06T11:38:09+01:00"}` for
-  the token sent, a 403 for one that is not a MONETA API token. Not tried live yet.
+  the token sent, a 403 for one that is not a MONETA API token. Live on 2026-11-11 it answered
+  `2027-02-08T17:25:00Z` for a merchant token issued in November 2026.
 - **An application without an API plan in the portal gets a 401** in the sandbox, per the payment specifications.
 - **The partner headers** `identification_number`, `business_name`, `application_name` are optional, per the
   specification; every live call was made without them (2026-11-06).

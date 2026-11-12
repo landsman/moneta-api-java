@@ -14,6 +14,7 @@ behaves, as far as it is known, is [moneta-api.md](../moneta-api.md).
 - **The developer portal registration** (MONETA API – TPP) was approved. It gives the specification and a
   sandbox; production stays the merchant's token, as without a PSD2 licence the portal offers no more
   ([access](../access.md)).
+- **A token's expiry** is `tokenExpiry()`, checked live on 2026-11-11.
 - **[examples/cafe](../../examples/cafe/README.md)** issues bills as QR payments and finds them paid, live.
 
 ## Still unknown
@@ -24,7 +25,7 @@ Not in MONETA's specifications, read 2026-11-11:
   quotas" in the organisation's settings, not looked at yet. Until known, a 429 fails the whole read. If a
   normal read can hit them, the client retries the page it stopped on, only after a short `Retry-After`, a few
   times, and that can be turned off.
-- **A merchant token's rights**: whether it can be read-only. Its expiry is not unknown any more, see Next.
+- **A merchant token's rights**: whether it can be read-only. Its expiry is `tokenExpiry()`.
 - **Reversals**: the specification calls `reversalIndicator: true` a cancellation; not seen live.
 - **`business_name` with diacritics**: the client accepts ASCII only for now.
 - **Webhooks**, as an alternative to polling.
@@ -36,9 +37,6 @@ credentials token; a merchant token's expiry is readable per token.
 
 ## Next
 
-- **A token's expiry**: `GET /api/v1/vip/token/introspect` answers `{"expiration": "2026-03-06T11:38:09+01:00"}`
-  for the token sent, and a 403 for one that is not a MONETA API token (`VipTokenIntrospect_v1` 1.0.0). As
-  `client.tokenExpiry(token)`, an app warns the merchant before the token stops working, not after a 401.
 - **Maven Central**, once the portal documentation confirms the shapes: signing, a release process on
   JReleaser ([#14](https://github.com/landsman/moneta-api-java/issues/14)).
 - **A cold review** of the starter, the modules layout and the booked-movement changes

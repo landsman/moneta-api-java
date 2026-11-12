@@ -22,6 +22,7 @@ Mistakes to avoid:
 
 - `entryReference` changes when a pending movement is booked: deduplicating by it counts a payment twice.
 - Movements have dates only, no time of day.
+- A merchant's token expires: check `tokenExpiry()` on a schedule and ask for a new one before it does.
 - `amount()` is signed: negative is money out.
 - `Transaction.Method` gains constants: keep a `default` branch.
 - A read is all or nothing across pages; read long ranges month by month.
