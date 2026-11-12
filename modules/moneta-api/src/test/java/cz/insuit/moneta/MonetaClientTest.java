@@ -544,6 +544,16 @@ class MonetaClientTest {
         }
 
         @Test
+        void theClientFindsAnAccountByIbanWithoutAHolder() {
+            answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
+
+            assertEquals(
+                    "acc-1",
+                    requireNonNull(client.account(TOKEN, "CZ0206000000000000001337"))
+                            .id());
+        }
+
+        @Test
         void aHolderReadsTheAccountsAgainForEveryIban() {
             answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
             var me = client.with(TOKEN);

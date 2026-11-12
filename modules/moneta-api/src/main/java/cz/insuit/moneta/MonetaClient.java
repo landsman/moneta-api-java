@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CancellationException;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -196,6 +197,30 @@ public final class MonetaClient implements AutoCloseable {
     public TransactionQuery transactions(AccessToken token, String accountId) {
         requireNonNull(accountId, "accountId");
         return new TransactionQuery(this, token, () -> accountId);
+    }
+
+    /**
+     * The account with this IBAN, compared without spaces and case, so {@code cz02 0600 …} as printed matches; an
+     * account without an IBAN never does. Reads {@link #accounts(AccessToken)} on every call and remembers nothing,
+     * so an account the token stopped seeing shows on the next one.
+     *
+     * @return null when the token does not see it: revoked for that account, or another holder's token
+     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
+     */
+    public @Nullable Account account(AccessToken token, String iban) {
+        var wanted = normalisedIban(requireNonNull(iban, "iban"));
+        for (var account : accounts(token)) {
+            var own = account.iban();
+            if (own != null && normalisedIban(own).equals(wanted)) {
+                return account;
+            }
+        }
+        return null;
+    }
+
+    private static String normalisedIban(String iban) {
+        return iban.replaceAll("\\s", "").toUpperCase(Locale.ROOT);
     }
 
     /** The id of the only account the token opens; {@link IllegalStateException} unless there is exactly one. */
