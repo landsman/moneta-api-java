@@ -141,7 +141,8 @@ public final class MonetaClient implements AutoCloseable {
     }
 
     /**
-     * The account with this IBAN, compared without spaces and case, so {@code cz02 0600 …} as printed matches; an
+     * The account with this IBAN, compared on its letters and digits regardless of case, so {@code cz02 0600 …} as
+     * printed matches; an
      * account without an IBAN never does. Reads {@link #accounts(AccessToken)} on every call and remembers nothing,
      * so an account the token stopped seeing shows on the next one.
      *
@@ -170,12 +171,13 @@ public final class MonetaClient implements AutoCloseable {
         return matches.isEmpty() ? null : matches.getFirst();
     }
 
-    /** Without any space, a no-break one copied from a PDF or a web page included; other characters are kept. */
+    /**
+     * ASCII letters and digits only, upper case. An IBAN holds nothing else, so every separator goes: spaces of any
+     * kind, zero-width ones a web page leaves behind, dashes and dots.
+     */
     private static String normalisedIban(String iban) {
         var kept = new StringBuilder(iban.length());
-        iban.codePoints()
-                .filter(c -> !Character.isWhitespace(c) && !Character.isSpaceChar(c))
-                .forEach(kept::appendCodePoint);
+        iban.chars().filter(c -> c < 128 && Character.isLetterOrDigit(c)).forEach(c -> kept.append((char) c));
         return kept.toString().toUpperCase(Locale.ROOT);
     }
 
