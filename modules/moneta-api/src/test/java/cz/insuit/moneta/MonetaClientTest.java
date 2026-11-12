@@ -278,6 +278,29 @@ class MonetaClientTest {
         }
 
         @Test
+        void anUnknownWayOfPayingIsOtherAndKeptInRaw() {
+            var page = (ObjectNode) JSON.readTree(movement("BOOK", "CRDT"));
+            ((ObjectNode) page.get("transactions").get(0))
+                    .withObject("/entryDetails/transactionDetails/references")
+                    .put("clearingSystemReference", "PAYMENT_BY_CARRIER_PIGEON");
+            answer(TRANSACTIONS, 200, page.toString());
+
+            var movement = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
+
+            assertEquals(Transaction.Method.OTHER, movement.method());
+            assertTrue(movement.raw().contains("PAYMENT_BY_CARRIER_PIGEON"), movement.raw());
+        }
+
+        @Test
+        void aCancellationIsReversed() {
+            var page = (ObjectNode) JSON.readTree(movement("BOOK", "DBIT"));
+            ((ObjectNode) page.get("transactions").get(0)).put("reversalIndicator", true);
+            answer(TRANSACTIONS, 200, page.toString());
+
+            assertTrue(client.transactions(TOKEN, "acc-1", FROM, TO).getFirst().reversed());
+        }
+
+        @Test
         void readsSymbolsAndSignsAnOutgoingPaymentAsMonetaSendsThem() {
             // Recorded from the live API: a DBIT comes with a positive value, the symbols in one string.
             answer(TRANSACTIONS, 200, fixture("live/pending-symbols-and-outgoing.json"));
