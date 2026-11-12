@@ -561,6 +561,20 @@ class MonetaClientTest {
         }
 
         @Test
+        void anIbanOnTwoAccountsIsRefusedRatherThanGuessed() {
+            // language=JSON
+            answer(ACCOUNTS, 200, """
+                    {"accounts": [
+                      {"id": "acc-czk", "currency": "CZK", "identification": {"iban": "CZ0206000000000000001337"}},
+                      {"id": "acc-eur", "currency": "EUR", "identification": {"iban": "CZ0206000000000000001337"}}
+                    ], "pageNumber": 0, "pageCount": 1}""");
+
+            var refused =
+                    assertThrows(IllegalStateException.class, () -> client.account(TOKEN, "CZ0206000000000000001337"));
+            assertTrue(String.valueOf(refused.getMessage()).contains("acc-eur"), refused.getMessage());
+        }
+
+        @Test
         void theClientFindsAnAccountByIbanWithoutAHolder() {
             answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
 

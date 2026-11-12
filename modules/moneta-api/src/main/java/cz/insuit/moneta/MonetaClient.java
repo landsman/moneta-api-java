@@ -206,6 +206,7 @@ public final class MonetaClient implements AutoCloseable {
      *
      * @return null when the token does not see it: revoked for that account, or another holder's token
      * @throws IllegalArgumentException when the IBAN is blank
+     * @throws IllegalStateException when more than one account has that IBAN, as one per currency could
      * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
      * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
      */
@@ -215,13 +216,17 @@ public final class MonetaClient implements AutoCloseable {
             // Null would read as "revoked", and a caller may disconnect the merchant over its own empty value.
             throw new IllegalArgumentException("iban is blank");
         }
-        for (var account : accounts(token)) {
-            var own = account.iban();
-            if (own != null && normalisedIban(own).equals(wanted)) {
-                return account;
-            }
+        var matches = accounts(token).stream()
+                .filter(account ->
+                        account.iban() != null && normalisedIban(account.iban()).equals(wanted))
+                .toList();
+        if (matches.size() > 1) {
+            // A multi-currency account may list one entry per currency under one IBAN; picking one would read the
+            // wrong currency without an error.
+            throw new IllegalStateException("the token opens " + matches.size() + " accounts with that IBAN ("
+                    + matches.stream().map(Account::id).toList() + "), so name one by its id");
         }
-        return null;
+        return matches.isEmpty() ? null : matches.getFirst();
     }
 
     /** Without any space, a no-break one copied from a PDF or a web page included; other characters are kept. */
