@@ -41,6 +41,18 @@ class KotlinCallerTest {
         assertTrue(errors.isNotEmpty(), "iban read as non-null compiled, so Kotlin sees it as a platform type")
     }
 
+    @Test
+    fun aLookupThatMayFindNothingIsHandledWithAnElvis() {
+        val source = "fun f(me: cz.insuit.moneta.AccountHolder): String = me.accountByIban(\"x\")?.id ?: \"none\""
+        assertEquals(listOf<String>(), compile(source))
+    }
+
+    @Test
+    fun aLookupThatMayFindNothingCannotBeReadAsNonNull() {
+        val errors = compile("fun f(me: cz.insuit.moneta.AccountHolder): String = me.accountByIban(\"x\").id")
+        assertTrue(errors.isNotEmpty(), "accountByIban read as non-null compiled, so its @Nullable is lost")
+    }
+
     /** The errors compiling [source] against the library gives, empty when it compiles. */
     private fun compile(source: String): List<String> {
         val dir = createTempDirectory()

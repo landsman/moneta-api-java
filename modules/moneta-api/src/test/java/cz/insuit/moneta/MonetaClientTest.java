@@ -264,6 +264,40 @@ class MonetaClientTest {
             assertNull(pending.bookingDate());
             assertNull(pending.valueDate());
             assertEquals(new PaymentSymbols(null, null, null), pending.symbols());
+            // Czech text arrives intact only while the body is decoded as UTF-8.
+            assertEquals("Okamžitá platba", pending.message());
+        }
+
+        @Test
+        void aBookedMovementKeepsItsCzechText() {
+            answer(TRANSACTIONS, 200, fixture("live/booked.json"));
+
+            var booked = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
+
+            assertTrue(booked.raw().contains("OKAMŽITÁ ÚHRADA"), booked.raw());
+        }
+
+        @Test
+        void anUnknownWayOfPayingIsOtherAndKeptInRaw() {
+            var page = (ObjectNode) JSON.readTree(movement("BOOK", "CRDT"));
+            ((ObjectNode) page.get("transactions").get(0))
+                    .withObject("/entryDetails/transactionDetails/references")
+                    .put("clearingSystemReference", "PAYMENT_BY_CARRIER_PIGEON");
+            answer(TRANSACTIONS, 200, page.toString());
+
+            var movement = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
+
+            assertEquals(Transaction.Method.OTHER, movement.method());
+            assertTrue(movement.raw().contains("PAYMENT_BY_CARRIER_PIGEON"), movement.raw());
+        }
+
+        @Test
+        void aCancellationIsReversed() {
+            var page = (ObjectNode) JSON.readTree(movement("BOOK", "DBIT"));
+            ((ObjectNode) page.get("transactions").get(0)).put("reversalIndicator", true);
+            answer(TRANSACTIONS, 200, page.toString());
+
+            assertTrue(client.transactions(TOKEN, "acc-1", FROM, TO).getFirst().reversed());
         }
 
         @Test
@@ -551,6 +585,13 @@ class MonetaClientTest {
             assertEquals("acc-1", Objects.requireNonNull(found).id());
         }
 
+        @Test
+        @SuppressWarnings("NullAway") // a Java caller can still pass null
+        void aNullIbanIsRefusedBeforeAnyRequest() {
+            assertThrows(NullPointerException.class, () -> client.accountByIban(TOKEN, null));
+            assertTrue(requests.isEmpty());
+        }
+
         @ParameterizedTest
         @ValueSource(strings = {"", "  ", "\u00A0", "-"})
         void aBlankIbanIsTheCallersMistakeNotARevokedAccount(String blank) {
@@ -603,6 +644,33 @@ class MonetaClientTest {
                     requests.stream()
                             .filter(r -> r.getRequestURI().getPath().equals(ACCOUNTS))
                             .count());
+        }
+
+        @Test
+        void aHolderReadsTheAccountItNames() {
+            answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
+            answer(ACCOUNTS + "/acc-0/balance", 200, fixture("live/balance.json"));
+            answer(ACCOUNTS + "/acc-0/transactions", 200, NO_TRANSACTIONS);
+            var me = client.with(TOKEN);
+
+            assertEquals(
+                    List.of("acc-0", "acc-1"),
+                    me.accounts().stream().map(Account::id).toList());
+            me.balance("acc-0");
+            me.transactions("acc-0").between(FROM, TO).list();
+
+            assertEquals(
+                    List.of(ACCOUNTS, ACCOUNTS + "/acc-0/balance", ACCOUNTS + "/acc-0/transactions"),
+                    requests.stream().map(r -> r.getRequestURI().getPath()).toList());
+        }
+
+        @Test
+        void aHolderBalanceWithoutAnAccountRefusesATokenWithTwo() {
+            answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
+
+            var refused = assertThrows(
+                    IllegalStateException.class, () -> client.with(TOKEN).balance());
+            assertTrue(String.valueOf(refused.getMessage()).contains("opens 2 accounts"), refused.getMessage());
         }
 
         @Test
