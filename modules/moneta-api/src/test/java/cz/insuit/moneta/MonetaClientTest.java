@@ -1,6 +1,5 @@
 package cz.insuit.moneta;
 
-import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -533,7 +532,7 @@ class MonetaClientTest {
 
             var found = client.with(TOKEN).accountByIban("cz02 0600 0000 0000 0000 1337");
 
-            assertEquals("acc-1", requireNonNull(found).id());
+            assertEquals("acc-1", Objects.requireNonNull(found).id());
         }
 
         @Test
@@ -549,15 +548,14 @@ class MonetaClientTest {
 
             var found = client.accountByIban(TOKEN, "\uFEFFCZ02\u00A00600\u202F0000\u200B0000-0000\t.1337");
 
-            assertEquals("acc-1", requireNonNull(found).id());
+            assertEquals("acc-1", Objects.requireNonNull(found).id());
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {"", "  ", " "})
+        @ValueSource(strings = {"", "  ", "\u00A0", "-"})
         void aBlankIbanIsTheCallersMistakeNotARevokedAccount(String blank) {
-            answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
-
             assertThrows(IllegalArgumentException.class, () -> client.accountByIban(TOKEN, blank));
+            assertTrue(requests.isEmpty());
         }
 
         @Test
@@ -588,7 +586,7 @@ class MonetaClientTest {
 
             assertEquals(
                     "acc-1",
-                    requireNonNull(client.accountByIban(TOKEN, "CZ0206000000000000001337"))
+                    Objects.requireNonNull(client.accountByIban(TOKEN, "CZ0206000000000000001337"))
                             .id());
         }
 
