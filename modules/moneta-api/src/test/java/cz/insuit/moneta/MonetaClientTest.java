@@ -264,6 +264,17 @@ class MonetaClientTest {
             assertNull(pending.bookingDate());
             assertNull(pending.valueDate());
             assertEquals(new PaymentSymbols(null, null, null), pending.symbols());
+            // Czech text arrives intact only while the body is decoded as UTF-8.
+            assertEquals("Okamžitá platba", pending.message());
+        }
+
+        @Test
+        void aBookedMovementKeepsItsCzechText() {
+            answer(TRANSACTIONS, 200, fixture("live/booked.json"));
+
+            var booked = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
+
+            assertTrue(booked.raw().contains("OKAMŽITÁ ÚHRADA"), booked.raw());
         }
 
         @Test
