@@ -585,6 +585,13 @@ class MonetaClientTest {
             assertEquals("acc-1", Objects.requireNonNull(found).id());
         }
 
+        @Test
+        @SuppressWarnings("NullAway") // a Java caller can still pass null
+        void aNullIbanIsRefusedBeforeAnyRequest() {
+            assertThrows(NullPointerException.class, () -> client.accountByIban(TOKEN, null));
+            assertTrue(requests.isEmpty());
+        }
+
         @ParameterizedTest
         @ValueSource(strings = {"", "  ", "\u00A0", "-"})
         void aBlankIbanIsTheCallersMistakeNotARevokedAccount(String blank) {
