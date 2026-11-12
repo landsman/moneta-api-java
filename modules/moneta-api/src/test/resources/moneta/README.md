@@ -1,13 +1,13 @@
 # Test responses
 
-Two kinds, told apart by the folder:
+Three kinds:
 
 - **`live/`** — recorded from the live API, then anonymised. The shape is MONETA's own; every identifying value
   is replaced as below.
+- **`token-introspect.json`**: the example from MONETA's specification (VipTokenIntrospect_v1), kept as it is:
+  MONETA's own shape, and it names nobody.
 - **The rest** — written by hand in the shape the only public client (a PHP package) assumes, before anything
   was recorded. Replace each with a recorded one as the live API shows it.
-- **`token-introspect.json`** — the example from MONETA's specification (VipTokenIntrospect_v1); it names
-  nobody.
 
 ## The accounts every test uses
 

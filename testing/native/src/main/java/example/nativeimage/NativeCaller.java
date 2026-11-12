@@ -12,9 +12,9 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 
 /**
- * Reads accounts, a balance, transactions and the token's expiry from a fake MONETA serving the client's test fixtures, and prints
- * what the client returned. bin/native-test.sh runs it on the JVM and as a native image and compares the two: a
- * record the image cannot bind fails the call, and a component it cannot see prints as null.
+ * Reads accounts, a balance, transactions and the token's expiry from a fake MONETA serving the client's test
+ * fixtures, and prints what the client returned. bin/native-test.sh runs it on the JVM and as a native image and
+ * compares the two: a record the image cannot bind fails the call, and a component it cannot see prints as null.
  *
  * <p>Usage: {@code NativeCaller <dir of modules/moneta-api/src/test/resources/moneta>}
  */
