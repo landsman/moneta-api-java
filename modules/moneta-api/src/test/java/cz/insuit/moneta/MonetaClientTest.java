@@ -617,6 +617,33 @@ class MonetaClientTest {
         }
 
         @Test
+        void aHolderReadsTheAccountItNames() {
+            answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
+            answer(ACCOUNTS + "/acc-0/balance", 200, fixture("live/balance.json"));
+            answer(ACCOUNTS + "/acc-0/transactions", 200, NO_TRANSACTIONS);
+            var me = client.with(TOKEN);
+
+            assertEquals(
+                    List.of("acc-0", "acc-1"),
+                    me.accounts().stream().map(Account::id).toList());
+            me.balance("acc-0");
+            me.transactions("acc-0").between(FROM, TO).list();
+
+            assertEquals(
+                    List.of(ACCOUNTS, ACCOUNTS + "/acc-0/balance", ACCOUNTS + "/acc-0/transactions"),
+                    requests.stream().map(r -> r.getRequestURI().getPath()).toList());
+        }
+
+        @Test
+        void aHolderBalanceWithoutAnAccountRefusesATokenWithTwo() {
+            answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
+
+            var refused = assertThrows(
+                    IllegalStateException.class, () -> client.with(TOKEN).balance());
+            assertTrue(String.valueOf(refused.getMessage()).contains("opens 2 accounts"), refused.getMessage());
+        }
+
+        @Test
         void aQueryWithoutAnAccountRefusesATokenWithTwo() {
             answer(ACCOUNTS, 200, """
                     {"accounts": [{"id": "a", "currency": "CZK"}, {"id": "b", "currency": "EUR"}], "pageNumber": 0, "pageCount": 1}""");
