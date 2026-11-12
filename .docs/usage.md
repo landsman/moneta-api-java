@@ -36,31 +36,6 @@ me.tokenExpiry()                       // when the token stops working: ask the 
 
 With the Spring Boot starter, `moneta.token` gives you the `AccessToken` bean.
 
-## A token with several accounts
-
-`me.transactions()` and `me.balance()` read the only account a token opens and refuse a token with more. Then
-find the one you stored by its IBAN, which is what the merchant gave you; MONETA's own account id is known to
-nobody outside it.
-
-```java
-var account = me.accountByIban(storedIban);   // only letters and digits count, in either case
-if (account == null) {
-    return refuse();                     // the token no longer sees it: revoked, or another token pasted
-}
-me.transactions(account.id()).between(from, to).list();
-```
-
-<details><summary>Kotlin</summary>
-
-```kotlin
-val account = me.accountByIban(storedIban) ?: return refuse()
-me.transactions(account.id()).between(from, to).list()
-```
-
-</details>
-
-Each call reads the accounts again, so an account revoked for the token shows on the next one.
-
 ## Filtering
 
 | Step | Keeps |
@@ -77,23 +52,37 @@ Each call reads the accounts again, so an account revoked for the token shows on
 ## More than one account
 
 `transactions()` and `balance()` read the only account the token opens, and throw `IllegalStateException` when
-there are more. Name the account then:
+there are more. Name the account then. To read the one you stored, find it by its IBAN, which is what the
+merchant gave you; MONETA's own account id is known to nobody outside it:
 
 ```java
-for (var account : me.accounts()) {
-    me.transactions(account.id()).between(from, to).cards().list();
+var account = me.accountByIban(storedIban);   // only letters and digits count, in either case
+if (account == null) {
+    return refuse();                          // the token no longer sees it: revoked, or another token pasted
+}
+me.transactions(account.id()).between(from, to).list();
+
+for (var other : me.accounts()) {             // or every account the token opens
+    me.transactions(other.id()).between(from, to).cards().list();
 }
 ```
 
 <details><summary>Kotlin</summary>
 
 ```kotlin
-for (account in me.accounts()) {
-    me.transactions(account.id).between(from, to).cards().list()
+val account = me.accountByIban(storedIban) ?: return refuse()
+me.transactions(account.id).between(from, to).list()
+
+for (other in me.accounts()) {
+    me.transactions(other.id).between(from, to).cards().list()
 }
 ```
 
 </details>
+
+`accountByIban` reads the accounts on every call, so an account revoked for the token shows on the next one. A
+blank IBAN, or one failing its check digits, is an `IllegalArgumentException`: a typo, not a revoked account.
+Two accounts with one IBAN, one per currency, are an `IllegalStateException` naming both ids.
 
 Several account holders, each with their own token, share one client:
 
