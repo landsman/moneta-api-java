@@ -71,6 +71,13 @@ class MonetaClientTest {
     // language=JSON
     private static final String ONE_ACCOUNT = """
             {"accounts": [{"id": "a", "currency": "CZK"}]}""";
+    // An IBAN-less account first, so a match cannot come from comparing against a missing one.
+    // language=JSON
+    private static final String TWO_ACCOUNTS_ONE_WITHOUT_IBAN = """
+            {"accounts": [
+              {"id": "acc-0", "currency": "EUR"},
+              {"id": "acc-1", "currency": "CZK", "identification": {"iban": "CZ0206000000000000001337"}}
+            ], "pageNumber": 0, "pageCount": 1}""";
     // language=JSON
     private static final String NO_ACCOUNTS = """
             {"accounts": []}""";
@@ -514,6 +521,85 @@ class MonetaClientTest {
 
             assertEquals(
                     1,
+                    requests.stream()
+                            .filter(r -> r.getRequestURI().getPath().equals(ACCOUNTS))
+                            .count());
+        }
+
+        @Test
+        void aHolderFindsAnAccountByItsIbanAsPrinted() {
+            answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
+
+            var found = client.with(TOKEN).accountByIban("cz02 0600 0000 0000 0000 1337");
+
+            assertEquals("acc-1", Objects.requireNonNull(found).id());
+        }
+
+        @Test
+        void anIbanTheTokenDoesNotSeeIsNullNotAnError() {
+            answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
+
+            assertNull(client.with(TOKEN).accountByIban("CZ4008000000004040404040"));
+        }
+
+        @Test
+        void anySeparatorCopiedFromAStatementOrAPageMatches() {
+            answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
+
+            var found = client.accountByIban(TOKEN, "\uFEFFCZ02\u00A00600\u202F0000\u200B0000-0000\t.1337");
+
+            assertEquals("acc-1", Objects.requireNonNull(found).id());
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"", "  ", "\u00A0", "-"})
+        void aBlankIbanIsTheCallersMistakeNotARevokedAccount(String blank) {
+            assertThrows(IllegalArgumentException.class, () -> client.accountByIban(TOKEN, blank));
+            assertTrue(requests.isEmpty());
+        }
+
+        @Test
+        void anIbanOnTwoAccountsIsRefusedRatherThanGuessed() {
+            // language=JSON
+            answer(ACCOUNTS, 200, """
+                    {"accounts": [
+                      {"id": "acc-czk", "currency": "CZK", "identification": {"iban": "CZ0206000000000000001337"}},
+                      {"id": "acc-eur", "currency": "EUR", "identification": {"iban": "CZ0206000000000000001337"}}
+                    ], "pageNumber": 0, "pageCount": 1}""");
+
+            var refused = assertThrows(
+                    IllegalStateException.class, () -> client.accountByIban(TOKEN, "CZ0206000000000000001337"));
+            assertTrue(String.valueOf(refused.getMessage()).contains("acc-eur"), refused.getMessage());
+        }
+
+        @ParameterizedTest
+        @ValueSource(
+                strings = {"CZ0206000000000000001373", "CZ0306000000000000001337", "CZ02", "0206000000000000001337"})
+        void aMistypedIbanIsRefusedRatherThanReadAsRevoked(String typo) {
+            assertThrows(IllegalArgumentException.class, () -> client.accountByIban(TOKEN, typo));
+            assertTrue(requests.isEmpty());
+        }
+
+        @Test
+        void theClientFindsAnAccountByIbanWithoutAHolder() {
+            answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
+
+            assertEquals(
+                    "acc-1",
+                    Objects.requireNonNull(client.accountByIban(TOKEN, "CZ0206000000000000001337"))
+                            .id());
+        }
+
+        @Test
+        void aHolderReadsTheAccountsAgainForEveryIban() {
+            answer(ACCOUNTS, 200, TWO_ACCOUNTS_ONE_WITHOUT_IBAN);
+            var me = client.with(TOKEN);
+
+            me.accountByIban("CZ0206000000000000001337");
+            me.accountByIban("CZ0206000000000000001337");
+
+            assertEquals(
+                    2,
                     requests.stream()
                             .filter(r -> r.getRequestURI().getPath().equals(ACCOUNTS))
                             .count());

@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CancellationException;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -137,6 +138,69 @@ public final class MonetaClient implements AutoCloseable {
                 Query.NONE,
                 AccountsPageJson.class,
                 node -> Account.from(bind(node, AccountJson.class)));
+    }
+
+    /**
+     * The account with this IBAN, compared on its letters and digits regardless of case, so {@code cz02 0600 …} as
+     * printed matches; an
+     * account without an IBAN never does. Reads {@link #accounts(AccessToken)} on every call and remembers nothing,
+     * so an account the token stopped seeing shows on the next one.
+     *
+     * @return null when the token does not see it: revoked for that account, or another holder's token
+     * @throws IllegalArgumentException when the IBAN is blank or fails its check digits, a typo
+     * @throws IllegalStateException when more than one account has that IBAN, as one per currency could
+     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
+     */
+    public @Nullable Account accountByIban(AccessToken token, String iban) {
+        var wanted = normalisedIban(requireNonNull(iban, "iban"));
+        // Null would read as "revoked", and a caller may disconnect the merchant over its own typo.
+        if (wanted.isEmpty()) {
+            throw new IllegalArgumentException("iban is blank");
+        }
+        if (!ibanChecksOut(wanted)) {
+            throw new IllegalArgumentException("iban " + iban + " fails its check digits, so it is mistyped");
+        }
+        var matches = accounts(token).stream()
+                .filter(account ->
+                        account.iban() != null && normalisedIban(account.iban()).equals(wanted))
+                .toList();
+        if (matches.size() > 1) {
+            // A multi-currency account may list one entry per currency under one IBAN; picking one would read the
+            // wrong currency without an error.
+            throw new IllegalStateException("the token opens " + matches.size() + " accounts with that IBAN ("
+                    + matches.stream().map(Account::id).toList() + "), so name one by its id");
+        }
+        return matches.isEmpty() ? null : matches.getFirst();
+    }
+
+    /** ISO 13616: two letters, two check digits, up to 30 more; moved to the end, the number is 1 modulo 97. */
+    private static boolean ibanChecksOut(String normalised) {
+        if (normalised.length() < 5
+                || normalised.length() > 34
+                || !Character.isLetter(normalised.charAt(0))
+                || !Character.isLetter(normalised.charAt(1))
+                || !Character.isDigit(normalised.charAt(2))
+                || !Character.isDigit(normalised.charAt(3))) {
+            return false;
+        }
+        var rearranged = normalised.substring(4) + normalised.substring(0, 4);
+        int remainder = 0;
+        for (int i = 0; i < rearranged.length(); i++) {
+            int value = Character.digit(rearranged.charAt(i), 36);
+            remainder = (remainder * (value < 10 ? 10 : 100) + value) % 97;
+        }
+        return remainder == 1;
+    }
+
+    /**
+     * ASCII letters and digits only, upper case. An IBAN holds nothing else, so every separator goes: spaces of any
+     * kind, zero-width ones a web page leaves behind, dashes and dots.
+     */
+    private static String normalisedIban(String iban) {
+        var kept = new StringBuilder(iban.length());
+        iban.chars().filter(c -> c < 128 && Character.isLetterOrDigit(c)).forEach(c -> kept.append((char) c));
+        return kept.toString().toUpperCase(Locale.ROOT);
     }
 
     /**
