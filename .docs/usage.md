@@ -132,7 +132,7 @@ An interrupted thread throws `CancellationException` instead, interrupt flag kep
 
 Each message names the request and, when MONETA sent one, its `X-Request-Id`, which MONETA's support asks for
 about one call: `GET /api/v4/vip/aisp/my/accounts?size=100&page=0 (X-Request-Id 7f3c…) answered 503`. Never the
-token, nor the body; `body()` has the start of it.
+token, nor the body; `body()` on `InvalidToken` and `HttpError` has the start of it.
 
 ## Logging
 
