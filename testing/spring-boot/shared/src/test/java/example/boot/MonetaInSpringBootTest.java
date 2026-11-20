@@ -64,23 +64,28 @@ class MonetaInSpringBootTest {
             // After the start: Spring Boot resets Logback while it starts.
             var lines = new ListAppender<ILoggingEvent>();
             lines.start();
-            ((LoggerContext) LoggerFactory.getILoggerFactory())
-                    .getLogger("cz.insuit.moneta")
-                    .addAppender(lines);
-            var moneta = context.getBean(MonetaClient.class);
-            var token = context.getBean(AccessToken.class);
+            var logger = ((LoggerContext) LoggerFactory.getILoggerFactory()).getLogger("cz.insuit.moneta");
+            logger.addAppender(lines);
+            try {
+                var moneta = context.getBean(MonetaClient.class);
+                var token = context.getBean(AccessToken.class);
 
-            var transactions = moneta.transactions(token, "acc-1", LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31));
+                var transactions =
+                        moneta.transactions(token, "acc-1", LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31));
 
-            assertEquals(
-                    new Money(new BigDecimal("-12.50"), Currency.getInstance("CZK")),
-                    transactions.get(0).amount());
-            // Spring Boot bridges java.util.logging, where System.Logger goes, and passes its levels on to it.
-            assertTrue(
-                    lines.list.stream()
-                            .anyMatch(line -> line.getLoggerName().equals(MonetaClient.class.getName())
-                                    && line.getLevel() == Level.DEBUG),
-                    "no DEBUG line from the client reached Logback");
+                assertEquals(
+                        new Money(new BigDecimal("-12.50"), Currency.getInstance("CZK")),
+                        transactions.get(0).amount());
+                // Spring Boot bridges java.util.logging, where System.Logger goes, and passes its levels on to it.
+                assertTrue(
+                        lines.list.stream()
+                                .anyMatch(line -> line.getLoggerName().equals(MonetaClient.class.getName())
+                                        && line.getLevel() == Level.DEBUG),
+                        "no DEBUG line from the client reached Logback");
+            } finally {
+                logger.detachAppender(lines);
+                lines.stop();
+            }
         } finally {
             server.stop(0);
         }

@@ -89,15 +89,21 @@ class MonetaInMicronautTest {
             // After the start: Micronaut resets Logback from logback.xml while applying logger.levels.
             var lines = new ListAppender<ILoggingEvent>();
             lines.start();
-            logback.getLogger("cz.insuit.moneta").addAppender(lines);
+            var logger = logback.getLogger("cz.insuit.moneta");
+            logger.addAppender(lines);
 
-            context.getBean(MonetaClient.class).accounts(new AccessToken("t"));
+            try {
+                context.getBean(MonetaClient.class).accounts(new AccessToken("t"));
 
-            assertTrue(
-                    lines.list.stream()
-                            .anyMatch(line -> line.getLoggerName().equals(MonetaClient.class.getName())
-                                    && line.getLevel() == Level.DEBUG),
-                    "no DEBUG line from the client reached Logback");
+                assertTrue(
+                        lines.list.stream()
+                                .anyMatch(line -> line.getLoggerName().equals(MonetaClient.class.getName())
+                                        && line.getLevel() == Level.DEBUG),
+                        "no DEBUG line from the client reached Logback");
+            } finally {
+                logger.detachAppender(lines);
+                lines.stop();
+            }
         } finally {
             server.stop(0);
         }

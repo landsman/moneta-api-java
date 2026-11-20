@@ -98,23 +98,27 @@ class MonetaInPlayTest {
             // After the build: Play configures Logback from logback.xml while it builds the application.
             var lines = new ListAppender<ILoggingEvent>();
             lines.start();
-            ((LoggerContext) LoggerFactory.getILoggerFactory())
-                    .getLogger("cz.insuit.moneta")
-                    .addAppender(lines);
+            var logger = ((LoggerContext) LoggerFactory.getILoggerFactory()).getLogger("cz.insuit.moneta");
+            logger.addAppender(lines);
 
-            app.injector()
-                    .instanceOf(MonetaClient.class)
-                    .transactions(
-                            app.injector().instanceOf(AccessToken.class),
-                            "acc-1",
-                            LocalDate.of(2026, 8, 1),
-                            LocalDate.of(2026, 8, 31));
+            try {
+                app.injector()
+                        .instanceOf(MonetaClient.class)
+                        .transactions(
+                                app.injector().instanceOf(AccessToken.class),
+                                "acc-1",
+                                LocalDate.of(2026, 8, 1),
+                                LocalDate.of(2026, 8, 31));
 
-            assertTrue(
-                    lines.list.stream()
-                            .anyMatch(line -> line.getLoggerName().equals(MonetaClient.class.getName())
-                                    && line.getLevel() == Level.DEBUG),
-                    "no DEBUG line from the client reached Logback");
+                assertTrue(
+                        lines.list.stream()
+                                .anyMatch(line -> line.getLoggerName().equals(MonetaClient.class.getName())
+                                        && line.getLevel() == Level.DEBUG),
+                        "no DEBUG line from the client reached Logback");
+            } finally {
+                logger.detachAppender(lines);
+                lines.stop();
+            }
         } finally {
             stop(app);
         }
