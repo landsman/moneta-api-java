@@ -455,10 +455,14 @@ class MonetaClientTest {
                       {"amount": {"currency": "CZK", "value": 1}, "creditDebitIndicator": "CRDT",
                        "date": {"dateTime": "2026-11-07T15:32:12Z"}, "type": {"codeOrProprietary": {"code": "CLBD"}}}
                     ]}""";
-            answer(BALANCE, 200, bookedOnly);
+            server.createContext(BALANCE, exchange -> {
+                exchange.getResponseHeaders().add("X-Request-Id", "req-7");
+                respond(exchange, 200, bookedOnly);
+            });
 
             var refused = assertThrows(MonetaException.InvalidResponse.class, () -> client.balance(TOKEN, "acc-1"));
             assertTrue(String.valueOf(refused.getMessage()).contains("CLAV"), refused.getMessage());
+            assertTrue(String.valueOf(refused.getMessage()).contains("X-Request-Id req-7"), refused.getMessage());
         }
 
         @Test
@@ -821,6 +825,7 @@ class MonetaClientTest {
         void aBrokenItemNamesTheRequestThePageAndTheMovement() {
             server.createContext(TRANSACTIONS, exchange -> {
                 var first = exchange.getRequestURI().getQuery().endsWith("page=0");
+                exchange.getResponseHeaders().add("X-Request-Id", first ? "req-0" : "req-1");
                 respond(exchange, 200, first ? fixture("transactions-page-0.json") : movement("BOOK", "XXXX"));
             });
 
@@ -828,6 +833,7 @@ class MonetaClientTest {
                     MonetaException.InvalidResponse.class, () -> client.transactions(TOKEN, "acc-1", FROM, TO));
             var message = Objects.requireNonNull(failed.getMessage());
             assertTrue(message.contains("page=1"), message);
+            assertTrue(message.contains("X-Request-Id req-1"), message);
             assertTrue(message.contains("entryReference=t"), message);
             assertTrue(message.contains("'XXXX'"), message);
         }
