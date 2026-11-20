@@ -200,7 +200,7 @@ close the client in a stop hook on `play.api.inject.ApplicationLifecycle`, which
 
 ## Logging
 
-One DEBUG line per call, with MONETA's `X-Request-Id` and never the token
+One DEBUG line per HTTP request, with MONETA's `X-Request-Id` and never the token
 ([what it holds](../../.docs/usage.md#logging)). Play routes it into Logback; add the logger to `conf/logback.xml`:
 
 ```xml

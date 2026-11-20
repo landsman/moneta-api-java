@@ -136,9 +136,9 @@ token, nor the body; `body()` on `InvalidToken` and `HttpError` has the start of
 
 ## Logging
 
-The client writes one DEBUG line per call, as JSON, to the logger `cz.insuit.moneta.MonetaClient` through
-`System.Logger`. Never the token, never the body. Nothing above DEBUG: a failure is thrown, and the application
-logs it.
+The client writes one DEBUG line per HTTP request, as JSON, to the logger `cz.insuit.moneta.MonetaClient`
+through `System.Logger`: a read of several pages makes several, and an interrupted request none. Never the token,
+never the body. Nothing above DEBUG: a failure is thrown, and the application logs it.
 
 ```json
 {"request":"GET /api/v4/vip/aisp/my/accounts?size=100&page=0","status":200,"millis":143,"requestId":"7f3c…","error":null}

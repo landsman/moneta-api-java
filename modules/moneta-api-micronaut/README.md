@@ -146,7 +146,7 @@ HttpClientDecorator noMonetaObservation() {
 
 ## Logging and failures
 
-The client writes one DEBUG line per call through `System.Logger`, as `cz.insuit.moneta.MonetaClient`, never
+The client writes one DEBUG line per HTTP request through `System.Logger`, as `cz.insuit.moneta.MonetaClient`, never
 with the token. Unlike Spring Boot and Play, Micronaut with Logback does not route that into Logback by itself:
 `System.Logger` falls back to `java.util.logging`, which Micronaut leaves alone. Add the SLF4J provider to the
 application, and the usual level setting then applies:

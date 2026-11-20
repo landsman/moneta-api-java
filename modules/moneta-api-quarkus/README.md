@@ -157,7 +157,7 @@ JDK client already. Traces come from Quarkus's own OpenTelemetry, not from here.
 
 ## Logging
 
-One DEBUG line per call, with MONETA's `X-Request-Id` and never the token
+One DEBUG line per HTTP request, with MONETA's `X-Request-Id` and never the token
 ([what it holds](../../.docs/usage.md#logging)). It lands in Quarkus's log as any category does:
 
 ```properties

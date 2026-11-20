@@ -116,7 +116,7 @@ starter ships.
 
 ## Logging
 
-One DEBUG line per call, with MONETA's `X-Request-Id` and never the token
+One DEBUG line per HTTP request, with MONETA's `X-Request-Id` and never the token
 ([what it holds](../../.docs/usage.md#logging)). Spring Boot routes it into Logback; switch it on as any logger:
 
 ```properties
