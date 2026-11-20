@@ -15,7 +15,8 @@ public record Account(
         @Nullable String name) {
 
     static Account from(AccountJson json) {
-        var iban = json.identification() instanceof IdentificationJson(var value) ? value : null;
+        var identification = json.identification();
+        var iban = identification == null ? null : identification.iban();
         return new Account(json.id(), iban, json.currency(), json.nameI18N());
     }
 }

@@ -109,7 +109,7 @@ class MonetaAutoConfigurationTest {
             app.getBean(MonetaClient.class);
             var hooks = app.getBean(HttpHooks.class);
             assertEquals(List.of("customize 1", "customize 2", "decorate 1", "decorate 2"), hooks.calls);
-            assertEquals(HttpClient.Redirect.ALWAYS, hooks.decorated.getFirst().followRedirects());
+            assertEquals(HttpClient.Redirect.ALWAYS, hooks.decorated.get(0).followRedirects());
         });
     }
 
@@ -162,7 +162,7 @@ class MonetaAutoConfigurationTest {
                 .withPropertyValues("moneta.ssl.bundle=moneta")
                 .run(app -> {
                     app.getBean(MonetaClient.class);
-                    var http = app.getBean(HttpHooks.class).decorated.getFirst();
+                    var http = app.getBean(HttpHooks.class).decorated.get(0);
                     assertEquals(
                             List.of("TLSv1.3"), List.of(http.sslParameters().getProtocols()));
                     assertEquals(

@@ -1,6 +1,6 @@
 # moneta-api-java
 
-> A Java 21+ and Kotlin client for MONETA API, the free API of the Czech bank MONETA Money Bank for business
+> A Java 17+ and Kotlin client for MONETA API, the free API of the Czech bank MONETA Money Bank for business
 > accounts: it reads accounts, balances and transactions with a token the account holder issues in Internet Banka.
 > Modules for Spring Boot, Play, Micronaut and Quarkus. Published on GitHub Packages (group `cz.insuit`), not Maven
 > Central. Pre-1.0: read records by accessor, never by record pattern.

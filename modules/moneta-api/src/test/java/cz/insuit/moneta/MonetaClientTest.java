@@ -50,6 +50,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledForJreRange;
+import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -121,7 +123,7 @@ class MonetaClientTest {
             var accounts = client.accounts(TOKEN);
 
             assertEquals(List.of(new Account("acc-1", "CZ0206000000000000001337", CZK, "Business account")), accounts);
-            var headers = requests.getFirst().getRequestHeaders();
+            var headers = requests.get(0).getRequestHeaders();
             assertEquals("Bearer " + TOKEN.value(), headers.getFirst("Authorization"));
             assertEquals("application/json", headers.getFirst("Accept"));
             assertEquals("12345678", headers.getFirst("identification_number"));
@@ -256,7 +258,7 @@ class MonetaClientTest {
             // Recorded from the live API, accounts and ids replaced.
             answer(TRANSACTIONS, 200, fixture("live/pending-incoming.json"));
 
-            var pending = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
+            var pending = client.transactions(TOKEN, "acc-1", FROM, TO).get(0);
 
             assertEquals(Transaction.Status.PENDING, pending.status());
             assertEquals(new Money(new BigDecimal("1"), CZK), pending.amount());
@@ -272,7 +274,7 @@ class MonetaClientTest {
         void aBookedMovementKeepsItsCzechText() {
             answer(TRANSACTIONS, 200, fixture("live/booked.json"));
 
-            var booked = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
+            var booked = client.transactions(TOKEN, "acc-1", FROM, TO).get(0);
 
             assertTrue(booked.raw().contains("OKAMŽITÁ ÚHRADA"), booked.raw());
         }
@@ -285,7 +287,7 @@ class MonetaClientTest {
                     .put("clearingSystemReference", "PAYMENT_BY_CARRIER_PIGEON");
             answer(TRANSACTIONS, 200, page.toString());
 
-            var movement = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
+            var movement = client.transactions(TOKEN, "acc-1", FROM, TO).get(0);
 
             assertEquals(Transaction.Method.OTHER, movement.method());
             assertTrue(movement.raw().contains("PAYMENT_BY_CARRIER_PIGEON"), movement.raw());
@@ -297,7 +299,7 @@ class MonetaClientTest {
             ((ObjectNode) page.get("transactions").get(0)).put("reversalIndicator", true);
             answer(TRANSACTIONS, 200, page.toString());
 
-            assertTrue(client.transactions(TOKEN, "acc-1", FROM, TO).getFirst().reversed());
+            assertTrue(client.transactions(TOKEN, "acc-1", FROM, TO).get(0).reversed());
         }
 
         @Test
@@ -464,7 +466,7 @@ class MonetaClientTest {
             // Recorded from the live API, the account, the reference and the merchant replaced.
             answer(TRANSACTIONS, 200, fixture("live/pending-card.json"));
 
-            var card = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
+            var card = client.transactions(TOKEN, "acc-1", FROM, TO).get(0);
 
             assertEquals(Transaction.Method.CARD, card.method());
             assertEquals(Transaction.Status.PENDING, card.status());
@@ -480,7 +482,7 @@ class MonetaClientTest {
             // The same payment as pending-card.json, read once booked; the account and the symbols replaced.
             answer(TRANSACTIONS, 200, fixture("live/booked-card.json"));
 
-            var card = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
+            var card = client.transactions(TOKEN, "acc-1", FROM, TO).get(0);
 
             assertEquals(Transaction.Method.CARD, card.method());
             assertEquals(Transaction.Status.BOOKED, card.status());
@@ -696,7 +698,7 @@ class MonetaClientTest {
         void keepsTheCounterpartyInRawButOutOfToString() {
             answerBothPages();
 
-            var incoming = client.transactions(TOKEN, "acc-1", FROM, TO).getFirst();
+            var incoming = client.transactions(TOKEN, "acc-1", FROM, TO).get(0);
 
             assertTrue(incoming.raw().contains("Jan Novak"));
             assertTrue(incoming.toString().contains("entryReference=trx-1"), incoming.toString());
@@ -720,7 +722,7 @@ class MonetaClientTest {
             assertEquals(
                     new BigDecimal("1234567890123456.78"),
                     client.transactions(TOKEN, "acc-1", FROM, TO)
-                            .getFirst()
+                            .get(0)
                             .amount()
                             .amount());
         }
@@ -730,7 +732,7 @@ class MonetaClientTest {
             answer(TRANSACTIONS, 200, movement("XYZ", "CRDT"));
             assertEquals(
                     Transaction.Status.OTHER,
-                    client.transactions(TOKEN, "acc-1", FROM, TO).getFirst().status());
+                    client.transactions(TOKEN, "acc-1", FROM, TO).get(0).status());
         }
 
         @Test
@@ -929,13 +931,13 @@ class MonetaClientTest {
             }
 
             assertEquals(1, lines.size(), lines.toString());
-            var line = JSON.readTree(lines.getFirst());
+            var line = JSON.readTree(lines.get(0));
             assertEquals(
                     "GET /api/v4/vip/aisp/my/accounts?size=100&page=0",
                     line.get("request").asString());
             assertEquals(200, line.get("status").asInt());
             assertEquals("req-42", line.get("requestId").asString());
-            assertFalse(lines.getFirst().contains(TOKEN.value()));
+            assertFalse(lines.get(0).contains(TOKEN.value()));
         }
 
         @Test
@@ -1027,6 +1029,7 @@ class MonetaClientTest {
         }
 
         @Test
+        @EnabledForJreRange(min = JRE.JAVA_21, disabledReason = "HttpClient has no close() before Java 21")
         void closesOnlyTheHttpClientItMade() {
             answer(ACCOUNTS, 200, fixture("accounts.json"));
             var own = MonetaClient.builder().baseUri(base).build();
@@ -1083,6 +1086,7 @@ class MonetaClientTest {
         }
 
         @Test
+        @EnabledForJreRange(min = JRE.JAVA_21, disabledReason = "HttpClient has no close() before Java 21")
         void closesTheClientItBuiltBehindAWrapperThatDoesNotPassCloseOn() {
             answer(ACCOUNTS, 200, fixture("accounts.json"));
             var decorated = MonetaClient.builder()
@@ -1120,6 +1124,7 @@ class MonetaClientTest {
         }
 
         @Test
+        @EnabledForJreRange(min = JRE.JAVA_21, disabledReason = "HttpClient has no close() before Java 21")
         void closesTheClientItBuiltWhenADecoratorFails() {
             var built = new ArrayList<HttpClient>();
             UnaryOperator<HttpClient> throwing = http -> {
@@ -1141,7 +1146,7 @@ class MonetaClientTest {
                             .build());
 
             assertEquals(2, built.size());
-            assertTrue(built.stream().allMatch(HttpClient::isTerminated));
+            assertTrue(built.stream().allMatch(MonetaClientTest::terminated));
         }
 
         @Test
@@ -1171,7 +1176,7 @@ class MonetaClientTest {
                     .build()
                     .close();
 
-            assertSame(given, seen.getFirst());
+            assertSame(given, seen.get(0));
             assertEquals(
                     1,
                     MonetaClient.builder()
@@ -1294,7 +1299,7 @@ class MonetaClientTest {
 
     private static void sleep(Duration duration) {
         try {
-            Thread.sleep(duration);
+            Thread.sleep(duration.toMillis());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -1321,6 +1326,15 @@ class MonetaClientTest {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    /** HttpClient.isTerminated() came with its close() in Java 21, and these tests are compiled for 17. */
+    private static boolean terminated(HttpClient http) {
+        try {
+            return (boolean) HttpClient.class.getMethod("isTerminated").invoke(http);
+        } catch (ReflectiveOperationException e) {
+            throw new LinkageError("HttpClient.isTerminated()", e);
         }
     }
 }

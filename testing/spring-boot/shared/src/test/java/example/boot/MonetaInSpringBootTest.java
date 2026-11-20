@@ -63,7 +63,7 @@ class MonetaInSpringBootTest {
 
             assertEquals(
                     new Money(new BigDecimal("-12.50"), Currency.getInstance("CZK")),
-                    transactions.getFirst().amount());
+                    transactions.get(0).amount());
         } finally {
             server.stop(0);
         }

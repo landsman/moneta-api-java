@@ -134,4 +134,5 @@ An interrupted thread throws `CancellationException` instead, interrupt flag kep
 
 `MonetaClient.builder()`: `baseUri(…)`, `requestTimeout(…)`, `partner(…)` (headers MONETA does not ask for yet),
 `configureHttpClient(…)` for a proxy or mTLS, `decorateHttpClient(…)` for tracing or metrics
-([examples](compatibility.md#your-own-http-stack)). `close()` releases the HTTP client it made.
+([examples](compatibility.md#your-own-http-stack)). `close()` releases the HTTP client it made (from Java 21; on 17
+it is released once nothing references it).

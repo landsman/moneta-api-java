@@ -119,6 +119,6 @@ public record Transaction(
     }
 
     private static @Nullable LocalDate date(@Nullable DateValueJson value) {
-        return value instanceof DateValueJson(var date) ? date : null;
+        return value == null ? null : value.date();
     }
 }

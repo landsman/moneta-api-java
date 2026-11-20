@@ -38,8 +38,12 @@ class ClientTest {
             // Off, so the decorators see the JDK client itself, whose isTerminated() the check below reads;
             // Micrometer's wrapper does not pass it on.
             .overrideConfigKey("quarkus.moneta.metrics.enabled", "false")
-            .setAfterAllCustomizer(() -> assertTrue(
-                    ((HttpClient) System.getProperties().remove(HTTP)).isTerminated(), "the HTTP client is closed"));
+            .setAfterAllCustomizer(() -> {
+                var http = (HttpClient) System.getProperties().remove(HTTP);
+                if (Runtime.version().feature() >= 21) {
+                    assertTrue(terminated(http), "the HTTP client is closed");
+                }
+            });
 
     @Inject
     MonetaClient moneta;
@@ -50,7 +54,7 @@ class ClientTest {
     @Test
     void readsMonetaWithTheConfiguredTokenAndPartner() {
         // FakeMoneta answers 401 to any other token or partner.
-        assertEquals("acc-1", moneta.accounts(token).getFirst().id());
+        assertEquals("acc-1", moneta.accounts(token).get(0).id());
     }
 
     @Test
@@ -85,6 +89,15 @@ class ClientTest {
                 System.getProperties().put(HTTP, http);
                 return http;
             };
+        }
+    }
+
+    /** HttpClient.isTerminated() came with its close() in Java 21, and these tests are compiled for 17. */
+    private static boolean terminated(HttpClient http) {
+        try {
+            return (boolean) HttpClient.class.getMethod("isTerminated").invoke(http);
+        } catch (ReflectiveOperationException e) {
+            throw new LinkageError("HttpClient.isTerminated()", e);
         }
     }
 }
