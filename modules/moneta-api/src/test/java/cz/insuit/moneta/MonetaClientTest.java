@@ -901,6 +901,25 @@ class MonetaClientTest {
         }
 
         @Test
+        void aFailureNamesTheRequestIdMonetasSupportAsksFor() {
+            server.createContext(ACCOUNTS, exchange -> {
+                exchange.getResponseHeaders().add("X-Request-Id", "req-42");
+                respond(exchange, 503, "{}");
+            });
+            var failed = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
+            assertTrue(String.valueOf(failed.getMessage()).contains("X-Request-Id req-42"), failed.getMessage());
+
+            server.removeContext(ACCOUNTS);
+            server.createContext(ACCOUNTS, exchange -> {
+                exchange.getResponseHeaders().add("X-Request-Id", "req-43");
+                respond(exchange, 200, "not json");
+            });
+            var unreadable = assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+            assertTrue(
+                    String.valueOf(unreadable.getMessage()).contains("X-Request-Id req-43"), unreadable.getMessage());
+        }
+
+        @Test
         void logsEachCallWithItsRequestIdButNeverTheToken() {
             server.createContext(ACCOUNTS, exchange -> {
                 exchange.getResponseHeaders().add("X-Request-Id", "req-42");

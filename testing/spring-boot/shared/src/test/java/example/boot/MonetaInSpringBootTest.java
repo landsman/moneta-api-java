@@ -1,7 +1,12 @@
 package example.boot;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.sun.net.httpserver.HttpServer;
 import cz.insuit.moneta.AccessToken;
 import cz.insuit.moneta.MonetaClient;
@@ -14,6 +19,7 @@ import java.time.LocalDate;
 import java.util.Currency;
 import java.util.Objects;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -51,11 +57,16 @@ class MonetaInSpringBootTest {
                 .properties(
                         "moneta.base-uri=" + base,
                         "moneta.token=t",
-                        // Spring Boot routes the client's System.Logger into Logback, so this writes its DEBUG line,
-                        // with
-                        // whatever jackson-annotations the BOM pins.
+                        // What the starter README tells an application to set. The line it switches on is the one
+                        // place the client serialises, with whatever jackson-annotations the BOM pins.
                         "logging.level.cz.insuit.moneta=DEBUG")
                 .run()) {
+            // After the start: Spring Boot resets Logback while it starts.
+            var lines = new ListAppender<ILoggingEvent>();
+            lines.start();
+            ((LoggerContext) LoggerFactory.getILoggerFactory())
+                    .getLogger("cz.insuit.moneta")
+                    .addAppender(lines);
             var moneta = context.getBean(MonetaClient.class);
             var token = context.getBean(AccessToken.class);
 
@@ -64,6 +75,12 @@ class MonetaInSpringBootTest {
             assertEquals(
                     new Money(new BigDecimal("-12.50"), Currency.getInstance("CZK")),
                     transactions.get(0).amount());
+            // Spring Boot bridges java.util.logging, where System.Logger goes, and passes its levels on to it.
+            assertTrue(
+                    lines.list.stream()
+                            .anyMatch(line -> line.getLoggerName().equals(MonetaClient.class.getName())
+                                    && line.getLevel() == Level.DEBUG),
+                    "no DEBUG line from the client reached Logback");
         } finally {
             server.stop(0);
         }

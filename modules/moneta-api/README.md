@@ -54,4 +54,5 @@ try (var moneta = new MonetaClient()) { // one per application; close it when th
 }
 ```
 
-The rest is in [Using the client](../../.docs/usage.md).
+The rest is in [Using the client](../../.docs/usage.md), including the
+[DEBUG line it logs](../../.docs/usage.md#logging) per call.

@@ -130,6 +130,37 @@ A sealed `MonetaException`, so a `switch` over it is exhaustive:
 
 An interrupted thread throws `CancellationException` instead, interrupt flag kept.
 
+Each message names the request and, when MONETA sent one, its `X-Request-Id`, which MONETA's support asks for
+about one call: `GET /api/v4/vip/aisp/my/accounts?size=100&page=0 (X-Request-Id 7f3c…) answered 503`. Never the
+token, nor the body; `body()` has the start of it.
+
+## Logging
+
+The client writes one DEBUG line per call, as JSON, to the logger `cz.insuit.moneta.MonetaClient` through
+`System.Logger`. Never the token, never the body. Nothing above DEBUG: a failure is thrown, and the application
+logs it.
+
+```json
+{"request":"GET /api/v4/vip/aisp/my/accounts?size=100&page=0","status":200,"millis":143,"requestId":"7f3c…","error":null}
+```
+
+`error` is set when no answer came, and `status` is then `null`. To turn it on:
+
+| Stack | Set |
+|-------|-----|
+| Spring Boot | `logging.level.cz.insuit.moneta=DEBUG` |
+| Quarkus | `quarkus.log.category."cz.insuit.moneta".level=DEBUG` |
+| Play | `<logger name="cz.insuit.moneta" level="DEBUG"/>` in `logback.xml` |
+| Micronaut | `logger.levels.cz.insuit.moneta: DEBUG`, plus `slf4j-jdk-platform-logging` ([why](../modules/moneta-api-micronaut/README.md#logging-and-failures)) |
+| SLF4J without a framework | `slf4j-jdk-platform-logging` on the classpath, then the logger at DEBUG in your config |
+| nothing but the JDK | the `java.util.logging` file below, with `-Djava.util.logging.config.file=logging.properties` |
+
+```properties
+handlers = java.util.logging.ConsoleHandler
+java.util.logging.ConsoleHandler.level = FINE
+cz.insuit.moneta.level = FINE
+```
+
 ## Settings
 
 `MonetaClient.builder()`: `baseUri(…)`, `requestTimeout(…)`, `partner(…)` (headers MONETA does not ask for yet),

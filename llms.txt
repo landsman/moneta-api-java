@@ -32,7 +32,7 @@ Mistakes to avoid:
 ## Docs
 
 - [Installing](https://github.com/landsman/moneta-api-java/blob/main/.docs/install.md): the repository block and the token, for Gradle and Maven
-- [Using the client](https://github.com/landsman/moneta-api-java/blob/main/.docs/usage.md): calls, filtering, more than one account, failures
+- [Using the client](https://github.com/landsman/moneta-api-java/blob/main/.docs/usage.md): calls, filtering, more than one account, failures, logging
 - [How MONETA API behaves](https://github.com/landsman/moneta-api-java/blob/main/.docs/moneta-api.md): pending and booked movements, dates, ids, errors
 
 ## Modules

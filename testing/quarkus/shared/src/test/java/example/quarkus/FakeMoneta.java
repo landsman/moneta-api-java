@@ -37,7 +37,10 @@ public class FakeMoneta implements QuarkusTestResourceLifecycleManager {
                 "quarkus.moneta.base-uri",
                 "http://" + address.getHostString() + ":" + address.getPort() + "/",
                 "quarkus.moneta.token",
-                "t");
+                "t",
+                // What the extension README tells an application to set for the client's DEBUG line.
+                "quarkus.log.category.\"cz.insuit.moneta\".level",
+                "DEBUG");
     }
 
     @Override

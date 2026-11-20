@@ -381,16 +381,14 @@ public final class MonetaClient implements AutoCloseable {
             throw cancelled;
         }
         int status = response.statusCode();
-        var message = what + " answered " + status;
-        // X-Request-Id is what MONETA's support asks for about one call. Never the token, never the body.
-        log(
-                what,
-                status,
-                millisSince(started),
-                response.headers().firstValue("X-Request-Id").orElse(null),
-                null);
+        // X-Request-Id is what MONETA's support asks for about one call, so a failure names it too, for an
+        // application that logs the exception with DEBUG off. Never the token, never the body.
+        var requestId = response.headers().firstValue("X-Request-Id").orElse(null);
+        var call = requestId == null ? what : what + " (X-Request-Id " + requestId + ")";
+        var message = call + " answered " + status;
+        log(what, status, millisSince(started), requestId, null);
         return switch (status / 100) {
-            case 2 -> parse(what, () -> JSON.readValue(response.body(), type));
+            case 2 -> parse(call, () -> JSON.readValue(response.body(), type));
             default ->
                 throw switch (status) {
                     case 401, 403 -> new MonetaException.InvalidToken(message, status, excerpt(response));

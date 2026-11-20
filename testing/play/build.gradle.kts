@@ -13,6 +13,7 @@ subprojects {
         named("test") {
             java.srcDir("../shared/src/test/java")
             resources.srcDir("../../resources") // one MONETA answer for every testing project
+            resources.srcDir("../shared/src/test/resources")
         }
     }
 }

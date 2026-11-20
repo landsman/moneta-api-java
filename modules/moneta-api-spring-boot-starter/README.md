@@ -114,6 +114,15 @@ A `MonetaClient` bean of the application's own replaces the auto-configured one.
 stops the application at startup, not at the first call. IntelliJ completes the properties from the metadata the
 starter ships.
 
+## Logging
+
+One DEBUG line per call, with MONETA's `X-Request-Id` and never the token
+([what it holds](../../.docs/usage.md#logging)). Spring Boot routes it into Logback; switch it on as any logger:
+
+```properties
+logging.level.cz.insuit.moneta=DEBUG
+```
+
 ---
 
 ## Optional properties

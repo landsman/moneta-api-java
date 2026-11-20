@@ -35,3 +35,7 @@ Both also log the client at DEBUG, since writing that line is the one place it s
 reaches Logback through `logger.levels` alone; without the provider it does not, Micronaut leaves
 `java.util.logging` alone.
 
+The other frameworks' projects check the same line against the one setting their module README gives, and fail
+without it: `logging.level` in Spring Boot, a logger in `logback.xml` in Play, `quarkus.log.category` in Quarkus.
+The Play projects carry `play-logback` for that, as every Play application does.
+
