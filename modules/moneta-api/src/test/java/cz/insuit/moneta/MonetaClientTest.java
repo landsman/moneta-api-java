@@ -455,10 +455,14 @@ class MonetaClientTest {
                       {"amount": {"currency": "CZK", "value": 1}, "creditDebitIndicator": "CRDT",
                        "date": {"dateTime": "2026-11-07T15:32:12Z"}, "type": {"codeOrProprietary": {"code": "CLBD"}}}
                     ]}""";
-            answer(BALANCE, 200, bookedOnly);
+            server.createContext(BALANCE, exchange -> {
+                exchange.getResponseHeaders().add("X-Request-Id", "req-7");
+                respond(exchange, 200, bookedOnly);
+            });
 
             var refused = assertThrows(MonetaException.InvalidResponse.class, () -> client.balance(TOKEN, "acc-1"));
             assertTrue(String.valueOf(refused.getMessage()).contains("CLAV"), refused.getMessage());
+            assertTrue(String.valueOf(refused.getMessage()).contains("X-Request-Id req-7"), refused.getMessage());
         }
 
         @Test
@@ -821,6 +825,7 @@ class MonetaClientTest {
         void aBrokenItemNamesTheRequestThePageAndTheMovement() {
             server.createContext(TRANSACTIONS, exchange -> {
                 var first = exchange.getRequestURI().getQuery().endsWith("page=0");
+                exchange.getResponseHeaders().add("X-Request-Id", first ? "req-0" : "req-1");
                 respond(exchange, 200, first ? fixture("transactions-page-0.json") : movement("BOOK", "XXXX"));
             });
 
@@ -828,6 +833,7 @@ class MonetaClientTest {
                     MonetaException.InvalidResponse.class, () -> client.transactions(TOKEN, "acc-1", FROM, TO));
             var message = Objects.requireNonNull(failed.getMessage());
             assertTrue(message.contains("page=1"), message);
+            assertTrue(message.contains("X-Request-Id req-1"), message);
             assertTrue(message.contains("entryReference=t"), message);
             assertTrue(message.contains("'XXXX'"), message);
         }
@@ -872,6 +878,8 @@ class MonetaClientTest {
             answer(ACCOUNTS, 503, "{}");
             var failed = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
             assertEquals(503, failed.status());
+            // MONETA sent no X-Request-Id here, so the message has no empty or "null" one.
+            assertFalse(String.valueOf(failed.getMessage()).contains("X-Request-Id"), failed.getMessage());
         }
 
         @Test
@@ -898,6 +906,38 @@ class MonetaClientTest {
             });
             var failed = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
             assertEquals(Duration.ofMinutes(2), failed.retryAfter());
+        }
+
+        @Test
+        void aFailureNamesTheRequestIdMonetasSupportAsksFor() {
+            server.createContext(ACCOUNTS, exchange -> {
+                exchange.getResponseHeaders().add("X-Request-Id", "req-42");
+                respond(exchange, 503, "{}");
+            });
+            var failed = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
+            assertTrue(String.valueOf(failed.getMessage()).contains("X-Request-Id req-42"), failed.getMessage());
+
+            server.removeContext(ACCOUNTS);
+            server.createContext(ACCOUNTS, exchange -> {
+                exchange.getResponseHeaders().add("X-Request-Id", "req-43");
+                respond(exchange, 200, "not json");
+            });
+            var unreadable = assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+            assertTrue(
+                    String.valueOf(unreadable.getMessage()).contains("X-Request-Id req-43"), unreadable.getMessage());
+        }
+
+        @Test
+        void aRequestIdThatIsNotShortPrintableAsciiStaysOutOfTheMessage() {
+            for (var requestId : List.of("", "a b", "x".repeat(129))) {
+                server.createContext(ACCOUNTS, exchange -> {
+                    exchange.getResponseHeaders().add("X-Request-Id", requestId);
+                    respond(exchange, 503, "{}");
+                });
+                var failed = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
+                assertFalse(String.valueOf(failed.getMessage()).contains("X-Request-Id"), failed.getMessage());
+                server.removeContext(ACCOUNTS);
+            }
         }
 
         @Test

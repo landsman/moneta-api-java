@@ -5,6 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.google.inject.ConfigurationException;
 import com.sun.net.httpserver.HttpServer;
 import cz.insuit.moneta.AccessToken;
@@ -24,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
+import org.slf4j.LoggerFactory;
 import play.Application;
 import play.inject.guice.GuiceApplicationBuilder;
 import play.libs.Json;
@@ -77,6 +82,43 @@ class MonetaInPlayTest {
                     new Money(new BigDecimal("-12.50"), Currency.getInstance("CZK")),
                     transactions.get(0).amount());
             assertSame(moneta, app.injector().instanceOf(MonetaClient.class));
+        } finally {
+            stop(app);
+        }
+    }
+
+    /** What the module README promises: a logger in logback.xml switches the client's DEBUG line on. */
+    @Test
+    void theClientsDebugLineReachesLogbackThroughLogbackXml() throws Exception {
+        var app = new GuiceApplicationBuilder()
+                .configure("moneta.base-uri", base)
+                .configure("moneta.token", "t")
+                .build();
+        try {
+            // After the build: Play configures Logback from logback.xml while it builds the application.
+            var lines = new ListAppender<ILoggingEvent>();
+            lines.start();
+            var logger = ((LoggerContext) LoggerFactory.getILoggerFactory()).getLogger("cz.insuit.moneta");
+            logger.addAppender(lines);
+
+            try {
+                app.injector()
+                        .instanceOf(MonetaClient.class)
+                        .transactions(
+                                app.injector().instanceOf(AccessToken.class),
+                                "acc-1",
+                                LocalDate.of(2026, 8, 1),
+                                LocalDate.of(2026, 8, 31));
+
+                assertTrue(
+                        lines.list.stream()
+                                .anyMatch(line -> line.getLoggerName().equals(MonetaClient.class.getName())
+                                        && line.getLevel() == Level.DEBUG),
+                        "no DEBUG line from the client reached Logback");
+            } finally {
+                logger.detachAppender(lines);
+                lines.stop();
+            }
         } finally {
             stop(app);
         }

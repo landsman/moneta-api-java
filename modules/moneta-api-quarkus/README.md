@@ -155,6 +155,15 @@ implementation("io.micrometer:micrometer-java11")
 `HttpClientDecorator` of its own instead. It is off under the OpenTelemetry Java agent too, which instruments the
 JDK client already. Traces come from Quarkus's own OpenTelemetry, not from here.
 
+## Logging
+
+One DEBUG line per HTTP request, with MONETA's `X-Request-Id` and never the token
+([what it holds](../../.docs/usage.md#logging)). It lands in Quarkus's log as any category does:
+
+```properties
+quarkus.log.category."cz.insuit.moneta".level=DEBUG
+```
+
 ## Native image
 
 Works, with one line in the application's build: Quarkus's BOM pins `jackson-annotations` 2.21, and the client's

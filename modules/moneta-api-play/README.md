@@ -198,6 +198,15 @@ To build the client entirely yourself, disable the module with
 close the client in a stop hook on `play.api.inject.ApplicationLifecycle`, which every application has, unlike
 `play.inject`'s, bound only with play-java.
 
+## Logging
+
+One DEBUG line per HTTP request, with MONETA's `X-Request-Id` and never the token
+([what it holds](../../.docs/usage.md#logging)). Play routes it into Logback; add the logger to `conf/logback.xml`:
+
+```xml
+<logger name="cz.insuit.moneta" level="DEBUG"/>
+```
+
 ## Jackson
 
 Play 3.0 and 2.9 pin Jackson 2.14.3, and the client needs `jackson-annotations` 2.21 or newer; sbt and Gradle both

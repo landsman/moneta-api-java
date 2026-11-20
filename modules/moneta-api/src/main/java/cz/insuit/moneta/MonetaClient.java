@@ -21,6 +21,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
+import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.JsonNode;
@@ -46,6 +47,12 @@ public final class MonetaClient implements AutoCloseable {
     // ponytail: a backstop against a server that never sends an empty page; a million movements is far past it.
     private static final int MAX_PAGES = 10_000;
     private static final int MAX_BODY = 2_000;
+    /**
+     * An {@code X-Request-Id} the message may carry: short printable ASCII. Anything else did not come from MONETA
+     * (a proxy, a wrong base URI) and stays out of a message that is meant to be safe to log.
+     */
+    private static final Pattern REQUEST_ID = Pattern.compile("[\\x21-\\x7E]{1,128}");
+
     private static final JsonMapper JSON = JsonMapper.builder()
             // An amount is money: 0.1 must stay 0.1, not the nearest double.
             .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
@@ -221,7 +228,8 @@ public final class MonetaClient implements AutoCloseable {
     public Balance balance(AccessToken token, String accountId) {
         var path = MonetaPaths.balance(accountId);
         var what = "GET /" + path;
-        return Balance.from(what, get(token, what, path, BalancesJson.class));
+        var answer = get(token, what, path, BalancesJson.class);
+        return Balance.from(answer.call(), answer.body());
     }
 
     /**
@@ -235,6 +243,7 @@ public final class MonetaClient implements AutoCloseable {
     public Instant tokenExpiry(AccessToken token) {
         var path = MonetaPaths.TOKEN_INTROSPECT;
         return get(token, "GET /" + path, path, TokenIntrospectionJson.class)
+                .body()
                 .expiration()
                 .toInstant();
     }
@@ -322,16 +331,17 @@ public final class MonetaClient implements AutoCloseable {
         List<JsonNode> previous = List.of();
         for (int page = 0; page < MAX_PAGES; page++) {
             var what = "GET /" + sized.with("page", page).appendTo(path);
-            var body = get(token, what, sized.with("page", page).appendTo(path), pageType);
+            var answer = get(token, what, sized.with("page", page).appendTo(path), pageType);
+            var body = answer.body();
             var items = body.items();
             Integer number = body.pageNumber();
             if (number != null && number != page) {
                 throw new MonetaException.InvalidResponse(
-                        "GET /" + path + " asked for page " + page + " and got page " + number, null);
+                        answer.call() + " asked for page " + page + " and got page " + number, null);
             }
             if (number == null && !items.isEmpty() && items.equals(previous)) {
                 throw new MonetaException.InvalidResponse(
-                        "GET /" + path + " returned the same items for page " + page + " as for the one before,"
+                        answer.call() + " returned the same items for page " + page + " as for the one before,"
                                 + " so the server likely ignores the page parameter",
                         null);
             }
@@ -341,7 +351,7 @@ public final class MonetaClient implements AutoCloseable {
                 } catch (MonetaException.InvalidResponse e) {
                     var reference = node.path("entryReference").asString("?");
                     throw new MonetaException.InvalidResponse(
-                            what + ", item entryReference=" + reference + ": " + e.getMessage(), e);
+                            answer.call() + ", item entryReference=" + reference + ": " + e.getMessage(), e);
                 }
             }
             Integer count = body.pageCount();
@@ -353,8 +363,14 @@ public final class MonetaClient implements AutoCloseable {
         throw new MonetaException.InvalidResponse("GET /" + path + " did not end within " + MAX_PAGES + " pages", null);
     }
 
+    /**
+     * A body, and the request it answered as a failure about it names it: {@code what}, with MONETA's {@code
+     * X-Request-Id} when it sent one, for a failure found after {@link #get} returned.
+     */
+    private record Answer<T>(T body, String call) {}
+
     /** {@code what} names the request in messages: the query carries only dates and paging, the token is not in it. */
-    private <T> T get(AccessToken token, String what, String pathAndQuery, Class<T> type) {
+    private <T> Answer<T> get(AccessToken token, String what, String pathAndQuery, Class<T> type) {
         var request = HttpRequest.newBuilder(baseUri.resolve(pathAndQuery))
                 .timeout(requestTimeout)
                 .header("Authorization", "Bearer " + token.value())
@@ -381,16 +397,16 @@ public final class MonetaClient implements AutoCloseable {
             throw cancelled;
         }
         int status = response.statusCode();
-        var message = what + " answered " + status;
-        // X-Request-Id is what MONETA's support asks for about one call. Never the token, never the body.
-        log(
-                what,
-                status,
-                millisSince(started),
-                response.headers().firstValue("X-Request-Id").orElse(null),
-                null);
+        // X-Request-Id is what MONETA's support asks for about one call, so a failure names it too, for an
+        // application that logs the exception with DEBUG off. Never the token, never the body.
+        var requestId = response.headers().firstValue("X-Request-Id").orElse(null);
+        var call = requestId == null || !REQUEST_ID.matcher(requestId).matches()
+                ? what
+                : what + " (X-Request-Id " + requestId + ")";
+        var message = call + " answered " + status;
+        log(what, status, millisSince(started), requestId, null);
         return switch (status / 100) {
-            case 2 -> parse(what, () -> JSON.readValue(response.body(), type));
+            case 2 -> new Answer<>(parse(call, () -> JSON.readValue(response.body(), type)), call);
             default ->
                 throw switch (status) {
                     case 401, 403 -> new MonetaException.InvalidToken(message, status, excerpt(response));
