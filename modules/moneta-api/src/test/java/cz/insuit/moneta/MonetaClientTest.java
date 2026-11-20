@@ -922,6 +922,19 @@ class MonetaClientTest {
         }
 
         @Test
+        void aRequestIdThatIsNotShortPrintableAsciiStaysOutOfTheMessage() {
+            for (var requestId : List.of("", "a b", "x".repeat(129))) {
+                server.createContext(ACCOUNTS, exchange -> {
+                    exchange.getResponseHeaders().add("X-Request-Id", requestId);
+                    respond(exchange, 503, "{}");
+                });
+                var failed = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
+                assertFalse(String.valueOf(failed.getMessage()).contains("X-Request-Id"), failed.getMessage());
+                server.removeContext(ACCOUNTS);
+            }
+        }
+
+        @Test
         void logsEachCallWithItsRequestIdButNeverTheToken() {
             server.createContext(ACCOUNTS, exchange -> {
                 exchange.getResponseHeaders().add("X-Request-Id", "req-42");

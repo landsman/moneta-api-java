@@ -21,6 +21,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
+import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.JsonNode;
@@ -46,6 +47,12 @@ public final class MonetaClient implements AutoCloseable {
     // ponytail: a backstop against a server that never sends an empty page; a million movements is far past it.
     private static final int MAX_PAGES = 10_000;
     private static final int MAX_BODY = 2_000;
+    /**
+     * An {@code X-Request-Id} the message may carry: short printable ASCII. Anything else did not come from MONETA
+     * (a proxy, a wrong base URI) and stays out of a message that is meant to be safe to log.
+     */
+    private static final Pattern REQUEST_ID = Pattern.compile("[\\x21-\\x7E]{1,128}");
+
     private static final JsonMapper JSON = JsonMapper.builder()
             // An amount is money: 0.1 must stay 0.1, not the nearest double.
             .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
@@ -384,7 +391,9 @@ public final class MonetaClient implements AutoCloseable {
         // X-Request-Id is what MONETA's support asks for about one call, so a failure names it too, for an
         // application that logs the exception with DEBUG off. Never the token, never the body.
         var requestId = response.headers().firstValue("X-Request-Id").orElse(null);
-        var call = requestId == null ? what : what + " (X-Request-Id " + requestId + ")";
+        var call = requestId == null || !REQUEST_ID.matcher(requestId).matches()
+                ? what
+                : what + " (X-Request-Id " + requestId + ")";
         var message = call + " answered " + status;
         log(what, status, millisSince(started), requestId, null);
         return switch (status / 100) {
