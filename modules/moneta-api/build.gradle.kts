@@ -10,7 +10,7 @@ dependencies {
     // No Jackson type leaves the library, and databind and core of the two majors live in different packages,
     // so a caller on Jackson 2 keeps it. jackson-annotations is the exception: Jackson 3.2 shares it with 2 and
     // needs 2.21 or newer, which a Spring Boot 3 BOM before 3.5.13 pins lower (see .docs/compatibility.md).
-    implementation("tools.jackson.core:jackson-databind:3.2.4")
+    implementation("tools.jackson.core:jackson-databind:3.3.0")
 
     testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
