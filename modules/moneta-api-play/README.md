@@ -145,6 +145,9 @@ public class PaymentsController extends Controller {
 }
 ```
 
+On Java 17, which has neither virtual threads nor `ExecutorService.close()`, a fixed pool does it:
+`Executors.newFixedThreadPool(32)`, and `threads.shutdown()` in the stop hook.
+
 A dispatcher of Play's own does the same: a `CustomExecutionContext` subclass naming a `thread-pool-executor` block
 in `application.conf`, as in Play's [thread pools](https://playframework.com/documentation/latest/ThreadPools)
 guide. The module ships neither, because that class takes a Pekko `ActorSystem` in Play 3.0 and an Akka one in 2.9.

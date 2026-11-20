@@ -10,7 +10,7 @@ behaves, as far as it is known, is [moneta-api.md](../moneta-api.md).
 - **The client reads** accounts and transactions, pending and booked, with symbols, message, counterparty and
   `incoming()`, and tells a card payment from a transfer with `method()`. Checked against a live business account
   on 2026-11-06 and 2026-11-07, a card payment pending on 2026-11-07 and booked on 2026-11-10.
-- **Tested** on Java 21 and 25, Spring Boot 3.5.12, 3.5.16, 4.0.0 and 4.1.2, a Kotlin caller, and Jackson 3.0.4.
+- **Tested** on Java 17, 21 and 25, Spring Boot 3.5.12, 3.5.16, 4.0.0 and 4.1.2, a Kotlin caller, and Jackson 3.0.4.
 - **The developer portal registration** (MONETA API – TPP) was approved. It gives the specification and a
   sandbox; production stays the merchant's token, as without a PSD2 licence the portal offers no more
   ([access](../access.md)).

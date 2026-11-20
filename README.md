@@ -4,7 +4,7 @@ The Czech bank MONETA Money Bank lets its business clients, sole traders include
 [its API](https://www.moneta.cz/zivnostnici-a-firmy/api) for free: an application reads their accounts and
 transactions, and can enter payments, with a token they issue in Internet Banka. No PSD2 licence is needed.
 
-This is a client for that API, **MONETA API**, for Java 21+ and Kotlin projects, with a Spring Boot starter, a
+This is a client for that API, **MONETA API**, for Java 17+ and Kotlin projects, with a Spring Boot starter, a
 Play Framework module, a Micronaut module and a Quarkus extension. It reads accounts and transactions so far; payments are not covered
 yet. Its only dependencies are Jackson and JSpecify.
 

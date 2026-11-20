@@ -31,7 +31,8 @@ import tools.jackson.databind.json.JsonMapper;
  * with each call and never kept, so it cannot end up in a {@code toString()} or a heap dump of the client.
  *
  * <p>Thread-safe; one per application is enough. {@link #close()} releases the HTTP client it made itself, not
- * one passed to {@link Builder#httpClient}.
+ * one passed to {@link Builder#httpClient}. On Java 17, whose {@code HttpClient} has no {@code close()}, that client
+ * stops its threads once nothing references it instead.
  */
 public final class MonetaClient implements AutoCloseable {
 
@@ -119,9 +120,16 @@ public final class MonetaClient implements AutoCloseable {
 
     @Override
     public void close() {
-        // The inner client, not the decorated one: a tracing or metrics wrapper does not pass close() on.
-        if (ownsHttp) {
-            inner.close();
+        // The inner client, not the decorated one: a tracing or metrics wrapper does not pass close() on. HttpClient
+        // has close() from Java 21; on 17 it has none and stops its threads once nothing references it.
+        if (ownsHttp && inner instanceof AutoCloseable closeable) {
+            try {
+                closeable.close();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
         }
     }
 
@@ -171,7 +179,7 @@ public final class MonetaClient implements AutoCloseable {
             throw new IllegalStateException("the token opens " + matches.size() + " accounts with that IBAN ("
                     + matches.stream().map(Account::id).toList() + "), so name one by its id");
         }
-        return matches.isEmpty() ? null : matches.getFirst();
+        return matches.isEmpty() ? null : matches.get(0);
     }
 
     /** ISO 13616: two letters, two check digits, up to 30 more; moved to the end, the number is 1 modulo 97. */
@@ -269,7 +277,7 @@ public final class MonetaClient implements AutoCloseable {
             throw new IllegalStateException(
                     "the token opens " + accounts.size() + " accounts, so name one: transactions(accountId)");
         }
-        return accounts.getFirst().id();
+        return accounts.get(0).id();
     }
 
     /**

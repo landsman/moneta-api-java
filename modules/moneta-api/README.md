@@ -1,6 +1,6 @@
 # moneta-api
 
-The MONETA API client for Java 21+ and Kotlin, without a framework. With Spring Boot, Play, Micronaut or Quarkus,
+The MONETA API client for Java 17+ and Kotlin, without a framework. With Spring Boot, Play, Micronaut or Quarkus,
 take that module instead; it brings this one.
 
 ## Install

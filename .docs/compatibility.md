@@ -34,7 +34,8 @@ Kotlin caller, in [testing/](../testing/README.md).
 
 The client sends through a JDK `java.net.http.HttpClient` it builds itself: no redirects followed, no cookies
 (one client serves many merchants' tokens), a 10-second connect timeout. Two hooks change it and keep that,
-including that `close()` closes it:
+including that `close()` closes it (on Java 21 and newer; Java 17's `HttpClient` has no `close()` and stops its
+threads once nothing references it):
 
 ```java
 MonetaClient.builder()
@@ -112,7 +113,7 @@ balance and transactions exactly as the JVM does; CI runs it on every pull reque
 ## Micronaut
 
 [`moneta-api-micronaut`](../modules/moneta-api-micronaut/README.md) is compiled against Micronaut 4.10 for
-Java 21 and runs on 5 too; Micronaut 5 itself needs Java 25. Its BOMs pull the client's Jackson to 3.2.3 (5.2.5),
+Java 17 and runs on 5 too; Micronaut 5 itself needs Java 25. Its BOMs pull the client's Jackson to 3.2.3 (5.2.5),
 or leave Jackson 3 alone beside their Jackson 2 with `jackson-annotations` 2.21 (4.10.14), and both work.
 `make build` checks both in [testing/](../testing/README.md).
 

@@ -7,7 +7,7 @@ dependencies {
 }
 
 // Micronaut 5's jars are Java 25 bytecode, so this caller is compiled for 25 and runs on it whatever -PtestsJdk
-// says. The module it tests stays release 21.
+// says. The module it tests stays release 17.
 tasks.withType<JavaCompile>().configureEach { options.release = 25 }
 tasks.test {
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }

@@ -56,7 +56,7 @@ class MonetaInMicronautTest {
 
             assertEquals(
                     new Money(new BigDecimal("-12.50"), Currency.getInstance("CZK")),
-                    transactions.getFirst().amount());
+                    transactions.get(0).amount());
             assertEquals(
                     Duration.ofSeconds(5),
                     context.getBean(MonetaProperties.class).requestTimeout());

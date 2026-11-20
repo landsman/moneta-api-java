@@ -10,7 +10,7 @@ plugins {
     kotlin("jvm") version "2.4.21" apply false
 }
 
-// Compiled once, for release 21, on whatever JDK runs Gradle; the tests run on the JDK -PtestsJdk names, so CI's
+// Compiled once, for release 17, on whatever JDK runs Gradle; the tests run on the JDK -PtestsJdk names, so CI's
 // matrix checks the jars on each JDK they support. Without it they run on Gradle's own.
 val testsJdk = providers.gradleProperty("testsJdk")
 
@@ -24,15 +24,17 @@ allprojects {
     repositories {
         mavenCentral()
     }
+    // The café and peek are applications, never published: they keep Java 21 and test on Gradle's own JDK.
+    val app = path.startsWith(":examples:") || path.startsWith(":tools:")
     tasks.withType<JavaCompile>().configureEach {
-        // Built on any current JDK, usable from Java 21.
-        options.release = 21
+        // Built on any current JDK, usable from Java 17: the oldest LTS Jackson 3 and every supported framework run on.
+        options.release = if (app) 21 else 17
     }
     plugins.withType<JavaPlugin> {
         val toolchains = extensions.getByType<JavaToolchainService>()
         tasks.withType<Test>().configureEach {
             useJUnitPlatform()
-            if (testsJdk.isPresent) {
+            if (testsJdk.isPresent && !app) {
                 javaLauncher = toolchains.launcherFor { languageVersion = JavaLanguageVersion.of(testsJdk.get()) }
             }
         }

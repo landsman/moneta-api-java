@@ -33,6 +33,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledForJreRange;
+import org.junit.jupiter.api.condition.JRE;
 
 class MonetaFactoryTest {
 
@@ -129,17 +131,18 @@ class MonetaFactoryTest {
             app.getBean(MonetaClient.class);
             var hooks = app.getBean(HttpHooks.class);
             assertEquals(List.of("customize 1", "customize 2", "decorate 1", "decorate 2"), hooks.calls);
-            assertEquals(HttpClient.Redirect.ALWAYS, hooks.decorated.getFirst().followRedirects());
+            assertEquals(HttpClient.Redirect.ALWAYS, hooks.decorated.get(0).followRedirects());
         }
     }
 
     @Test
+    @EnabledForJreRange(min = JRE.JAVA_21, disabledReason = "HttpClient has no close() before Java 21")
     void closesTheClientWithTheContext() {
         var app = ApplicationContext.run(Map.of("spec.name", "http-hooks"));
         app.getBean(MonetaClient.class);
-        var http = app.getBean(HttpHooks.class).decorated.getFirst();
+        var http = app.getBean(HttpHooks.class).decorated.get(0);
         app.close();
-        assertTrue(http.isTerminated());
+        assertTrue(terminated(http));
     }
 
     @Test
@@ -273,6 +276,15 @@ class MonetaFactoryTest {
                 hooks.decorated.add(http);
                 return http;
             };
+        }
+    }
+
+    /** HttpClient.isTerminated() came with its close() in Java 21, and these tests are compiled for 17. */
+    private static boolean terminated(HttpClient http) {
+        try {
+            return (boolean) HttpClient.class.getMethod("isTerminated").invoke(http);
+        } catch (ReflectiveOperationException e) {
+            throw new LinkageError("HttpClient.isTerminated()", e);
         }
     }
 }

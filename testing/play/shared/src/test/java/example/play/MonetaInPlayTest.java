@@ -22,6 +22,8 @@ import java.util.Objects;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledForJreRange;
+import org.junit.jupiter.api.condition.JRE;
 import play.Application;
 import play.inject.guice.GuiceApplicationBuilder;
 import play.libs.Json;
@@ -73,7 +75,7 @@ class MonetaInPlayTest {
 
             assertEquals(
                     new Money(new BigDecimal("-12.50"), Currency.getInstance("CZK")),
-                    transactions.getFirst().amount());
+                    transactions.get(0).amount());
             assertSame(moneta, app.injector().instanceOf(MonetaClient.class));
         } finally {
             stop(app);
@@ -91,6 +93,7 @@ class MonetaInPlayTest {
     }
 
     @Test
+    @EnabledForJreRange(min = JRE.JAVA_21, disabledReason = "HttpClient has no close() before Java 21")
     void stoppingTheApplicationClosesTheClient() throws Exception {
         var app =
                 new GuiceApplicationBuilder().configure("moneta.base-uri", base).build();
