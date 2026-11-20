@@ -7,7 +7,7 @@ description = "Reads the live MONETA account for finding out what the API does; 
 dependencies {
     implementation(project(":modules:moneta-api"))
     // Masks and rewrites a movement's raw JSON, which the client keeps as a string.
-    implementation("tools.jackson.core:jackson-databind:3.2.4")
+    implementation("tools.jackson.core:jackson-databind:3.3.0")
     testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
