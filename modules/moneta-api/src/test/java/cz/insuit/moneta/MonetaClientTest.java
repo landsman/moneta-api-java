@@ -872,6 +872,8 @@ class MonetaClientTest {
             answer(ACCOUNTS, 503, "{}");
             var failed = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
             assertEquals(503, failed.status());
+            // MONETA sent no X-Request-Id here, so the message has no empty or "null" one.
+            assertFalse(String.valueOf(failed.getMessage()).contains("X-Request-Id"), failed.getMessage());
         }
 
         @Test
