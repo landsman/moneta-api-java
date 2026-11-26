@@ -26,7 +26,7 @@ public record Balance(Money booked, Money available, Instant at) {
         try {
             return date.instant();
         } catch (DateTimeParseException e) {
-            throw new MonetaException.InvalidResponse(what + " sent the balance date " + date.dateTime(), e);
+            throw new MonetaInvalidResponseException(what + " sent the balance date " + date.dateTime(), e);
         }
     }
 
@@ -35,6 +35,6 @@ public record Balance(Money booked, Money available, Instant at) {
                 .filter(balance ->
                         code.name().equals(balance.type().codeOrProprietary().code()))
                 .findFirst()
-                .orElseThrow(() -> new MonetaException.InvalidResponse(what + " sent no " + code + " balance", null));
+                .orElseThrow(() -> new MonetaInvalidResponseException(what + " sent no " + code + " balance", null));
     }
 }

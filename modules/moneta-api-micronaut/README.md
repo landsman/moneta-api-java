@@ -165,18 +165,18 @@ An application that already bridges `java.util.logging` (Micronaut Starter's `ju
 Logback's `LevelChangePropagator`) needs nothing more. The module adds neither, since that choice is the
 application's.
 
-Failures reach you as the client throws them, a `MonetaException`; the module catches nothing, retries nothing
+Failures reach you as the client throws them, a `MonetaApiException`; the module catches nothing, retries nothing
 and logs nothing above DEBUG. Map them where the application decides what its callers see, an
 `ExceptionHandler` bean or an `@Error` route. MONETA refusing the token is not a 401 of your API:
 
 ```java
 @Singleton
-class MonetaFailures implements ExceptionHandler<MonetaException, HttpResponse<?>> {
+class MonetaFailures implements ExceptionHandler<MonetaApiException, HttpResponse<?>> {
     @Override
-    public HttpResponse<?> handle(HttpRequest request, MonetaException failure) {
+    public HttpResponse<?> handle(HttpRequest request, MonetaApiException failure) {
         return switch (failure) {
-            case MonetaException.RateLimited limited -> HttpResponse.status(HttpStatus.SERVICE_UNAVAILABLE);
-            case MonetaException.NoAnswer timeout -> HttpResponse.status(HttpStatus.GATEWAY_TIMEOUT);
+            case MonetaRateLimitedException limited -> HttpResponse.status(HttpStatus.SERVICE_UNAVAILABLE);
+            case MonetaNoAnswerException timeout -> HttpResponse.status(HttpStatus.GATEWAY_TIMEOUT);
             default -> HttpResponse.status(HttpStatus.BAD_GATEWAY);
         };
     }

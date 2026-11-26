@@ -205,7 +205,7 @@ class MonetaClientTest {
             var alwaysPageZero = """
                     {"accounts": [{"id": "a", "currency": "CZK"}], "pageNumber": 0, "pageCount": 3}""";
             answer(ACCOUNTS, 200, alwaysPageZero);
-            assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+            assertThrows(MonetaInvalidResponseException.class, () -> client.accounts(TOKEN));
         }
 
         @Test
@@ -214,13 +214,13 @@ class MonetaClientTest {
             var firstPageIsOne = """
                     {"accounts": [{"id": "a", "currency": "CZK"}], "pageNumber": 1, "pageCount": 2}""";
             answer(ACCOUNTS, 200, firstPageIsOne);
-            assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+            assertThrows(MonetaInvalidResponseException.class, () -> client.accounts(TOKEN));
         }
 
         @Test
         void theSamePageOverAndOverWithoutPageNumbersIsRefused() {
             answer(ACCOUNTS, 200, ONE_ACCOUNT);
-            assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+            assertThrows(MonetaInvalidResponseException.class, () -> client.accounts(TOKEN));
             assertEquals(2, requests.size());
         }
     }
@@ -403,7 +403,7 @@ class MonetaClientTest {
         void aTokenAnswerWithoutAnExpiryIsRefused() {
             answer(TOKEN_INTROSPECT, 200, "{}");
 
-            assertThrows(MonetaException.InvalidResponse.class, () -> client.tokenExpiry(TOKEN));
+            assertThrows(MonetaInvalidResponseException.class, () -> client.tokenExpiry(TOKEN));
         }
 
         @Test
@@ -411,7 +411,7 @@ class MonetaClientTest {
             answer(TOKEN_INTROSPECT, 403, """
                     {"errors": [{"error": "FORBIDDEN", "message": "This is not a Moneta API token."}]}""");
 
-            assertThrows(MonetaException.InvalidToken.class, () -> client.tokenExpiry(TOKEN));
+            assertThrows(MonetaInvalidTokenException.class, () -> client.tokenExpiry(TOKEN));
         }
 
         @Test
@@ -444,7 +444,7 @@ class MonetaClientTest {
                     ]}""";
             answer(BALANCE, 200, garbled);
 
-            assertThrows(MonetaException.InvalidResponse.class, () -> client.balance(TOKEN, "acc-1"));
+            assertThrows(MonetaInvalidResponseException.class, () -> client.balance(TOKEN, "acc-1"));
         }
 
         @Test
@@ -460,7 +460,7 @@ class MonetaClientTest {
                 respond(exchange, 200, bookedOnly);
             });
 
-            var refused = assertThrows(MonetaException.InvalidResponse.class, () -> client.balance(TOKEN, "acc-1"));
+            var refused = assertThrows(MonetaInvalidResponseException.class, () -> client.balance(TOKEN, "acc-1"));
             assertTrue(String.valueOf(refused.getMessage()).contains("CLAV"), refused.getMessage());
             assertTrue(String.valueOf(refused.getMessage()).contains("X-Request-Id req-7"), refused.getMessage());
         }
@@ -742,31 +742,31 @@ class MonetaClientTest {
         @Test
         void anUnknownDirectionIsRefusedRatherThanGuessed() {
             answer(TRANSACTIONS, 200, movement("BOOK", "XXXX"));
-            assertThrows(MonetaException.InvalidResponse.class, () -> client.transactions(TOKEN, "acc-1", FROM, TO));
+            assertThrows(MonetaInvalidResponseException.class, () -> client.transactions(TOKEN, "acc-1", FROM, TO));
         }
 
         @Test
         void aNegativeAmountBesideADebitIsRefusedRatherThanSignedTwice() {
             answer(TRANSACTIONS, 200, movement("BOOK", "DBIT", "-100.00", "CZK"));
-            assertThrows(MonetaException.InvalidResponse.class, () -> client.transactions(TOKEN, "acc-1", FROM, TO));
+            assertThrows(MonetaInvalidResponseException.class, () -> client.transactions(TOKEN, "acc-1", FROM, TO));
         }
     }
 
-    /** A 200 whose body is not the expected shape is always an InvalidResponse. */
+    /** A 200 whose body is not the expected shape is always a MonetaInvalidResponseException. */
     @Nested
     class UnreadableAnswers {
 
         @Test
         void aBodyOfTheWrongShapeIsAnInvalidResponse() {
             answer(ACCOUNTS, 200, "<html>gateway</html>");
-            assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+            assertThrows(MonetaInvalidResponseException.class, () -> client.accounts(TOKEN));
 
             server.removeContext(ACCOUNTS);
             // language=JSON
             var noId = """
                     {"accounts": [{"currency": "CZK"}]}""";
             answer(ACCOUNTS, 200, noId);
-            assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+            assertThrows(MonetaInvalidResponseException.class, () -> client.accounts(TOKEN));
         }
 
         static Stream<String> wrongAccountsBodies() {
@@ -788,7 +788,7 @@ class MonetaClientTest {
         @MethodSource("wrongAccountsBodies")
         void anyAccountsBodyOfTheWrongShapeIsAnInvalidResponse(String body) {
             answer(ACCOUNTS, 200, body);
-            assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+            assertThrows(MonetaInvalidResponseException.class, () -> client.accounts(TOKEN));
         }
 
         static Stream<String> wrongTransactionsBodies() {
@@ -799,7 +799,7 @@ class MonetaClientTest {
         @MethodSource("wrongTransactionsBodies")
         void anyTransactionsBodyOfTheWrongShapeIsAnInvalidResponse(String body) {
             answer(TRANSACTIONS, 200, body);
-            assertThrows(MonetaException.InvalidResponse.class, () -> client.transactions(TOKEN, "acc-1", FROM, TO));
+            assertThrows(MonetaInvalidResponseException.class, () -> client.transactions(TOKEN, "acc-1", FROM, TO));
         }
 
         @ParameterizedTest
@@ -809,7 +809,7 @@ class MonetaClientTest {
             ((ObjectNode) page.get("transactions").get(0)).remove(key);
             answer(TRANSACTIONS, 200, page.toString());
 
-            assertThrows(MonetaException.InvalidResponse.class, () -> client.transactions(TOKEN, "acc-1", FROM, TO));
+            assertThrows(MonetaInvalidResponseException.class, () -> client.transactions(TOKEN, "acc-1", FROM, TO));
         }
 
         @Test
@@ -818,7 +818,7 @@ class MonetaClientTest {
             var noCurrency = """
                     {"accounts": [{"id": "a"}], "pageCount": 1}""";
             answer(ACCOUNTS, 200, noCurrency);
-            assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+            assertThrows(MonetaInvalidResponseException.class, () -> client.accounts(TOKEN));
         }
 
         @Test
@@ -830,7 +830,7 @@ class MonetaClientTest {
             });
 
             var failed = assertThrows(
-                    MonetaException.InvalidResponse.class, () -> client.transactions(TOKEN, "acc-1", FROM, TO));
+                    MonetaInvalidResponseException.class, () -> client.transactions(TOKEN, "acc-1", FROM, TO));
             var message = Objects.requireNonNull(failed.getMessage());
             assertTrue(message.contains("page=1"), message);
             assertTrue(message.contains("X-Request-Id req-1"), message);
@@ -847,7 +847,7 @@ class MonetaClientTest {
         @ValueSource(ints = {401, 403})
         void aRefusedTokenIsInvalidToken(int status) {
             answer(ACCOUNTS, status, "{}");
-            var refused = assertThrows(MonetaException.InvalidToken.class, () -> client.accounts(TOKEN));
+            var refused = assertThrows(MonetaInvalidTokenException.class, () -> client.accounts(TOKEN));
             assertEquals(status, refused.status());
             assertFalse(Objects.requireNonNull(refused.getMessage()).contains(TOKEN.value()));
         }
@@ -858,7 +858,7 @@ class MonetaClientTest {
                 exchange.getResponseHeaders().add("Retry-After", "30");
                 respond(exchange, 429, "{}");
             });
-            var throttled = assertThrows(MonetaException.RateLimited.class, () -> client.accounts(TOKEN));
+            var throttled = assertThrows(MonetaRateLimitedException.class, () -> client.accounts(TOKEN));
             assertEquals(Duration.ofSeconds(30), throttled.retryAfter());
         }
 
@@ -869,14 +869,14 @@ class MonetaClientTest {
                 exchange.getResponseHeaders().add("Retry-After", retryAfter);
                 respond(exchange, 429, "{}");
             });
-            var throttled = assertThrows(MonetaException.RateLimited.class, () -> client.accounts(TOKEN));
+            var throttled = assertThrows(MonetaRateLimitedException.class, () -> client.accounts(TOKEN));
             assertNull(throttled.retryAfter());
         }
 
         @Test
         void reportsAnyOtherFailureWithItsStatus() {
             answer(ACCOUNTS, 503, "{}");
-            var failed = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
+            var failed = assertThrows(MonetaHttpErrorException.class, () -> client.accounts(TOKEN));
             assertEquals(503, failed.status());
             // MONETA sent no X-Request-Id here, so the message has no empty or "null" one.
             assertFalse(String.valueOf(failed.getMessage()).contains("X-Request-Id"), failed.getMessage());
@@ -888,13 +888,13 @@ class MonetaClientTest {
             var error = """
                     {"error": "unknown parameter size"}""";
             answer(ACCOUNTS, 400, error);
-            var failed = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
+            var failed = assertThrows(MonetaHttpErrorException.class, () -> client.accounts(TOKEN));
             assertEquals(error, failed.body());
             assertFalse(Objects.requireNonNull(failed.getMessage()).contains("unknown parameter"));
 
             server.removeContext(ACCOUNTS);
             answer(ACCOUNTS, 400, "x".repeat(5_000));
-            var long_ = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
+            var long_ = assertThrows(MonetaHttpErrorException.class, () -> client.accounts(TOKEN));
             assertEquals(2_000, Objects.requireNonNull(long_.body()).length());
         }
 
@@ -904,7 +904,7 @@ class MonetaClientTest {
                 exchange.getResponseHeaders().add("Retry-After", "120");
                 respond(exchange, 503, "{}");
             });
-            var failed = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
+            var failed = assertThrows(MonetaHttpErrorException.class, () -> client.accounts(TOKEN));
             assertEquals(Duration.ofMinutes(2), failed.retryAfter());
         }
 
@@ -914,7 +914,7 @@ class MonetaClientTest {
                 exchange.getResponseHeaders().add("X-Request-Id", "req-42");
                 respond(exchange, 503, "{}");
             });
-            var failed = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
+            var failed = assertThrows(MonetaHttpErrorException.class, () -> client.accounts(TOKEN));
             assertTrue(String.valueOf(failed.getMessage()).contains("X-Request-Id req-42"), failed.getMessage());
 
             server.removeContext(ACCOUNTS);
@@ -922,7 +922,7 @@ class MonetaClientTest {
                 exchange.getResponseHeaders().add("X-Request-Id", "req-43");
                 respond(exchange, 200, "not json");
             });
-            var unreadable = assertThrows(MonetaException.InvalidResponse.class, () -> client.accounts(TOKEN));
+            var unreadable = assertThrows(MonetaInvalidResponseException.class, () -> client.accounts(TOKEN));
             assertTrue(
                     String.valueOf(unreadable.getMessage()).contains("X-Request-Id req-43"), unreadable.getMessage());
         }
@@ -934,7 +934,7 @@ class MonetaClientTest {
                     exchange.getResponseHeaders().add("X-Request-Id", requestId);
                     respond(exchange, 503, "{}");
                 });
-                var failed = assertThrows(MonetaException.HttpError.class, () -> client.accounts(TOKEN));
+                var failed = assertThrows(MonetaHttpErrorException.class, () -> client.accounts(TOKEN));
                 assertFalse(String.valueOf(failed.getMessage()).contains("X-Request-Id"), failed.getMessage());
                 server.removeContext(ACCOUNTS);
             }
@@ -983,8 +983,8 @@ class MonetaClientTest {
         @Test
         void aServerThatIsGoneIsNoAnswer() {
             server.stop(0);
-            var failed = assertThrows(MonetaException.class, () -> client.accounts(TOKEN));
-            assertInstanceOf(MonetaException.NoAnswer.class, failed);
+            var failed = assertThrows(MonetaApiException.class, () -> client.accounts(TOKEN));
+            assertInstanceOf(MonetaNoAnswerException.class, failed);
         }
 
         @Test
@@ -999,7 +999,7 @@ class MonetaClientTest {
                     .build();
 
             long start = System.nanoTime();
-            var failed = assertThrows(MonetaException.NoAnswer.class, () -> impatient.accounts(TOKEN));
+            var failed = assertThrows(MonetaNoAnswerException.class, () -> impatient.accounts(TOKEN));
             assertInstanceOf(HttpTimeoutException.class, failed.getCause());
             assertTrue(Duration.ofNanos(System.nanoTime() - start).compareTo(Duration.ofMillis(900)) < 0);
         }
@@ -1074,7 +1074,7 @@ class MonetaClientTest {
             answer(ACCOUNTS, 200, fixture("accounts.json"));
             var own = MonetaClient.builder().baseUri(base).build();
             own.close();
-            assertThrows(MonetaException.NoAnswer.class, () -> own.accounts(TOKEN));
+            assertThrows(MonetaNoAnswerException.class, () -> own.accounts(TOKEN));
 
             var http = HttpClient.newHttpClient();
             MonetaClient.builder().baseUri(base).httpClient(http).build().close();
@@ -1136,7 +1136,7 @@ class MonetaClientTest {
 
             decorated.close();
 
-            assertThrows(MonetaException.NoAnswer.class, () -> decorated.accounts(TOKEN));
+            assertThrows(MonetaNoAnswerException.class, () -> decorated.accounts(TOKEN));
         }
 
         @Test
@@ -1198,7 +1198,7 @@ class MonetaClientTest {
                     }))
                     .build();
 
-            assertThrows(MonetaException.NoAnswer.class, () -> failing.accounts(TOKEN));
+            assertThrows(MonetaNoAnswerException.class, () -> failing.accounts(TOKEN));
         }
 
         @Test

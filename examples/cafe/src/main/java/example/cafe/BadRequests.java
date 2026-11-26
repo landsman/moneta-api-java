@@ -1,6 +1,6 @@
 package example.cafe;
 
-import cz.insuit.moneta.MonetaException;
+import cz.insuit.moneta.MonetaApiException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 class BadRequests {
 
     /** MONETA did not answer as asked; the café's own state is fine, so this is the bank's side, a 502. */
-    @ExceptionHandler(MonetaException.class)
+    @ExceptionHandler(MonetaApiException.class)
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
-    String monetaFailed(MonetaException e) {
+    String monetaFailed(MonetaApiException e) {
         return "MONETA: " + e.getMessage();
     }
 

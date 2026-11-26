@@ -143,7 +143,7 @@ public final class MonetaClient implements AutoCloseable {
     /**
      * The accounts the token can see, all pages read.
      *
-     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws MonetaApiException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
      * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
      */
     public List<Account> accounts(AccessToken token) {
@@ -164,7 +164,7 @@ public final class MonetaClient implements AutoCloseable {
      * @return null when the token does not see it: revoked for that account, or another holder's token
      * @throws IllegalArgumentException when the IBAN is blank or fails its check digits, a typo
      * @throws IllegalStateException when more than one account has that IBAN, as one per currency could
-     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws MonetaApiException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
      * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
      */
     public @Nullable Account accountByIban(AccessToken token, String iban) {
@@ -222,7 +222,7 @@ public final class MonetaClient implements AutoCloseable {
      * The account's booked and available balance, as of the instant MONETA computed it.
      *
      * @throws IllegalArgumentException when the account id is blank or a dot segment
-     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws MonetaApiException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
      * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
      */
     public Balance balance(AccessToken token, String accountId) {
@@ -236,8 +236,8 @@ public final class MonetaClient implements AutoCloseable {
      * When the token stops working, so the merchant can be asked for a new one before it does. A sandbox token
      * expires after 20 minutes; a merchant's from Internet Banka lives longer, how long is up to MONETA.
      *
-     * @throws MonetaException.InvalidToken when the token has expired, or is not a MONETA API token (a 403)
-     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws MonetaInvalidTokenException when the token has expired, or is not a MONETA API token (a 403)
+     * @throws MonetaApiException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
      * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
      */
     public Instant tokenExpiry(AccessToken token) {
@@ -255,7 +255,7 @@ public final class MonetaClient implements AutoCloseable {
      *
      * @throws IllegalArgumentException when {@code to} is before {@code from}, or the account id is blank or a
      *     dot segment
-     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws MonetaApiException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
      * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
      */
     public List<Transaction> incoming(AccessToken token, String accountId, LocalDate from, LocalDate to) {
@@ -298,7 +298,7 @@ public final class MonetaClient implements AutoCloseable {
      *
      * @throws IllegalArgumentException when {@code to} is before {@code from}, or the account id is blank or a
      *     dot segment
-     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws MonetaApiException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
      * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
      */
     public List<Transaction> transactions(AccessToken token, String accountId, LocalDate from, LocalDate to) {
@@ -336,11 +336,11 @@ public final class MonetaClient implements AutoCloseable {
             var items = body.items();
             Integer number = body.pageNumber();
             if (number != null && number != page) {
-                throw new MonetaException.InvalidResponse(
+                throw new MonetaInvalidResponseException(
                         answer.call() + " asked for page " + page + " and got page " + number, null);
             }
             if (number == null && !items.isEmpty() && items.equals(previous)) {
-                throw new MonetaException.InvalidResponse(
+                throw new MonetaInvalidResponseException(
                         answer.call() + " returned the same items for page " + page + " as for the one before,"
                                 + " so the server likely ignores the page parameter",
                         null);
@@ -348,9 +348,9 @@ public final class MonetaClient implements AutoCloseable {
             for (var node : items) {
                 try {
                     all.add(map.apply(node));
-                } catch (MonetaException.InvalidResponse e) {
+                } catch (MonetaInvalidResponseException e) {
                     var reference = node.path("entryReference").asString("?");
-                    throw new MonetaException.InvalidResponse(
+                    throw new MonetaInvalidResponseException(
                             answer.call() + ", item entryReference=" + reference + ": " + e.getMessage(), e);
                 }
             }
@@ -360,7 +360,7 @@ public final class MonetaClient implements AutoCloseable {
             }
             previous = items;
         }
-        throw new MonetaException.InvalidResponse("GET /" + path + " did not end within " + MAX_PAGES + " pages", null);
+        throw new MonetaInvalidResponseException("GET /" + path + " did not end within " + MAX_PAGES + " pages", null);
     }
 
     /**
@@ -387,9 +387,9 @@ public final class MonetaClient implements AutoCloseable {
         } catch (IOException | UncheckedIOException e) {
             // A decorated client may report a failed exchange unchecked; it is the same missing answer.
             log(what, null, millisSince(started), null, e.toString());
-            throw new MonetaException.NoAnswer(what + " did not get an answer", e);
+            throw new MonetaNoAnswerException(what + " did not get an answer", e);
         } catch (InterruptedException e) {
-            // Whoever owns the thread asked it to stop; that is not MONETA failing, so it is not a MonetaException
+            // Whoever owns the thread asked it to stop; that is not MONETA failing, so it is not a MonetaApiException
             // a retry would catch. Kotlin's coroutines read this type as cancellation.
             Thread.currentThread().interrupt();
             var cancelled = new CancellationException(what + " was interrupted");
@@ -409,9 +409,9 @@ public final class MonetaClient implements AutoCloseable {
             case 2 -> new Answer<>(parse(call, () -> JSON.readValue(response.body(), type)), call);
             default ->
                 throw switch (status) {
-                    case 401, 403 -> new MonetaException.InvalidToken(message, status, excerpt(response));
-                    case 429 -> new MonetaException.RateLimited(message, retryAfter(response));
-                    default -> new MonetaException.HttpError(message, status, excerpt(response), retryAfter(response));
+                    case 401, 403 -> new MonetaInvalidTokenException(message, status, excerpt(response));
+                    case 429 -> new MonetaRateLimitedException(message, retryAfter(response));
+                    default -> new MonetaHttpErrorException(message, status, excerpt(response), retryAfter(response));
                 };
         };
     }
@@ -459,10 +459,10 @@ public final class MonetaClient implements AutoCloseable {
         try {
             value = read.get();
         } catch (RuntimeException e) {
-            throw new MonetaException.InvalidResponse(what + " returned a body this library cannot read", e);
+            throw new MonetaInvalidResponseException(what + " returned a body this library cannot read", e);
         }
         if (value == null) {
-            throw new MonetaException.InvalidResponse(what + " returned null", null);
+            throw new MonetaInvalidResponseException(what + " returned null", null);
         }
         return value;
     }
@@ -562,7 +562,7 @@ public final class MonetaClient implements AutoCloseable {
          * does not pass {@code close()} on leaks nothing, and a different client returned instead would bypass
          * both that and the library's settings. Whatever the decorator itself allocates is the caller's. Several
          * apply once per {@link #build()}, the first added innermost. An unchecked {@code UncheckedIOException}
-         * from the wrapper becomes {@link MonetaException.NoAnswer}; any other exception passes through as it is.
+         * from the wrapper becomes {@link MonetaNoAnswerException}; any other exception passes through as it is.
          */
         public Builder decorateHttpClient(UnaryOperator<HttpClient> decorator) {
             requireNonNull(decorator, "decorator");

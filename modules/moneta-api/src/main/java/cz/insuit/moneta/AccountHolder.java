@@ -46,7 +46,7 @@ public final class AccountHolder {
      * The only account's balance.
      *
      * @throws IllegalStateException when the token opens other than exactly one account
-     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws MonetaApiException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
      * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
      */
     public Balance balance() {

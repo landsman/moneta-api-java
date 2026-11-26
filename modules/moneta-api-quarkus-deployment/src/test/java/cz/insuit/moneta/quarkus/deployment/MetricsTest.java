@@ -6,8 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import cz.insuit.moneta.AccessToken;
 import cz.insuit.moneta.HttpClientDecorator;
+import cz.insuit.moneta.MonetaApiException;
 import cz.insuit.moneta.MonetaClient;
-import cz.insuit.moneta.MonetaException;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.java11.instrument.binder.jdk.MicrometerHttpClient;
 import io.quarkus.test.QuarkusUnitTest;
@@ -46,7 +46,7 @@ class MetricsTest {
     @Test
     void timesTheCallTaggedByItsTemplateNotTheAccount() {
         // FakeMoneta answers every path with accounts, so reading the balance fails; the call is timed all the same.
-        assertThrows(MonetaException.class, () -> moneta.balance(token, "acc-1"));
+        assertThrows(MonetaApiException.class, () -> moneta.balance(token, "acc-1"));
 
         var timer = meters.get("http.client.requests")
                 .tag("uri", "/api/v4/vip/aisp/my/accounts/{accountId}/balance")
