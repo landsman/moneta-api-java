@@ -82,7 +82,7 @@ public final class TransactionQuery {
      *     token opens other than exactly one
      * @throws IllegalArgumentException when {@code to} is before {@code from}, or the account id is blank or a
      *     dot segment
-     * @throws MonetaException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
+     * @throws MonetaApiException when MONETA refuses, fails or answers in an unexpected shape; see its subtypes
      * @throws CancellationException when the thread is interrupted; its interrupt flag stays set
      */
     public List<Transaction> list() {

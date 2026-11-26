@@ -2,7 +2,7 @@
 
 ## Kotlin
 
-The JSpecify annotations make `iban` a `String?` and a `when` over `MonetaException` exhaustive without an
+The JSpecify annotations make `iban` a `String?` and a `when` over `MonetaApiException` exhaustive without an
 `else`, enforced from Kotlin 2.1. Kotlin 1.9, which Spring Boot 3 manages, only warns; add
 `-Xjspecify-annotations=strict` to the compiler options to make it an error.
 
@@ -97,7 +97,7 @@ What to know before relying on it:
 - **The JDK client cannot do everything** an OkHttp or Apache stack can: a SOCKS proxy is skipped silently, Basic
   auth on an HTTPS proxy tunnel is off by default (`jdk.http.auth.tunneling.disabledSchemes`), NTLM is missing,
   and interceptors written for those stacks do not apply. There is no transport hook for them yet.
-- **A failure inside a wrapper**: an `UncheckedIOException` becomes `MonetaException.NoAnswer`, anything else
+- **A failure inside a wrapper**: an `UncheckedIOException` becomes `MonetaNoAnswerException`, anything else
   reaches you as it was thrown.
 - **`httpClient(…)`** still takes a client of your own, which you close, and which brings its own redirects,
   cookies and timeouts; `configureHttpClient` is refused beside it.

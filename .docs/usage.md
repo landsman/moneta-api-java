@@ -118,21 +118,21 @@ holders.forEach { moneta.with(it.token).transactions().between(from, to).list() 
 
 ## Failures
 
-A sealed `MonetaException`, so a `switch` over it is exhaustive:
+A sealed `MonetaApiException`, so a `switch` over it is exhaustive. Each subtype is a top-level class in `cz.insuit.moneta`:
 
 | Subtype | When | Do |
 |---------|------|----|
-| `InvalidToken` | 401, 403 | get a new token |
-| `RateLimited` | 429 | wait `retryAfter()` |
-| `HttpError` | any other status | `body()` has MONETA's answer |
-| `NoAnswer` | timeout, refused connection | retry |
-| `InvalidResponse` | an unexpected body | report it |
+| `MonetaInvalidTokenException` | 401, 403 | get a new token |
+| `MonetaRateLimitedException` | 429 | wait `retryAfter()` |
+| `MonetaHttpErrorException` | any other status | `body()` has MONETA's answer |
+| `MonetaNoAnswerException` | timeout, refused connection | retry |
+| `MonetaInvalidResponseException` | an unexpected body | report it |
 
 An interrupted thread throws `CancellationException` instead, interrupt flag kept.
 
 Each message names the request and, when MONETA sent one, its `X-Request-Id`, which MONETA's support asks for
 about one call: `GET /api/v4/vip/aisp/my/accounts?size=100&page=0 (X-Request-Id 7f3c…) answered 503`. Never the
-token, nor the body; `body()` on `InvalidToken` and `HttpError` has the start of it.
+token, nor the body; `body()` on `MonetaInvalidTokenException` and `MonetaHttpErrorException` has the start of it.
 
 ## Logging
 

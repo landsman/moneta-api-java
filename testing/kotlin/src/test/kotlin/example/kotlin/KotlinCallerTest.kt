@@ -1,6 +1,11 @@
 package example.kotlin
 
-import cz.insuit.moneta.MonetaException
+import cz.insuit.moneta.MonetaApiException
+import cz.insuit.moneta.MonetaHttpErrorException
+import cz.insuit.moneta.MonetaInvalidResponseException
+import cz.insuit.moneta.MonetaInvalidTokenException
+import cz.insuit.moneta.MonetaNoAnswerException
+import cz.insuit.moneta.MonetaRateLimitedException
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
@@ -17,17 +22,17 @@ import kotlin.io.path.writeText
 class KotlinCallerTest {
     @Test
     fun aWhenOverEveryFailureNeedsNoElse() {
-        // Compiles only while Kotlin sees MonetaException as sealed.
-        fun action(failure: MonetaException): String =
+        // Compiles only while Kotlin sees MonetaApiException as sealed.
+        fun action(failure: MonetaApiException): String =
             when (failure) {
-                is MonetaException.InvalidToken -> "ask for a new token"
-                is MonetaException.RateLimited -> "wait"
-                is MonetaException.HttpError -> "report"
-                is MonetaException.NoAnswer -> "retry"
-                is MonetaException.InvalidResponse -> "report"
+                is MonetaInvalidTokenException -> "ask for a new token"
+                is MonetaRateLimitedException -> "wait"
+                is MonetaHttpErrorException -> "report"
+                is MonetaNoAnswerException -> "retry"
+                is MonetaInvalidResponseException -> "report"
             }
 
-        assertEquals("wait", action(MonetaException.RateLimited("slow", null)))
+        assertEquals("wait", action(MonetaRateLimitedException("slow", null)))
     }
 
     @Test

@@ -19,14 +19,14 @@ enum CreditDebit {
         return switch (code) {
             case "CRDT" -> CRDT;
             case "DBIT" -> DBIT;
-            default -> throw new MonetaException.InvalidResponse("unknown creditDebitIndicator '" + code + "'", null);
+            default -> throw new MonetaInvalidResponseException("unknown creditDebitIndicator '" + code + "'", null);
         };
     }
 
     /** The amount with this direction as its sign. A negative one would be signed twice, so it is refused. */
     Money signed(AmountJson amount) {
         if (amount.value().signum() < 0) {
-            throw new MonetaException.InvalidResponse("a negative amount beside creditDebitIndicator", null);
+            throw new MonetaInvalidResponseException("a negative amount beside creditDebitIndicator", null);
         }
         var unsigned = new Money(amount.value(), amount.currency());
         return switch (this) {

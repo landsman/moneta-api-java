@@ -9,7 +9,7 @@ import tools.jackson.databind.JsonNode;
  * them by those names, so a key is written once, in its record, and the rest of the library reads typed fields.
  * The types end in {@code Json}, so they are not taken for the library's own model. Unknown keys are
  * ignored. A key the library relies on is checked in the compact constructor, so a missing one fails at
- * binding, as {@link MonetaException.InvalidResponse}, and not as a null three calls later.
+ * binding, as {@link MonetaInvalidResponseException}, and not as a null three calls later.
  *
  * <p>{@code PageJson} itself is one page of a list. Its items stay JSON trees, so each one can be kept verbatim
  * besides being bound.

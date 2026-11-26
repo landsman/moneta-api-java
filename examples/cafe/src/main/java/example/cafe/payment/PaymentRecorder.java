@@ -1,8 +1,8 @@
 package example.cafe.payment;
 
 import cz.insuit.moneta.AccessToken;
+import cz.insuit.moneta.MonetaApiException;
 import cz.insuit.moneta.MonetaClient;
-import cz.insuit.moneta.MonetaException;
 import cz.insuit.moneta.Transaction;
 import example.cafe.CafeAccount;
 import example.cafe.bill.Bill;
@@ -59,7 +59,7 @@ public class PaymentRecorder {
     void recordOnSchedule() {
         try {
             record();
-        } catch (MonetaException e) {
+        } catch (MonetaApiException e) {
             // The next round tries again; a bank that is down is not the café's bug.
             log.warn("Could not read payments: {}", e.getMessage());
         }

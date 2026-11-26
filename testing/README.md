@@ -15,7 +15,7 @@ break it unnoticed. `make build` runs them with the library's own tests, which s
 | `micronaut/5.2.5` | the same jar, compiled for Micronaut 4, loads and binds on Micronaut 5; runs on JDK 25 whatever `-PtestsJdk` says |
 | `quarkus/3.33.4` | the Quarkus extension on the Quarkus it is compiled against, with the platform BOM a caller imports and no Micrometer |
 | `quarkus/3.40.1` | the same jar on the current LTS, with `quarkus-micrometer` but not `micrometer-java11`, so the extension's metrics stay off without a missing class; `make native-test` also builds it native, with the Jackson fix from [compatibility](../.docs/compatibility.md#quarkus), and runs it on Linux |
-| `kotlin` | a `when` over `MonetaException` needs no `else`, and a nullable component is nullable in Kotlin |
+| `kotlin` | a `when` over `MonetaApiException` needs no `else`, and a nullable component is nullable in Kotlin |
 | `native` | the client's metadata is enough for a native image: built by `make native-test`, not `make build`, it prints the same as on the JVM |
 
 Each Spring Boot version is a folder whose `build.gradle.kts` imports its BOM, plus whatever only that version
