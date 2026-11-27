@@ -17,11 +17,6 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-java {
-    withSourcesJar()
-    withJavadocJar()
-}
-
 tasks.jar {
     // Pinned, so a JPMS caller's `requires` does not change with the jar's file name.
     manifest { attributes("Automatic-Module-Name" to "cz.insuit.moneta") }

@@ -50,8 +50,3 @@ dependencyAnalysis {
         onUsedTransitiveDependencies { exclude("org.springframework.boot:spring-boot-configuration-processor") }
     }
 }
-
-java {
-    withSourcesJar()
-    withJavadocJar()
-}

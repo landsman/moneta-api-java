@@ -42,11 +42,6 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-java {
-    withSourcesJar()
-    withJavadocJar()
-}
-
 tasks.compileJava {
     // As in the runtime module: no config docs outside a Maven build.
     options.compilerArgs.add("-AgenerateDoc=false")

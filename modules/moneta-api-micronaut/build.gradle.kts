@@ -39,11 +39,6 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-java {
-    withSourcesJar()
-    withJavadocJar()
-}
-
 dependencyAnalysis {
     // It writes the $Definition classes Micronaut loads instead of scanning; the analysis only sees that no
     // annotation of its own is used.

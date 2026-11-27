@@ -59,12 +59,40 @@ waits for the publish and writes the release page, a pre-release while it is 0.x
     git tag -a v0.1.0 -m "v0.1.0"                      # annotated, so it records who tagged it and when
     git push origin v0.1.0                             # this push starts the release
 
-[release.yml](../.github/workflows/release.yml) then builds, tests and publishes every jar to GitHub Packages
-(`gh run watch` follows it). Once it is green, write the release page for the tag, with what changed for a user:
+[release.yml](../.github/workflows/release.yml) then builds, tests, signs and publishes every jar to Maven Central
+(`gh run watch` follows it; the job waits until Central has published them). Once it is green, write the release
+page for the tag, with what changed for a user:
 
     gh release create v0.1.0 --verify-tag --generate-notes     # --prerelease while it is 0.x
 
-`--verify-tag` refuses to create a tag that was not pushed, so the page never starts a release of its own. A
-version, once published, cannot be published again; the next fix is the next tag. `make publish` is what the
-workflow runs; from a laptop it needs `GITHUB_ACTOR` and a `GITHUB_TOKEN` with `write:packages`, and is not the
-intended way to release.
+`--verify-tag` refuses to create a tag that was not pushed, so the page never starts a release of its own.
+**Central is immutable**: a version, once published, can never be replaced or deleted, and the next fix is the next
+tag. A `-rc` tag (`v0.6.0-rc1`) tries the pipeline without taking a real version number. `make publish` is what
+the workflow runs, and is not the intended way to release.
+
+Up to 0.5.0 releases went to GitHub Packages, and stay there; from 0.6.0 on only Central has them.
+
+### Maven Central, set up once
+
+None of this is in code, so it is written down here. The namespace and the signing key are shared by every
+`cz.insuit` library, so with another one already on Central only the four repository secrets are new.
+
+1. **Namespace.** On the [Central Portal](https://central.sonatype.com/), signed in, *Namespaces → Add namespace*
+   `cz.insuit`, then add the TXT record it shows to `insuit.cz` and press *Verify*.
+2. **User token.** *Account → Generate User Token*. Its two halves go into the repository secrets
+   `MAVEN_CENTRAL_USERNAME` and `MAVEN_CENTRAL_PASSWORD`; keep a copy in 1Password, the Portal shows it once.
+3. **Signing key**, kept in 1Password, never in a repo:
+
+   ```sh
+   gpg --quick-gen-key "Michal Landsman (release signing)" rsa4096 sign 3y
+   gpg --keyserver keyserver.ubuntu.com --send-keys <key id>
+   gpg --armor --export-secret-keys <key id> | gh secret set SIGNING_KEY -R landsman/moneta-api-java
+   gh secret set SIGNING_KEY_PASSWORD -R landsman/moneta-api-java   # its passphrase, typed
+   ```
+
+   RSA and a primary key that signs, no subkey: Central's
+   [GPG page](https://central.sonatype.org/publish/requirements/gpg/) shows RSA and verifies against the primary
+   key only. The token secrets go in the same way: `gh secret set MAVEN_CENTRAL_USERNAME -R landsman/moneta-api-java`.
+
+Without the signing key the build still publishes to `~/.m2` (`make publish-local`), unsigned; Central refuses
+an unsigned upload, so a release without the secrets fails at the Portal's validation, before anything is public.

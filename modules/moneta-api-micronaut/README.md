@@ -8,7 +8,7 @@ Micronaut 4.10 and 5; [testing/micronaut](../../testing/README.md) checks each.
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("cz.insuit:moneta-api-micronaut:0.2.0")
+    implementation("cz.insuit:moneta-api-micronaut:0.6.0")
 }
 ```
 
@@ -19,14 +19,11 @@ dependencies {
 <dependency>
     <groupId>cz.insuit</groupId>
     <artifactId>moneta-api-micronaut</artifactId>
-    <version>0.2.0</version>
+    <version>0.6.0</version>
 </dependency>
 ```
 
 </details>
-
-GitHub Packages asks for a token even for a public package: the repository block and the token are in
-[Installing](../../.docs/install.md).
 
 ## With a coding assistant
 
@@ -36,8 +33,8 @@ Paste this into it:
 Add the MONETA API client to this Micronaut project.
 
 1. Read https://github.com/landsman/moneta-api-java/blob/main/llms.txt and https://github.com/landsman/moneta-api-java/blob/main/modules/moneta-api-micronaut/README.md first. Do not guess the API.
-2. Dependency: cz.insuit:moneta-api-micronaut:0.2.0 from GitHub Packages, with Gradle or Maven, as
-   https://github.com/landsman/moneta-api-java/blob/main/.docs/install.md shows. Never write a token into the project.
+2. Dependency: cz.insuit:moneta-api-micronaut:0.6.0 from Maven Central, with Gradle or Maven, as
+   https://github.com/landsman/moneta-api-java/blob/main/.docs/install.md shows.
 3. Configuration: moneta.token: ${MONETA_TOKEN} in application.yml.
 4. Code: inject MonetaClient and AccessToken. Bind the token with moneta.with(token), read with
    transactions().between(from, to), narrowed by incoming(), outgoing(), transfers(),

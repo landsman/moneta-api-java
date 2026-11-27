@@ -13,7 +13,6 @@ concurrency:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   publish:
@@ -27,5 +26,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - run: make publish
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # The Central Portal user token and the release signing key; .docs/development.md says where each comes from.
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
           RELEASE_VERSION: ${{ github.ref_name }}
