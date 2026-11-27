@@ -8,12 +8,11 @@ This is a client for that API, **MONETA API**, for Java 17+ and Kotlin projects,
 Play Framework module, a Micronaut module and a Quarkus extension. It reads accounts and transactions so far; payments are not covered
 yet. Its only dependencies are Jackson and JSpecify.
 
-Checked against the live API, see [how it behaves](.docs/moneta-api.md). Published on GitHub Packages, not
-Maven Central.
+Checked against the live API, see [how it behaves](.docs/moneta-api.md). Published on Maven Central.
 
 | Read | For |
 |---|---|
-| [Installing](.docs/install.md) | the artifacts on GitHub Packages, for Gradle and Maven |
+| [Installing](.docs/install.md) | the dependency lines for Gradle and Maven |
 | [Getting access](.docs/access.md) | who can use MONETA API, the merchant's token, the developer portal |
 | [Using the client](.docs/usage.md) | accounts, transactions, money, symbols, failures |
 | [Spring Boot starter](modules/moneta-api-spring-boot-starter/README.md) | `moneta.*` in application.yml, a `MonetaClient` bean |

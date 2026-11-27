@@ -39,11 +39,6 @@ dependencies {
     annotationProcessor("io.quarkus:quarkus-extension-processor")
 }
 
-java {
-    withSourcesJar()
-    withJavadocJar()
-}
-
 quarkusExtension {
     deploymentModule = ":modules:moneta-api-quarkus-deployment"
 }

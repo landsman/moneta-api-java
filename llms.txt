@@ -2,16 +2,14 @@
 
 > A Java 17+ and Kotlin client for MONETA API, the free API of the Czech bank MONETA Money Bank for business
 > accounts: it reads accounts, balances and transactions with a token the account holder issues in Internet Banka.
-> Modules for Spring Boot, Play, Micronaut and Quarkus. Published on GitHub Packages (group `cz.insuit`), not Maven
-> Central. Pre-1.0: read records by accessor, never by record pattern.
+> Modules for Spring Boot, Play, Micronaut and Quarkus. Published on Maven Central (group `cz.insuit`). Pre-1.0:
+> read records by accessor, never by record pattern.
 
 Setting it up in a project:
 
 - Add the module for the project's framework, or `cz.insuit:moneta-api` without one; each module's README has
   the Gradle and Maven lines, sbt for Play, and a prompt for a coding assistant. The framework modules bring
   `moneta-api` with them; do not add both.
-- Add the GitHub Packages repository `https://maven.pkg.github.com/landsman/moneta-api-java`. It asks for a token
-  even for a public package (`read:packages`). Never write a token into the build file or the repository.
 - The MONETA token comes from the environment: `moneta.token` (Spring Boot, Play, Micronaut) or
   `quarkus.moneta.token` (Quarkus), which also provides an `AccessToken` bean.
 - One `MonetaClient` per application (framework modules provide it as a bean). Bind a token with
@@ -31,7 +29,7 @@ Mistakes to avoid:
 
 ## Docs
 
-- [Installing](https://github.com/landsman/moneta-api-java/blob/main/.docs/install.md): the repository block and the token, for Gradle and Maven
+- [Installing](https://github.com/landsman/moneta-api-java/blob/main/.docs/install.md): the dependency lines for Gradle and Maven
 - [Using the client](https://github.com/landsman/moneta-api-java/blob/main/.docs/usage.md): calls, filtering, more than one account, failures, logging
 - [How MONETA API behaves](https://github.com/landsman/moneta-api-java/blob/main/.docs/moneta-api.md): pending and booked movements, dates, ids, errors
 
